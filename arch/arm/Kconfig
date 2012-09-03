@@ -1554,6 +1554,12 @@ config USE_THIN_ARCHIVES
 	  Build the kernel using thin archives. Requires binutils 2.20 or newer.
 	  If you're unsure say N.
 
+config ARCH_SUPPORTS_LTO
+	bool "LTO supported?"
+	default n
+	help
+	  nothing.
+
 choice
 	prompt "Memory split"
 	default VMSPLIT_3G
