@@ -54,12 +54,18 @@
 
 #endif	/* CONFIG_THUMB2_KERNEL */
 
-#ifndef CONFIG_ARM_ASM_UNIFIED
-
+#if !defined(CONFIG_ARM_ASM_UNIFIED) && !defined(CONFIG_LTO)
 /*
  * If the unified assembly syntax isn't used (in ARM mode), these
- * macros expand to an empty string
+ * macros expand to an empty string.
+ *
+ * These macro definitions can leak between compilation units if LTO
+ * is enabled, causing post-LTO assembly failures.  Newer versions of
+ * gas will silently accept IT instructions even in non-unified mode.
+ * So we'll assume the tools are new enough in that case and skip the
+ * macro definitions.
  */
+
 #ifdef __ASSEMBLY__
 	.macro	it, cond
 	.endm
@@ -125,6 +131,6 @@ __asm__(
 "	.endm\n");
 #endif	/* __ASSEMBLY__ */
 
-#endif	/* CONFIG_ARM_ASM_UNIFIED */
+#endif	/* CONFIG_ARM_ASM_UNIFIED || CONFIG_LTO */
 
 #endif	/* !__ASM_UNIFIED_H */
