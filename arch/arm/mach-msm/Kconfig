@@ -74,6 +74,14 @@ config  ARCH_MSM_ARM11
 config  ARCH_MSM_SCORPION
 	bool
 
+config MSM_ASMP
+	bool "Enable kernel based auto smp"
+	depends on MSM_SMP
+	default n
+	help
+	  Automatically hotplugs the multiple cores of MSM cpus on/off
+	  based on demand and suspend
+
 config  MSM_VIC
 	bool
 
