@@ -6,4 +6,10 @@ source "arch/arm/hotplug/alucard/Kconfig"
 # AutoSMP hotplug
 source "arch/arm/hotplug/autosmp/Kconfig"
 
+config INTELLI_PLUG
+        bool "Enable intelli-plug cpu hotplug driver"
+        default n
+        help
+          Generic Intelli-plug cpu hotplug driver for ARM SOCs
+
 endmenu
