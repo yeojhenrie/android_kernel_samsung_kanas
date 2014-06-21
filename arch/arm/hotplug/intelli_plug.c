@@ -23,11 +23,16 @@
 #include <linux/input.h>
 #include <linux/cpufreq.h>
 
+#ifdef CONFIG_POWERSUSPEND
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif
+
 //#define DEBUG_INTELLI_PLUG
 #undef DEBUG_INTELLI_PLUG
 
 #define INTELLI_PLUG_MAJOR_VERSION	3
-#define INTELLI_PLUG_MINOR_VERSION	6
+#define INTELLI_PLUG_MINOR_VERSION	7
 
 #define DEF_SAMPLING_MS			(268)
 
@@ -57,7 +62,7 @@ module_param(nr_run_profile_sel, uint, 0644);
 //default to something sane rather than zero
 static unsigned int sampling_time = DEF_SAMPLING_MS;
 
-static unsigned int persist_count = 0;
+static int persist_count = 0;
 
 static bool suspended = false;
 
@@ -248,10 +253,12 @@ static void __cpuinit intelli_plug_work_fn(struct work_struct *work)
 		nr_cpus = num_online_cpus();
 
 		if (!suspended) {
+
+			if (persist_count > 0)
+				persist_count--;
+
 			switch (cpu_count) {
 			case 1:
-				if (persist_count > 0)
-					persist_count--;
 				if (persist_count == 0) {
 					//take down everyone
 					unplug_cpu(0);
@@ -261,7 +268,8 @@ static void __cpuinit intelli_plug_work_fn(struct work_struct *work)
 #endif
 				break;
 			case 2:
-				persist_count = DUAL_PERSISTENCE;
+				if (persist_count == 0)
+					persist_count = DUAL_PERSISTENCE;
 				if (nr_cpus < 2) {
 					for (i = 1; i < cpu_count; i++)
 						cpu_up(i);
@@ -273,7 +281,8 @@ static void __cpuinit intelli_plug_work_fn(struct work_struct *work)
 #endif
 				break;
 			case 3:
-				persist_count = TRI_PERSISTENCE;
+				if (persist_count == 0)
+					persist_count = TRI_PERSISTENCE;
 				if (nr_cpus < 3) {
 					for (i = 1; i < cpu_count; i++)
 						cpu_up(i);
@@ -285,7 +294,8 @@ static void __cpuinit intelli_plug_work_fn(struct work_struct *work)
 #endif
 				break;
 			case 4:
-				persist_count = QUAD_PERSISTENCE;
+				if (persist_count == 0)
+					persist_count = QUAD_PERSISTENCE;
 				if (nr_cpus < 4)
 					for (i = 1; i < cpu_count; i++)
 						cpu_up(i);
@@ -307,7 +317,7 @@ static void __cpuinit intelli_plug_work_fn(struct work_struct *work)
 		msecs_to_jiffies(sampling_time));
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
+#if defined(CONFIG_POWERSUSPEND) || defined(CONFIG_HAS_EARLYSUSPEND)
 static void screen_off_limit(bool on)
 {
 	unsigned int i, ret;
@@ -336,7 +346,11 @@ static void screen_off_limit(bool on)
 	}
 }
 
-static void intelli_plug_early_suspend(struct early_suspend *handler)
+#ifdef CONFIG_POWERSUSPEND
+static void intelli_plug_suspend(struct power_suspend *handler)
+#else
+static void intelli_plug_suspend(struct early_suspend *handler)
+#endif
 {
 	int cpu;
 	
@@ -369,7 +383,11 @@ static void wakeup_boost(void)
 	}
 }
 
-static void __cpuinit intelli_plug_late_resume(struct early_suspend *handler)
+#ifdef CONFIG_POWERSUSPEND
+static void __cpuinit intelli_plug_resume(struct power_suspend *handler)
+#else
+static void __cpuinit intelli_plug_resume(struct early_suspend *handler)
+#endif
 {
 	int num_of_active_cores;
 	int i;
@@ -393,11 +411,20 @@ static void __cpuinit intelli_plug_late_resume(struct early_suspend *handler)
 	queue_delayed_work_on(0, intelliplug_wq, &intelli_plug_work,
 		msecs_to_jiffies(10));
 }
+#endif
 
-static struct early_suspend intelli_plug_early_suspend_struct_driver = {
-	.level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 10,
-	.suspend = intelli_plug_early_suspend,
-	.resume = intelli_plug_late_resume,
+#ifdef CONFIG_POWERSUSPEND
+static struct power_suspend intelli_plug_power_suspend_driver = {
+	.suspend = intelli_plug_suspend,
+	.resume = intelli_plug_resume,
+};
+#endif  /* CONFIG_POWERSUSPEND */
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static struct early_suspend intelli_plug_early_suspend_driver = {
+        .level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 10,
+        .suspend = intelli_plug_suspend,
+        .resume = intelli_plug_resume,
 };
 #endif	/* CONFIG_HAS_EARLYSUSPEND */
 
@@ -494,6 +521,12 @@ int __init intelli_plug_init(void)
 	}
 
 	rc = input_register_handler(&intelli_plug_input_handler);
+#ifdef CONFIG_POWERSUSPEND
+	register_power_suspend(&intelli_plug_power_suspend_driver);
+#endif
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	register_early_suspend(&intelli_plug_early_suspend_driver);
+#endif
 	intelliplug_wq = alloc_workqueue("intelliplug",
 				WQ_HIGHPRI | WQ_UNBOUND, 1);
 	intelliplug_boost_wq = alloc_workqueue("iplug_boost",
@@ -503,9 +536,6 @@ int __init intelli_plug_init(void)
 	queue_delayed_work_on(0, intelliplug_wq, &intelli_plug_work,
 		msecs_to_jiffies(10));
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	register_early_suspend(&intelli_plug_early_suspend_struct_driver);
-#endif
 	return 0;
 }
 
