@@ -1013,6 +1013,10 @@ static void kcryptd_io_write(struct dm_crypt_io *io)
 
 #define crypt_io_from_node(node) rb_entry((node), struct dm_crypt_io, rb_node)
 
+#ifdef CONFIG_INTELLI_PLUG
+extern void intelli_plug_perf_boost(bool);
+#endif
+
 static int dmcrypt_write(void *data)
 {
 	struct crypt_config *cc = data;
@@ -1066,6 +1070,9 @@ pop_from_list:
 			kcryptd_io_write(io);
 		} while (!RB_EMPTY_ROOT(&write_tree));
 		blk_finish_plug(&plug);
+#ifdef CONFIG_INTELLI_PLUG
+		intelli_plug_perf_boost(false);
+#endif
 	}
 	return 0;
 }
@@ -1692,6 +1699,9 @@ static int crypt_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 		ti->error = "Couldn't spawn write thread";
 		goto bad;
 	}
+#ifdef CONFIG_INTELLI_PLUG
+	intelli_plug_perf_boost(true);
+#endif
 	wake_up_process(cc->write_thread);
 
 	ti->num_flush_bios = 1;
