@@ -24,6 +24,10 @@
  * $Id: dhd_sdio.c 456607 2014-02-19 09:26:42Z $
  */
 
+#include <linux/mmc/host.h>
+#include <linux/mmc/card.h>
+#include <linux/mmc/sdio_func.h>
+
 #include <typedefs.h>
 #include <osl.h>
 #include <bcmsdh.h>
@@ -56,6 +60,10 @@
 #include <sbsdpcmdev.h>
 #include <bcmsdpcm.h>
 #include <bcmsdbus.h>
+#include <linux/mmc/sdio_func.h>
+#include <linux/mmc/card.h>
+#include <linux/mmc/host.h>
+#include <bcmsdh_sdmmc.h>
 
 #include <proto/ethernet.h>
 #include <proto/802.1d.h>
@@ -1838,6 +1846,9 @@ static int dhdsdio_txpkt_preprocess(dhd_bus_t *bus, void *pkt, int chan, int txs
 	uint32 swhdr_offset;
 	bool alloc_new_pkt = FALSE;
 	uint8 sdpcm_hdrlen = bus->txglom_enable ? SDPCM_HDRLEN_TXGLOM : SDPCM_HDRLEN;
+	struct sdioh_info *sd = bus->sdh->sdioh;
+	struct sdio_func *sdio_func = sd->func[0];
+	struct mmc_host *host = sdio_func->card->host;
 
 	*new_pkt = NULL;
 	osh = bus->dhd->osh;
@@ -1915,7 +1926,7 @@ static int dhdsdio_txpkt_preprocess(dhd_bus_t *bus, void *pkt, int chan, int txs
 			 * Use the padding packet to avoid memory copy if applicable,
 			 * otherwise, just allocate a new pkt.
 			 */
-			if (bus->pad_pkt) {
+			if (bus->pad_pkt && (host->max_segs > 1)) {
 				*pad_pkt_len = chain_tail_padding;
 				bus->tx_tailpad_chain++;
 			} else {
