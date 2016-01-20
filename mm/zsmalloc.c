@@ -329,7 +329,12 @@ static void cache_free_zspage(struct zs_pool *pool, struct zspage *zspage)
 
 static void record_obj(unsigned long handle, unsigned long obj)
 {
-	*(unsigned long *)handle = obj;
+	/*
+	 * lsb of @obj represents handle lock while other bits
+	 * represent object value the handle is pointing so
+	 * updating shouldn't do store tearing.
+	 */
+	ASSIGN_ONCE(obj, *(unsigned long *)handle);
 }
 
 /* zpool driver */
@@ -1645,6 +1650,13 @@ static int migrate_zspage(struct zs_pool *pool, struct size_class *class,
 		free_obj = obj_malloc(class, get_zspage(d_page), handle);
 		zs_object_copy(class, free_obj, used_obj);
 		obj_idx++;
+		/*
+		 * record_obj updates handle's value to free_obj and it will
+		 * invalidate lock bit(ie, HANDLE_PIN_BIT) of handle, which
+		 * breaks synchronization using pin_tag(e,g, zs_free) so
+		 * let's keep the lock bit.
+		 */
+		free_obj |= BIT(HANDLE_PIN_BIT);
 		record_obj(handle, free_obj);
 		unpin_tag(handle);
 		obj_free(class, used_obj);
