@@ -83,7 +83,7 @@ static long sprd_heap_ioctl(struct ion_client *client, unsigned int cmd,
 		handle = ion_import_dma_buf(client, data.fd_buffer);
 
 		if (IS_ERR(handle)){
-			pr_err("sprd_heap_ioctl alloc handle=0x%lx error!\n", (unsigned long)handle);
+			pr_err("sprd_heap_ioctl alloc handle=0x%x error!\n", (unsigned long)handle);
 			return PTR_ERR(handle);
 		}
 
@@ -101,7 +101,7 @@ static long sprd_heap_ioctl(struct ion_client *client, unsigned int cmd,
 			return -EFAULT;
 		}
 
-		pr_debug("sprd_heap_ioctl alloc paddress=0x%lx size=0x%x\n",data.phys,data.size);
+		pr_debug("sprd_heap_ioctl alloc paddress=0x%x size=0x%x\n",data.phys,data.size);
 		break;
 	}
 	case ION_SPRD_CUSTOM_MSYNC:
@@ -133,11 +133,11 @@ static long sprd_heap_ioctl(struct ion_client *client, unsigned int cmd,
 		}
 
 		if ((int)data.vaddr & (PAGE_SIZE - 1)){
-			pr_err("sprd_heap_ioctl free data.vaddr=%p error!\n",data.vaddr);
+			pr_err("sprd_heap_ioctl free data.vaddr=0x%x error!\n",data.vaddr);
 			return -EFAULT;
 		}
 
-		pr_debug("sprd_heap_ioctl free vaddress=%p paddress=%p size=0x%x\n",data.vaddr,data.paddr,data.size);
+		pr_debug("sprd_heap_ioctl free vaddress=0x%x paddress=0x%x size=0x%x\n",data.vaddr,data.paddr,data.size);
 		dmac_flush_range(data.vaddr, data.vaddr + data.size);
 
 		v_addr = data.vaddr;
