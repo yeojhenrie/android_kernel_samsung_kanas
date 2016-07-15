@@ -1,10 +1,13 @@
-sudo: false
+sudo: required
 language: c
 cache: ccache
 script:
 #
 # Travis CI Script by Caio Oliveira aka Caio99BR <caiooliveirafarias0@gmail.com>
 #
+
+# The build.sh need 'bc' because timeconst.bc
+- sudo apt-get install bc -y
 
 #
 # Toolchain Choice
