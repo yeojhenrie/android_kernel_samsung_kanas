@@ -16,8 +16,8 @@ clear
 # Devices available
 #
 # Samsung Core 2
-device_variants_1="SM-G355H SM-G355HN SM-G355M" device_defconfig_1="cyanogenmod_sa_defconfig" device_name_1="Samsung-Core2"
-device_variants_2="SM-G355H SM-G355HN SM-G355M" device_defconfig_2="cyanogenmod_kanas_defconfig" device_name_2="Samsung-Core2"
+device_variants_1="SM-G355H SM-G355HN SM-G355M" device_defconfig_1="cyanogenmod_sa_defconfig" device_name_1="Samsung-Core2-SA"
+device_variants_2="SM-G355H SM-G355HN SM-G355M" device_defconfig_2="cyanogenmod_kanas_defconfig" device_name_2="Samsung-Core2-KANAS"
 # Menu
 echo "${x} | ${color_green}Device choice${color_stock}"
 echo
@@ -254,8 +254,8 @@ then
 	color_yellow=$(tput bold)$(tput setaf 3)
 	color_blue=$(tput bold)$(tput setaf 4)
 	# Main Variables
-	custom_kernel=SSProj-CAFKernel
-	builder=TeamVee-SS
+	custom_kernel=KanasProj-CAFKernel
+	builder=Caio99BR
 	custom_kernel_branch=KK
 	ARCH=arm
 
