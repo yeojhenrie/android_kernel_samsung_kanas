@@ -602,11 +602,12 @@ static int pinconf_dbg_config_print(struct seq_file *s, void *d)
 {
 	struct pinctrl_maps *maps_node;
 	const struct pinctrl_map *map;
-	const struct pinctrl_map *found = NULL;
-	struct pinctrl_dev *pctldev;
+	struct pinctrl_dev *pctldev = NULL;
 	const struct pinconf_ops *confops = NULL;
+	const struct pinctrl_map_configs *configs;
 	struct dbg_cfg *dbg = &pinconf_dbg_conf;
 	int i, j;
+	bool found = false;
 	unsigned long config;
 
 	mutex_lock(&pinctrl_maps_mutex);
@@ -623,8 +624,14 @@ static int pinconf_dbg_config_print(struct seq_file *s, void *d)
 		for (j = 0; j < map->data.configs.num_configs; j++) {
 			if (!strcmp(map->data.configs.group_or_pin,
 					dbg->pin_name)) {
-				/* We found the right pin / state */
-				found = map;
+				/*
+				 * We found the right pin / state, read the
+				 * config and he pctldev for later use
+				 */
+				configs = &map->data.configs;
+				pctldev = get_pinctrl_dev_from_devname
+					(map->ctrl_dev_name);
+				found = true;
 				break;
 			}
 		}
@@ -640,8 +647,7 @@ static int pinconf_dbg_config_print(struct seq_file *s, void *d)
 		goto exit;
 	}
 
-	pctldev = get_pinctrl_dev_from_devname(found->ctrl_dev_name);
-	config = *found->data.configs.configs;
+	config = *(configs->configs);
 	seq_printf(s, "Dev %s has config of %s in state %s: 0x%08lX\n",
 			dbg->dev_name, dbg->pin_name,
 			dbg->state_name, config);
@@ -668,17 +674,17 @@ exit:
  * <devicename> <state> <pinname> are values that should match the pinctrl-maps
  * <newvalue> reflects the new config and is driver dependant
  */
-static ssize_t pinconf_dbg_config_write(struct file *file,
+static int pinconf_dbg_config_write(struct file *file,
 	const char __user *user_buf, size_t count, loff_t *ppos)
 {
 	struct pinctrl_maps *maps_node;
 	const struct pinctrl_map *map;
-	const struct pinctrl_map *found = NULL;
-	struct pinctrl_dev *pctldev;
+	struct pinctrl_dev *pctldev = NULL;
 	const struct pinconf_ops *confops = NULL;
 	struct dbg_cfg *dbg = &pinconf_dbg_conf;
 	const struct pinctrl_map_configs *configs;
 	char config[MAX_NAME_LEN+1];
+	bool found = false;
 	char buf[128];
 	char *b = &buf[0];
 	int buf_size;
@@ -756,7 +762,10 @@ static ssize_t pinconf_dbg_config_write(struct file *file,
 
 		/*  we found the right pin / state, so overwrite config */
 		if (!strcmp(map->data.configs.group_or_pin, dbg->pin_name)) {
-			found = map;
+			found = true;
+			pctldev = get_pinctrl_dev_from_devname(
+					map->ctrl_dev_name);
+			configs = &map->data.configs;
 			break;
 		}
 	}
@@ -766,12 +775,10 @@ static ssize_t pinconf_dbg_config_write(struct file *file,
 		goto exit;
 	}
 
-	pctldev = get_pinctrl_dev_from_devname(found->ctrl_dev_name);
 	if (pctldev)
 		confops = pctldev->desc->confops;
 
 	if (confops && confops->pin_config_dbg_parse_modify) {
-		configs = &found->data.configs;
 		for (i = 0; i < configs->num_configs; i++) {
 			confops->pin_config_dbg_parse_modify(pctldev,
 						     config,

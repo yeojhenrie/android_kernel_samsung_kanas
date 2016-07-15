@@ -24,6 +24,44 @@ config LEDS_CLASS
 
 comment "LED drivers"
 
+config FLASHLIGHT
+	bool "Flashlight Support"
+	help
+	  This option enables the led sysfs class in /sys/class/flashlight.
+
+config RT_FLASH_LED
+	tristate "Richtek flash LED driver support"
+	depends on FLASHLIGHT
+	help
+	  Say Y here to enable Richtek's flash LED driver HAL architecture
+
+config FLED_RT5033
+	tristate "Richtek RT5033 flash LED driver"
+	depends on RT_FLASH_LED && MFD_RT5033
+	help
+	  A driver for Richtek RT5033 flash LED
+
+choice
+	prompt "Control method"
+	depends on FLED_RT5033
+	default FLED_RT5033_I2C
+	help
+	  Choose which control signal to use for enabling/disabling torch and flash light.
+
+config FLED_RT5033_I2C
+	bool "I2C"
+	help
+	  Use I2C to enable/disable torch and flash light.
+	  If unsure, say N.
+
+config FLED_RT5033_EXT_GPIO
+	bool "External(or ISP) GPIO"
+	help
+	  Use GPIO pins to enable/disable torch and flash light.
+	  If unsure, say N.
+
+endchoice
+
 config LEDS_88PM860X
 	tristate "LED Support for Marvell 88PM860x PMIC"
 	depends on LEDS_CLASS
@@ -287,26 +325,6 @@ config LEDS_PCA9633
 	  This option enables support for LEDs connected to the PCA9633
 	  LED driver chip accessed via the I2C bus.
 
-config LEDS_QPNP
-	tristate "Support for QPNP LEDs"
-	depends on SPMI && OF_SPMI
-	help
-	  This driver supports the leds functionality of Qualcomm PNP PMIC.  It
-	  includes RGB Leds, WLED and Flash Led.
-
-	  To compile this driver as a module, choose M here: the module will
-	  be called leds-qpnp.
-
-config LEDS_MSM_GPIO_FLASH
-	tristate "Support for GPIO Flash LEDs"
-	depends on GPIO_MSM_V3
-	help
-	  This driver supports the leds functionality of GPIO Flash LED. It
-	  includes flash mode and torch mode.
-
-	  To compile this driver as a module, choose M here: the module will
-	  be called leds-gpio-flash.
-
 config LEDS_WM831X_STATUS
 	tristate "LED support for status LEDs on WM831x PMICs"
 	depends on LEDS_CLASS
@@ -498,6 +516,23 @@ config LEDS_BLINKM
 	help
 	  This option enables support for the BlinkM RGB LED connected
 	  through I2C. Say Y to enable support for the BlinkM LED.
+
+config LEDS_SC8810_KB
+   tristate "LED Support for SC8810 keyboard backlight"
+
+config LEDS_SPRD_KB
+   tristate "LED Support for sprd keyboard backlight"
+   depends on LEDS_CLASS
+   default n
+   help
+     This option enables support.
+
+config LEDS_SPRD_RGB
+	tristate "LED Support for sprd rgb led"
+	depends on LEDS_CLASS
+	default n
+	help
+	  This option enables support.
 
 comment "LED Triggers"
 source "drivers/leds/trigger/Kconfig"

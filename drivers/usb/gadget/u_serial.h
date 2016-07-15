@@ -15,7 +15,7 @@
 #include <linux/usb/composite.h>
 #include <linux/usb/cdc.h>
 
-#define MAX_U_SERIAL_PORTS	4
+#define MAX_U_SERIAL_PORTS	6
 
 struct f_serial_opts {
 	struct usb_function_instance func_inst;
@@ -45,22 +45,11 @@ struct gserial {
 
 	/* REVISIT avoid this CDC-ACM support harder ... */
 	struct usb_cdc_line_coding port_line_coding;	/* 9600-8-N-1 etc */
-	u16				serial_state;
-
-	/* control signal callbacks*/
-	unsigned int (*get_dtr)(struct gserial *p);
-	unsigned int (*get_rts)(struct gserial *p);
 
 	/* notification callbacks */
 	void (*connect)(struct gserial *p);
 	void (*disconnect)(struct gserial *p);
 	int (*send_break)(struct gserial *p, int duration);
-	unsigned int (*send_carrier_detect)(struct gserial *p, unsigned int);
-	unsigned int (*send_ring_indicator)(struct gserial *p, unsigned int);
-	int (*send_modem_ctrl_bits)(struct gserial *p, int ctrl_bits);
-
-	/* notification changes to modem */
-	void (*notify_modem)(void *gser, u8 portno, int ctrl_bits);
 };
 
 /* utilities to allocate/free request and buffer */
@@ -75,17 +64,11 @@ void gserial_free_line(unsigned char port_line);
 int gserial_connect(struct gserial *, u8 port_num);
 void gserial_disconnect(struct gserial *);
 
-/* sdio related functions */
-int gsdio_setup(struct usb_gadget *g, unsigned n_ports);
-int gsdio_connect(struct gserial *, u8 port_num);
-void gsdio_disconnect(struct gserial *, u8 portno);
-
-int gsmd_setup(struct usb_gadget *g, unsigned n_ports);
-int gsmd_connect(struct gserial *, u8 port_num);
-void gsmd_disconnect(struct gserial *, u8 portno);
-
 /* functions are bound to configurations by a config or gadget driver */
 int gser_bind_config(struct usb_configuration *c, u8 port_num);
 int obex_bind_config(struct usb_configuration *c, u8 port_num);
+
+#define ACM_MODEM_PORT		0
+#define ACM_LOGGING_PORT	1
 
 #endif /* __U_SERIAL_H */

@@ -40,7 +40,6 @@
 #include <asm/thread_notify.h>
 #include <asm/stacktrace.h>
 #include <asm/mach/time.h>
-#include <asm/tls.h>
 
 #ifdef CONFIG_CC_STACKPROTECTOR
 #include <linux/stackprotector.h>
@@ -168,8 +167,7 @@ EXPORT_SYMBOL_GPL(arm_pm_restart);
  * This is our default idle handler.
  */
 
-extern void arch_idle(void);
-void (*arm_pm_idle)(void) = arch_idle;
+void (*arm_pm_idle)(void);
 
 static void default_idle(void)
 {
@@ -257,7 +255,6 @@ void machine_shutdown(void)
  */
 void machine_halt(void)
 {
-	preempt_disable();
 	smp_send_stop();
 
 	local_irq_disable();
@@ -272,7 +269,6 @@ void machine_halt(void)
  */
 void machine_power_off(void)
 {
-	preempt_disable();
 	smp_send_stop();
 
 	if (pm_power_off)
@@ -292,7 +288,6 @@ void machine_power_off(void)
  */
 void machine_restart(char *cmd)
 {
-	preempt_disable();
 	smp_send_stop();
 
 	/* Flush the console to make sure all the relevant messages make it
@@ -506,8 +501,7 @@ copy_thread(unsigned long clone_flags, unsigned long stack_start,
 	clear_ptrace_hw_breakpoint(p);
 
 	if (clone_flags & CLONE_SETTLS)
-		thread->tp_value[0] = childregs->ARM_r3;
-	thread->tp_value[1] = get_tpuser();
+		thread->tp_value = childregs->ARM_r3;
 
 	thread_notify(THREAD_NOTIFY_COPY, thread);
 

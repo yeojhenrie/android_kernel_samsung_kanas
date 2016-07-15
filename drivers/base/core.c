@@ -49,6 +49,14 @@ static struct kobject *dev_kobj;
 struct kobject *sysfs_dev_char_kobj;
 struct kobject *sysfs_dev_block_kobj;
 
+struct shutdown_watchdog {
+        struct device           *dev;
+        struct task_struct      *tsk;
+        struct timer_list       timer;
+};
+
+
+
 #ifdef CONFIG_BLOCK
 static inline int device_is_not_partition(struct device *dev)
 {
@@ -1835,12 +1843,62 @@ out:
 EXPORT_SYMBOL_GPL(device_move);
 
 /**
+ * shutdown_wd_handler - Driver shutdown watchdog handler.
+ *
+ * Called when a driver has timed out shutdown.
+ * There's not much we can do here to recover so BUG() out for
+ * a crash-dump
+ */
+static void shutdown_wd_handler(unsigned long data)
+{
+        struct shutdown_watchdog *wd = (void *)data;
+        struct device *dev      = wd->dev;
+        struct task_struct *tsk = wd->tsk;
+
+        dev_emerg(dev, "**** Shutdown device timeout ****\n");
+        show_stack(tsk, NULL);
+        BUG();
+}
+
+/**
+ * shutdown_wd_set - Enable shutdown watchdog for given device.
+ * @wd: Watchdog. Must be allocated on the stack.
+ * @dev: Device to handle.
+ */
+static void shutdown_wd_set(struct shutdown_watchdog *wd, struct device *dev)
+{
+        struct timer_list *timer = &wd->timer;
+
+        wd->dev = dev;
+        wd->tsk = get_current();
+
+        init_timer_on_stack(timer);
+        timer->expires = jiffies + HZ *10;
+        timer->function = shutdown_wd_handler;
+        timer->data = (unsigned long)wd;
+        add_timer(timer);
+}
+
+/**
+ * shutdown_wd_clear - Disable pm watchdog.
+ * @wd: Watchdog to disable.
+ */
+static void shutdown_wd_clear(struct shutdown_watchdog *wd)
+{
+        struct timer_list *timer = &wd->timer;
+
+        del_timer_sync(timer);
+        destroy_timer_on_stack(timer);
+}
+
+
+/**
  * device_shutdown - call ->shutdown() on each device to shutdown.
  */
 void device_shutdown(void)
 {
 	struct device *dev, *parent;
-
+	struct shutdown_watchdog wd;
 	spin_lock(&devices_kset->list_lock);
 	/*
 	 * Walk the devices list backward, shutting down each in turn.
@@ -1865,6 +1923,8 @@ void device_shutdown(void)
 		list_del_init(&dev->kobj.entry);
 		spin_unlock(&devices_kset->list_lock);
 
+		shutdown_wd_set(&wd, dev);
+
 		/* hold lock to avoid race with probe/release */
 		if (parent)
 			device_lock(parent);
@@ -1887,6 +1947,8 @@ void device_shutdown(void)
 		device_unlock(dev);
 		if (parent)
 			device_unlock(parent);
+
+		shutdown_wd_clear(&wd);
 
 		put_device(dev);
 		put_device(parent);
@@ -1960,6 +2022,7 @@ int dev_vprintk_emit(int level, const struct device *dev,
 	hdrlen = create_syslog_header(dev, hdr, sizeof(hdr));
 
 	return vprintk_emit(0, level, hdrlen ? hdr : NULL, hdrlen, fmt, args);
+	//return 0;
 }
 EXPORT_SYMBOL(dev_vprintk_emit);
 

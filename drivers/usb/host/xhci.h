@@ -1258,9 +1258,6 @@ struct xhci_td {
 	struct xhci_segment	*start_seg;
 	union xhci_trb		*first_trb;
 	union xhci_trb		*last_trb;
-
-	/* ZLP received in data stage of a control transfer */
-	bool			zlp_data;
 };
 
 /* xHCI command default timeout value */
@@ -1618,30 +1615,6 @@ static inline int xhci_link_trb_quirk(struct xhci_hcd *xhci)
 }
 
 /* xHCI debugging */
-
-/* Maximum debug message length */
-#define DBG_MSG_LEN   64UL
-
-/* Maximum number of messages */
-#define DBG_MAX_MSG   512UL
-#define TIME_BUF_LEN  20
-#define HEX_DUMP_LEN  72
-struct dbg_data {
-	char     (ctrl_buf[DBG_MAX_MSG])[DBG_MSG_LEN];
-	char     (data_buf[DBG_MAX_MSG])[DBG_MSG_LEN];
-	unsigned ctrl_idx;
-	rwlock_t ctrl_lck;
-	unsigned data_idx;
-	rwlock_t data_lck;
-	unsigned int log_events;
-	unsigned int log_payload;
-	unsigned int inep_log_mask;
-	unsigned int outep_log_mask;
-};
-
-void __maybe_unused
-xhci_dbg_log_event(struct dbg_data *d, struct urb *urb, char *event,
-		unsigned extra);
 void xhci_print_ir_set(struct xhci_hcd *xhci, int set_num);
 void xhci_print_registers(struct xhci_hcd *xhci);
 void xhci_dbg_regs(struct xhci_hcd *xhci);
@@ -1697,7 +1670,6 @@ void xhci_slot_copy(struct xhci_hcd *xhci,
 int xhci_endpoint_init(struct xhci_hcd *xhci, struct xhci_virt_device *virt_dev,
 		struct usb_device *udev, struct usb_host_endpoint *ep,
 		gfp_t mem_flags);
-void xhci_reinit_xfer_ring(struct xhci_ring *ring, unsigned int cycle_state);
 void xhci_ring_free(struct xhci_hcd *xhci, struct xhci_ring *ring);
 int xhci_ring_expansion(struct xhci_hcd *xhci, struct xhci_ring *ring,
 				unsigned int num_trbs, gfp_t flags);
@@ -1740,11 +1712,6 @@ static inline int xhci_register_pci(void) { return 0; }
 static inline void xhci_unregister_pci(void) {}
 #endif
 
-struct xhci_plat_data {
-	unsigned vendor;
-	unsigned revision;
-};
-
 #if defined(CONFIG_USB_XHCI_PLATFORM) \
 	|| defined(CONFIG_USB_XHCI_PLATFORM_MODULE)
 int xhci_register_plat(void);
@@ -1762,7 +1729,6 @@ int xhci_handshake(struct xhci_hcd *xhci, void __iomem *ptr,
 		u32 mask, u32 done, int usec);
 void xhci_quiesce(struct xhci_hcd *xhci);
 int xhci_halt(struct xhci_hcd *xhci);
-int xhci_start(struct xhci_hcd *xhci);
 int xhci_reset(struct xhci_hcd *xhci);
 int xhci_init(struct usb_hcd *hcd);
 int xhci_run(struct usb_hcd *hcd);
@@ -1891,9 +1857,5 @@ struct xhci_ep_ctx *xhci_get_ep_ctx(struct xhci_hcd *xhci, struct xhci_container
 
 /* xHCI quirks */
 bool xhci_compliance_mode_recovery_timer_quirk_check(void);
-
-/* EHSET */
-int xhci_submit_single_step_set_feature(struct usb_hcd *hcd, struct urb *urb,
-					int is_setup);
 
 #endif /* __LINUX_XHCI_HCD_H */

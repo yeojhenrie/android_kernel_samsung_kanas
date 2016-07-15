@@ -153,6 +153,17 @@ endif # LCD_CLASS_DEVICE
 #
 # Backlight
 #
+config BACKLIGHT_SPRD
+	tristate "SPRD Backlight Driver (PWM mode and WHITE_LED mode)"
+	help
+	  Say Y to enable the SPRD backlight driver.
+
+config BACKLIGHT_SPRD_PWM_MODE
+	bool "SPRD Backlight use PWM mode"
+	depends on BACKLIGHT_SPRD
+	help
+	  Say Y to enable the SPRD backlight PWM mode.
+
 config BACKLIGHT_CLASS_DEVICE
         tristate "Lowlevel Backlight controls"
 	default m
@@ -424,6 +435,28 @@ config BACKLIGHT_AS3711
 	help
 	  If you have an Austrian Microsystems AS3711 say Y to enable the
 	  backlight driver.
+
+config BACKLIGHT_KTD253B
+	tristate "Backlight driver for KTD253B"
+	depends on BACKLIGHT_CLASS_DEVICE
+	help
+	  If you have a backlight driven by a KTD253B, say Y here to
+	  enable its driver.
+
+config BACKLIGHT_KTD2801
+	tristate "Backlight driver for KTD2801"
+	depends on BACKLIGHT_CLASS_DEVICE
+	help
+	  If you have a backlight driven by a KTD2801, say Y here to
+	  enable its driver.
+	  
+
+config BACKLIGHT_RT4502
+	tristate "Backlight driver for RT4502"
+	depends on BACKLIGHT_CLASS_DEVICE
+	help
+	  If you have a backlight driven by a RT4502, say Y here to
+	  enable its driver.
 
 endif # BACKLIGHT_CLASS_DEVICE
 

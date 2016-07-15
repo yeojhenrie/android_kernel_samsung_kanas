@@ -902,6 +902,7 @@ static int device_suspend_noirq(struct device *dev, pm_message_t state)
 {
 	pm_callback_t callback = NULL;
 	char *info = NULL;
+	int error = 0;
 
 	if (dev->power.syscore)
 		return 0;
@@ -924,8 +925,9 @@ static int device_suspend_noirq(struct device *dev, pm_message_t state)
 		info = "noirq driver ";
 		callback = pm_noirq_op(dev->driver->pm, state);
 	}
+	error = dpm_run_callback(callback, dev, state, info);
 
-	return dpm_run_callback(callback, dev, state, info);
+	return error;
 }
 
 /**
@@ -988,6 +990,7 @@ static int device_suspend_late(struct device *dev, pm_message_t state)
 {
 	pm_callback_t callback = NULL;
 	char *info = NULL;
+	int error = 0;
 
 	__pm_runtime_disable(dev, false);
 
@@ -1012,8 +1015,9 @@ static int device_suspend_late(struct device *dev, pm_message_t state)
 		info = "late driver ";
 		callback = pm_late_early_op(dev->driver->pm, state);
 	}
+	error = dpm_run_callback(callback, dev, state, info);
 
-	return dpm_run_callback(callback, dev, state, info);
+	return error;
 }
 
 /**
@@ -1251,7 +1255,6 @@ int dpm_suspend(pm_message_t state)
 
 		get_device(dev);
 		mutex_unlock(&dpm_list_mtx);
-
 		error = device_suspend(dev);
 
 		mutex_lock(&dpm_list_mtx);

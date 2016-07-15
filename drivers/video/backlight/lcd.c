@@ -16,6 +16,7 @@
 #include <linux/err.h>
 #include <linux/fb.h>
 #include <linux/slab.h>
+extern uint32_t lcd_id_from_uboot;
 
 #if defined(CONFIG_FB) || (defined(CONFIG_FB_MODULE) && \
 			   defined(CONFIG_LCD_CLASS_DEVICE_MODULE))
@@ -264,6 +265,48 @@ static void __exit lcd_class_exit(void)
 {
 	class_destroy(lcd_class);
 }
+struct device *lcd_dev;
+EXPORT_SYMBOL(lcd_dev);
+
+static ssize_t show_lcd_info(struct device *dev, struct device_attribute *attr, char *buf);
+#if defined(CONFIG_MACH_MINT)
+static ssize_t lcd_frame_inversion_mode_update(struct device *dev, struct device_attribute *attr, char *buf);
+static ssize_t lcd_line_inversion_mode_update(struct device *dev, struct device_attribute *attr, char *buf);
+#endif
+
+static DEVICE_ATTR(lcd_type, S_IRUGO, show_lcd_info, NULL);
+#if defined(CONFIG_MACH_MINT)
+static DEVICE_ATTR(lcd_frame_inversion, S_IRUGO, lcd_frame_inversion_mode_update, NULL);
+static DEVICE_ATTR(lcd_line_inversion, S_IRUGO, lcd_line_inversion_mode_update, NULL);
+#endif
+
+static ssize_t show_lcd_info(struct device *dev, struct device_attribute *attr, char *buf)
+{
+#if defined(CONFIG_FB_LCD_NT35502_MIPI) || defined(CONFIG_FB_LCD_HX8369B_MIPI_DTC)
+if(lcd_id_from_uboot==0x554cc0)
+	return sprintf(buf, "%s","INH_554CC0\n" );
+else if(lcd_id_from_uboot==0x55c0c0)
+	return sprintf(buf, "%s","INH_55C0C0\n" );
+else
+	return sprintf(buf, "%s","INH_55C090\n" );
+#else
+	return sprintf(buf, "%s","INH_61BCD1\n" );
+#endif
+}
+
+#if defined(CONFIG_MACH_MINT)
+extern int lcd_frame_inversion_mode(void);
+extern int lcd_line_inversion_mode(void);
+
+static ssize_t lcd_frame_inversion_mode_update(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return lcd_frame_inversion_mode();
+}
+static ssize_t lcd_line_inversion_mode_update(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return lcd_line_inversion_mode();
+}
+#endif
 
 static int __init lcd_class_init(void)
 {
@@ -273,7 +316,19 @@ static int __init lcd_class_init(void)
 			PTR_ERR(lcd_class));
 		return PTR_ERR(lcd_class);
 	}
-
+    /* sys fs */
+	lcd_dev = device_create(lcd_class, NULL, 0, NULL, "panel");
+	if (IS_ERR(lcd_dev))
+		pr_err("Failed to create device(lcd)!\n");	
+	if (device_create_file(lcd_dev, &dev_attr_lcd_type) < 0)
+		pr_err("Failed to create device file(%s)!\n", dev_attr_lcd_type.attr.name); 
+#if defined(CONFIG_MACH_MINT)
+	if (device_create_file(lcd_dev, &dev_attr_lcd_frame_inversion) < 0)
+		pr_err("Failed to create device file(%s)!\n", dev_attr_lcd_frame_inversion.attr.name); 
+	if (device_create_file(lcd_dev, &dev_attr_lcd_line_inversion) < 0)
+		pr_err("Failed to create device file(%s)!\n", dev_attr_lcd_line_inversion.attr.name); 	
+#endif
+	/* sys fs */
 	lcd_class->dev_attrs = lcd_device_attributes;
 	return 0;
 }

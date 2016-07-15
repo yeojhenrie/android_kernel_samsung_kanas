@@ -15,7 +15,7 @@
 
 #include <linux/device.h>
 #include <linux/notifier.h>
-#include <linux/pm_opp.h>
+#include <linux/opp.h>
 
 #define DEVFREQ_NAME_LEN 16
 
@@ -51,24 +51,6 @@ struct devfreq_dev_status {
  * bound (greatest lower bound)
  */
 #define DEVFREQ_FLAG_LEAST_UPPER_BOUND		0x1
-#define DEVFREQ_FLAG_WAKEUP_MAXFREQ		0x2
-
-#define DEVFREQ_FLAG_FAST_HINT	0x2
-#define DEVFREQ_FLAG_SLOW_HINT	0x4
-
-/**
- * struct devfreq_governor_data - mapping to per device governor data
- * @name:		The name of the governor.
- * @data:		Private data for the governor.
- *
- * Devices may pass in an array of this structure to allow governors
- * to get the correct data pointer when they are enabled after
- * the devfreq_add_device() call.
- */
-struct devfreq_governor_data {
-	const char *name;
-	void *data;
-};
 
 /**
  * struct devfreq_dev_profile - Devfreq's user device profile
@@ -93,11 +75,6 @@ struct devfreq_governor_data {
  *			this is the time to unregister it.
  * @freq_table:	Optional list of frequencies to support statistics.
  * @max_state:	The size of freq_table.
- * @governor_data:	Optional array of private data for governors.
- *			This is used to set devfreq->data correctly
- *			when a governor is enabled via sysfs or other
- *			mechanisms after the devfreq_add_device() call.
- * @num_governor_data:  Number of elements in governor_data.
  */
 struct devfreq_dev_profile {
 	unsigned long initial_freq;
@@ -111,8 +88,6 @@ struct devfreq_dev_profile {
 
 	unsigned int *freq_table;
 	unsigned int max_state;
-	const struct devfreq_governor_data *governor_data;
-	unsigned int num_governor_data;
 };
 
 /**
@@ -136,8 +111,7 @@ struct devfreq_governor {
 	struct list_head node;
 
 	const char name[DEVFREQ_NAME_LEN];
-	int (*get_target_freq)(struct devfreq *this, unsigned long *freq,
-				u32 *flag);
+	int (*get_target_freq)(struct devfreq *this, unsigned long *freq);
 	int (*event_handler)(struct devfreq *devfreq,
 				unsigned int event, void *data);
 };
@@ -201,6 +175,22 @@ struct devfreq {
 	unsigned long last_stat_updated;
 };
 
+enum {
+	DEVFREQ_ONDEMAND_LEVEL = 0,
+};
+
+
+#define	DEVFREQ_PRE_CHANGE	(0)
+#define	DEVFREQ_POST_CHANGE	(1)
+
+struct devfreq_dbs {
+	struct list_head link;
+	int level;
+	void *data;
+	unsigned int (*devfreq_notifier)(struct devfreq_dbs *h, unsigned int state);
+};
+
+typedef unsigned int (*forbidden_func)(struct devfreq_dbs *h);
 #if defined(CONFIG_PM_DEVFREQ)
 extern struct devfreq *devfreq_add_device(struct device *dev,
 				  struct devfreq_dev_profile *profile,
@@ -219,6 +209,26 @@ extern int devfreq_unregister_opp_notifier(struct device *dev,
 					   struct devfreq *devfreq);
 
 #if IS_ENABLED(CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND)
+#endif
+#ifdef CONFIG_DEVFREQ_GOV_ONDEMAND
+extern const struct devfreq_governor devfreq_ondemand;
+void dfs_request_bw(int req_bw);
+int devfreq_notifier_register(struct devfreq_dbs *handler);
+int devfreq_notifier_unregister(struct devfreq_dbs *handler);
+#else
+static inline void dfs_request_bw(int req_bw)
+{
+	return;
+}
+inline int devfreq_notifier_register(struct devfreq_dbs *handler)
+{
+	return 0;
+}
+inline int devfreq_notifier_unregister(struct devfreq_dbs *handler)
+{
+	return 0;
+}
+#endif
 /**
  * struct devfreq_simple_ondemand_data - void *data fed to struct devfreq
  *	and devfreq_add_device
@@ -228,9 +238,6 @@ extern int devfreq_unregister_opp_notifier(struct device *dev,
  *			the governor may consider slowing the frequency down.
  *			Specify 0 to use the default. Valid value = 0 to 100.
  *			downdifferential < upthreshold must hold.
- * @simple_scaling:	Setting this flag will scale the clocks up only if the
- *			load is above @upthreshold and will scale the clocks
- *			down only if the load is below @downdifferential.
  *
  * If the fed devfreq_simple_ondemand_data pointer is NULL to the governor,
  * the governor uses the default values.
@@ -238,9 +245,7 @@ extern int devfreq_unregister_opp_notifier(struct device *dev,
 struct devfreq_simple_ondemand_data {
 	unsigned int upthreshold;
 	unsigned int downdifferential;
-	unsigned int simple_scaling;
 };
-#endif
 
 #else /* !CONFIG_PM_DEVFREQ */
 static inline struct devfreq *devfreq_add_device(struct device *dev,

@@ -590,13 +590,6 @@ static int __reqbufs(struct vb2_queue *q, struct v4l2_requestbuffers *req)
 		return -EBUSY;
 	}
 
-	/*
-	 * If the same number of buffers and memory access method is requested
-	 * then return immediately.
-	 */
-	if (q->memory == req->memory && req->count == q->num_buffers)
-		return 0;
-
 	if (req->count == 0 || q->num_buffers != 0 || q->memory != req->memory) {
 		/*
 		 * We already have buffers allocated, so first check if they
@@ -1303,7 +1296,7 @@ int vb2_qbuf(struct vb2_queue *q, struct v4l2_buffer *b)
 	 * consistent after getting driver's lock back.
 	 */
 	if (q->memory == V4L2_MEMORY_USERPTR) {
-		mmap_sem = &current->active_mm->mmap_sem;
+		mmap_sem = &current->mm->mmap_sem;
 		call_qop(q, wait_prepare, q);
 		down_read(mmap_sem);
 		call_qop(q, wait_finish, q);
@@ -1563,11 +1556,9 @@ int vb2_dqbuf(struct vb2_queue *q, struct v4l2_buffer *b, bool nonblocking)
 		dprintk(1, "dqbuf: invalid buffer type\n");
 		return -EINVAL;
 	}
-
 	ret = __vb2_get_done_vb(q, &vb, b, nonblocking);
-	if (ret < 0) {
+	if (ret < 0)
 		return ret;
-	}
 
 	ret = call_qop(q, buf_finish, vb);
 	if (ret) {
@@ -1689,6 +1680,7 @@ int vb2_streamon(struct vb2_queue *q, enum v4l2_buf_type type)
 	}
 
 	q->streaming = 1;
+
 	dprintk(3, "Streamon successful\n");
 	return 0;
 }

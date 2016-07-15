@@ -21,7 +21,6 @@
 #include <linux/list.h>
 #include <linux/module.h>
 #include <linux/slab.h>
-#include <linux/vmalloc.h>
 #include "ion_priv.h"
 
 struct ion_page_pool_item {
@@ -31,27 +30,18 @@ struct ion_page_pool_item {
 
 static void *ion_page_pool_alloc_pages(struct ion_page_pool *pool)
 {
-	struct page *page;
-	struct scatterlist sg;
-
-	page = alloc_pages(pool->gfp_mask & ~__GFP_ZERO, pool->order);
+	struct page *page = alloc_pages(pool->gfp_mask, pool->order);
 
 	if (!page)
 		return NULL;
-
-	if (pool->gfp_mask & __GFP_ZERO)
-		if (ion_heap_high_order_page_zero(page, pool->order))
-			goto error_free_pages;
-
-	sg_init_table(&sg, 1);
-	sg_set_page(&sg, page, PAGE_SIZE << pool->order, 0);
-	sg_dma_address(&sg) = sg_phys(&sg);
-	dma_sync_sg_for_device(NULL, &sg, 1, DMA_BIDIRECTIONAL);
-
+	/* this is only being used to flush the page for dma,
+	   this api is not really suitable for calling from a driver
+	   but no better way to flush a page for dma exist at this time */
+	arm_dma_ops.sync_single_for_device(NULL,
+					   pfn_to_dma(NULL, page_to_pfn(page)),
+					   PAGE_SIZE << pool->order,
+					   DMA_BIDIRECTIONAL);
 	return page;
-error_free_pages:
-	__free_pages(page, pool->order);
-	return NULL;
 }
 
 static void ion_page_pool_free_pages(struct ion_page_pool *pool,

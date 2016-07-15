@@ -10,6 +10,7 @@
 #include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/cred.h>
+#include <linux/vmalloc.h>
 
 #include <asm/uaccess.h>
 #include <asm/page.h>
@@ -135,9 +136,17 @@ static int traverse(struct seq_file *m, loff_t offset)
 
 Eoverflow:
 	m->op->stop(m, p);
-	kfree(m->buf);
-	m->count = 0;
-	m->buf = kmalloc(m->size <<= 1, GFP_KERNEL);
+	if (m->size > PAGE_SIZE) {
+		vfree(m->buf);
+	} else {
+		kfree(m->buf);
+	}
+	m->size <<= 1;
+	if (m->size > PAGE_SIZE) {
+		m->buf = vmalloc(m->size);
+	} else {
+		m->buf = kmalloc(m->size, GFP_KERNEL);
+	}
 	return !m->buf ? -ENOMEM : -EAGAIN;
 }
 
@@ -232,11 +241,20 @@ ssize_t seq_read(struct file *file, char __user *buf, size_t size, loff_t *ppos)
 		if (m->count < m->size)
 			goto Fill;
 		m->op->stop(m, p);
-		kfree(m->buf);
-		m->count = 0;
-		m->buf = kmalloc(m->size <<= 1, GFP_KERNEL);
-		if (!m->buf)
+		if (m->size > PAGE_SIZE) {
+                    vfree(m->buf);
+                } else {
+                    kfree(m->buf);
+                }
+                m->size <<= 1;
+                if (m->size > PAGE_SIZE) {
+                    m->buf = vmalloc(m->size);
+                } else {
+                    m->buf = kmalloc(m->size, GFP_KERNEL);
+                }
+                if (!m->buf)
 			goto Enomem;
+		m->count = 0;
 		m->version = 0;
 		pos = m->index;
 		p = m->op->start(m, &pos);
@@ -329,8 +347,6 @@ loff_t seq_lseek(struct file *file, loff_t offset, int whence)
 				m->read_pos = offset;
 				retval = file->f_pos = offset;
 			}
-		} else {
-			file->f_pos = offset;
 		}
 	}
 	file->f_version = m->version;
@@ -350,7 +366,11 @@ EXPORT_SYMBOL(seq_lseek);
 int seq_release(struct inode *inode, struct file *file)
 {
 	struct seq_file *m = file->private_data;
-	kfree(m->buf);
+	if (m->size > PAGE_SIZE) {
+		vfree(m->buf);
+	} else {
+		kfree(m->buf);
+	}
 	kfree(m);
 	return 0;
 }

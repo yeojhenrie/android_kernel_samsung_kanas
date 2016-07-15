@@ -25,7 +25,8 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 #include <linux/anon_inodes.h>
-#include <linux/sync.h>
+
+#include "sync.h"
 
 #define CREATE_TRACE_POINTS
 #include "trace/sync.h"
@@ -33,7 +34,7 @@
 static void sync_fence_signal_pt(struct sync_pt *pt);
 static int _sync_pt_has_signaled(struct sync_pt *pt);
 static void sync_fence_free(struct kref *kref);
-static void sync_dump(struct sync_fence *fence);
+static void sync_dump(void);
 
 static LIST_HEAD(sync_timeline_list_head);
 static DEFINE_SPINLOCK(sync_timeline_list_lock);
@@ -78,12 +79,12 @@ static void sync_timeline_free(struct kref *kref)
 		container_of(kref, struct sync_timeline, kref);
 	unsigned long flags;
 
-	if (obj->ops->release_obj)
-		obj->ops->release_obj(obj);
-
 	spin_lock_irqsave(&sync_timeline_list_lock, flags);
 	list_del(&obj->sync_timeline_list);
 	spin_unlock_irqrestore(&sync_timeline_list_lock, flags);
+
+	if (obj->ops->release_obj)
+		obj->ops->release_obj(obj);
 
 	kfree(obj);
 }
@@ -91,14 +92,14 @@ static void sync_timeline_free(struct kref *kref)
 void sync_timeline_destroy(struct sync_timeline *obj)
 {
 	obj->destroyed = true;
+	smp_wmb();
 
 	/*
-	 * If this is not the last reference, signal any children
-	 * that their parent is going away.
+	 * signal any children that their parent is going away.
 	 */
+	sync_timeline_signal(obj);
 
-	if (!kref_put(&obj->kref, sync_timeline_free))
-		sync_timeline_signal(obj);
+	kref_put(&obj->kref, sync_timeline_free);
 }
 EXPORT_SYMBOL(sync_timeline_destroy);
 
@@ -317,7 +318,13 @@ static int sync_fence_copy_pts(struct sync_fence *dst, struct sync_fence *src)
 	list_for_each(pos, &src->pt_list_head) {
 		struct sync_pt *orig_pt =
 			container_of(pos, struct sync_pt, pt_list);
-		struct sync_pt *new_pt = sync_pt_dup(orig_pt);
+		struct sync_pt *new_pt;
+
+		/* Skip already signaled points */
+		if (1 == orig_pt->status)
+			continue;
+
+		new_pt = sync_pt_dup(orig_pt);
 
 		if (new_pt == NULL)
 			return -ENOMEM;
@@ -337,6 +344,10 @@ static int sync_fence_merge_pts(struct sync_fence *dst, struct sync_fence *src)
 		struct sync_pt *src_pt =
 			container_of(src_pos, struct sync_pt, pt_list);
 		bool collapsed = false;
+
+		/* Skip already signaled points */
+		if (1 == src_pt->status)
+			continue;
 
 		list_for_each_safe(dst_pos, n, &dst->pt_list_head) {
 			struct sync_pt *dst_pt =
@@ -465,6 +476,16 @@ struct sync_fence *sync_fence_merge(const char *name,
 	err = sync_fence_merge_pts(fence, b);
 	if (err < 0)
 		goto err;
+
+	/* Make sure there is at least one point in the fence */
+	if (list_empty(&fence->pt_list_head)) {
+		struct sync_pt *orig_pt = list_first_entry(&a->pt_list_head,
+						struct sync_pt, pt_list);
+		struct sync_pt *new_pt = sync_pt_dup(orig_pt);
+
+		new_pt->fence = fence;
+		list_add(&new_pt->pt_list, &fence->pt_list_head);
+	}
 
 	list_for_each(pos, &fence->pt_list_head) {
 		struct sync_pt *pt =
@@ -612,7 +633,7 @@ int sync_fence_wait(struct sync_fence *fence, long timeout)
 
 	if (fence->status < 0) {
 		pr_info("fence error %d on [%p]\n", fence->status, fence);
-		sync_dump(fence);
+		sync_dump();
 		return fence->status;
 	}
 
@@ -620,7 +641,7 @@ int sync_fence_wait(struct sync_fence *fence, long timeout)
 		if (timeout > 0) {
 			pr_info("fence timeout on [%p] after %dms\n", fence,
 				jiffies_to_msecs(timeout));
-			sync_dump(fence);
+			sync_dump();
 		}
 		return -ETIME;
 	}
@@ -987,7 +1008,7 @@ late_initcall(sync_debugfs_init);
 
 #define DUMP_CHUNK 256
 static char sync_dump_buf[64 * 1024];
-static void sync_dump(struct sync_fence *fence)
+void sync_dump(void)
 {
 	struct seq_file s = {
 		.buf = sync_dump_buf,
@@ -995,9 +1016,7 @@ static void sync_dump(struct sync_fence *fence)
 	};
 	int i;
 
-	seq_puts(&s, "fence:\n--------------\n");
-	sync_print_fence(&s, fence);
-	seq_puts(&s, "\n");
+	sync_debugfs_show(&s, NULL);
 
 	for (i = 0; i < s.count; i += DUMP_CHUNK) {
 		if ((s.count - i) > DUMP_CHUNK) {
@@ -1012,7 +1031,7 @@ static void sync_dump(struct sync_fence *fence)
 	}
 }
 #else
-static void sync_dump(struct sync_fence *fence)
+static void sync_dump(void)
 {
 }
 #endif

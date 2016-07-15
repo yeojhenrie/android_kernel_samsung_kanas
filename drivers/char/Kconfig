@@ -64,7 +64,18 @@ config SGI_MBCS
 
 source "drivers/tty/serial/Kconfig"
 
-source "drivers/char/diag/Kconfig"
+config TS0710_MUX_ENABLE
+    bool "Enable Spreadtrum ts0710 mux driver"
+    default n
+    help
+      This driver is used to support spreadtrum ts0710 mux.
+
+config MUX_SDIO_OPT1_HAL
+        bool "MUX SDIO OPT1 HAL"
+        default n
+        help
+          This module supports to connect AP with CP use SDIO bus.And
+	  will support the SDIO transfer option "DMA_OPT_1".
 
 config TTY_PRINTK
 	bool "TTY driver to output user messages via printk"
@@ -599,6 +610,10 @@ config DEVPORT
 	depends on ISA || PCI
 	default y
 
+config DCC_TTY
+	tristate "DCC tty driver"
+	depends on ARM
+
 source "drivers/s390/char/Kconfig"
 
 config MSM_SMD_PKT
@@ -620,47 +635,12 @@ config TILE_SROM
 	  device appear much like a simple EEPROM, and knows
 	  how to partition a single ROM for multiple purposes.
 
-config MSM_ROTATOR_USE_IMEM
-        bool "Enable rotator driver to use iMem"
-        depends on ARCH_MSM7X30 && MSM_ROTATOR
-        default y
+config MUX_SPI_HAL
+        bool "MUX SPI HAL"
+        default n
         help
-          This option enables the msm_rotator driver to use the move efficient
-          iMem.  Some MSM platforms may not have iMem available for the rotator
-          block.  Or some systems may want the iMem to be dedicated to a
-          different function.
+          This module supports to connect AP with CP use SPI bus.
 
-config MSM_ADSPRPC
-	tristate "Qualcomm ADSP RPC driver"
-	depends on MSM_SMD
-	help
-	  Provides a communication mechanism that allows for clients to
-	  make remote method invocations across processor boundary to
-	  applications DSP processor. Say M if you want to enable this
-	  module.
 
-config CSDIO_VENDOR_ID
-	hex "Card VendorId"
-	depends on MMC_GENERIC_CSDIO
-	default "0"
-	help
-	  Enter vendor id for targeted sdio device, this may be overwritten by
-	  module parameters.
-
-config CSDIO_DEVICE_ID
-	hex "CardDeviceId"
-	depends on MMC_GENERIC_CSDIO
-	default "0"
-	help
-	  Enter device id for targeted sdio device, this may be overwritten by
-	  module parameters.
-
-config MSM_RDBG
-        tristate "Qualcomm Remote debug driver"
-        depends on MSM_AUDIO_QDSP6
-        help
-          Implements a shared memory based transport mechanism that allows
-          for a debugger running on a host PC to communicate with a remote
-	  stub running on peripheral subsystems such as the ADSP, MODEM etc.
 endmenu
 

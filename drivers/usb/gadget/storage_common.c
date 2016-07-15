@@ -141,17 +141,6 @@ struct fsg_lun {
 	unsigned int	blkbits;	/* Bits of logical block size of bound block device */
 	unsigned int	blksize;	/* logical block size of bound block device */
 	struct device	dev;
-#ifdef CONFIG_USB_MSC_PROFILING
-	spinlock_t	lock;
-	struct {
-
-		unsigned long rbytes;
-		unsigned long wbytes;
-		ktime_t rtime;
-		ktime_t wtime;
-	} perf;
-
-#endif
 };
 
 static inline bool fsg_lun_is_open(struct fsg_lun *curlun)
@@ -169,9 +158,6 @@ static inline struct fsg_lun *fsg_lun_from_dev(struct device *dev)
 #define EP0_BUFSIZE	256
 #define DELAYED_STATUS	(EP0_BUFSIZE + 999)	/* An impossibly large value */
 
-#ifdef CONFIG_USB_CSW_HACK
-#define fsg_num_buffers		4
-#else
 #ifdef CONFIG_USB_GADGET_DEBUG_FILES
 
 static unsigned int fsg_num_buffers = CONFIG_USB_GADGET_STORAGE_NUM_BUFFERS;
@@ -187,7 +173,6 @@ MODULE_PARM_DESC(num_buffers, "Number of pipeline buffers");
 #define fsg_num_buffers	CONFIG_USB_GADGET_STORAGE_NUM_BUFFERS
 
 #endif /* CONFIG_USB_DEBUG */
-#endif /* CONFIG_USB_CSW_HACK */
 
 /* check if fsg_num_buffers is within a valid range */
 static inline int fsg_num_buffers_validate(void)
@@ -200,7 +185,7 @@ static inline int fsg_num_buffers_validate(void)
 }
 
 /* Default size of buffer length. */
-#define FSG_BUFLEN	((u32)16384)
+#define FSG_BUFLEN	((u32)32768)
 
 /* Maximal number of LUNs supported in mass storage function */
 #define FSG_MAX_LUNS	8
@@ -479,23 +464,18 @@ static int fsg_lun_open(struct fsg_lun *curlun, const char *filename)
 		goto out;
 	}
 
-	if (curlun->cdrom) {
-		blksize = 2048;
-		blkbits = 11;
-	} else if (inode->i_bdev) {
-		blksize = bdev_logical_block_size(inode->i_bdev);
-		blkbits = blksize_bits(blksize);
-	} else {
-		blksize = 512;
-		blkbits = 9;
-	}
+	blksize = 512;
+	blkbits = 9;
+
 
 	num_sectors = size >> blkbits; /* File size in logic-block-size blocks */
 	min_sectors = 1;
 	if (curlun->cdrom) {
-		min_sectors = 300;	/* Smallest track is 300 frames */
-		if (num_sectors >= 256*60*75) {
-			num_sectors = 256*60*75 - 1;
+               num_sectors &= ~3;      /* Reduce to a multiple of 2048 */
+               min_sectors = 300*4;    /* Smallest track is 300 frames */
+               if (num_sectors >= 256*60*75*4) {
+                       num_sectors = (256*60*75 - 1) * 4;
+
 			LINFO(curlun, "file too big: %s\n", filename);
 			LINFO(curlun, "using only first %d blocks\n",
 					(int) num_sectors);
@@ -516,7 +496,7 @@ static int fsg_lun_open(struct fsg_lun *curlun, const char *filename)
 	curlun->filp = filp;
 	curlun->file_length = size;
 	curlun->num_sectors = num_sectors;
-	LDBG(curlun, "open backing file: %s\n", filename);
+	LINFO(curlun, "open backing file: %s\n", filename);
 	return 0;
 
 out:
@@ -580,43 +560,6 @@ static ssize_t fsg_show_nofua(struct device *dev, struct device_attribute *attr,
 	return sprintf(buf, "%u\n", curlun->nofua);
 }
 
-#ifdef CONFIG_USB_MSC_PROFILING
-static ssize_t fsg_show_perf(struct device *dev, struct device_attribute *attr,
-			      char *buf)
-{
-	struct fsg_lun	*curlun = fsg_lun_from_dev(dev);
-	unsigned long rbytes, wbytes;
-	int64_t rtime, wtime;
-
-	spin_lock(&curlun->lock);
-	rbytes = curlun->perf.rbytes;
-	wbytes = curlun->perf.wbytes;
-	rtime = ktime_to_us(curlun->perf.rtime);
-	wtime = ktime_to_us(curlun->perf.wtime);
-	spin_unlock(&curlun->lock);
-
-	return snprintf(buf, PAGE_SIZE, "Write performance :"
-					"%lu bytes in %lld microseconds\n"
-					"Read performance :"
-					"%lu bytes in %lld microseconds\n",
-					wbytes, wtime, rbytes, rtime);
-}
-static ssize_t fsg_store_perf(struct device *dev, struct device_attribute *attr,
-			const char *buf, size_t count)
-{
-	struct fsg_lun	*curlun = fsg_lun_from_dev(dev);
-	int value;
-
-	sscanf(buf, "%d", &value);
-	if (!value) {
-		spin_lock(&curlun->lock);
-		memset(&curlun->perf, 0, sizeof(curlun->perf));
-		spin_unlock(&curlun->lock);
-	}
-
-	return count;
-}
-#endif
 static ssize_t fsg_show_file(struct device *dev, struct device_attribute *attr,
 			     char *buf)
 {
@@ -632,9 +575,6 @@ static ssize_t fsg_show_file(struct device *dev, struct device_attribute *attr,
 			rc = PTR_ERR(p);
 		else {
 			rc = strlen(p);
-			if (rc > PAGE_SIZE - 2)
-				rc = PAGE_SIZE - 2;
-
 			memmove(buf, p, rc);
 			buf[rc] = '\n';		/* Add a newline */
 			buf[++rc] = 0;
@@ -706,33 +646,59 @@ static ssize_t fsg_store_file(struct device *dev, struct device_attribute *attr,
 	struct rw_semaphore	*filesem = dev_get_drvdata(dev);
 	int		rc = 0;
 
-
-#if !defined(CONFIG_USB_G_ANDROID)
-	/* disabled in android because we need to allow closing the backing file
-	 * if the media was removed
-	 */
-	if (curlun->prevent_medium_removal && fsg_lun_is_open(curlun)) {
-		LDBG(curlun, "eject attempt prevented\n");
-		return -EBUSY;				/* "Door is locked" */
-	}
-#endif
-
 	/* Remove a trailing newline */
 	if (count > 0 && buf[count-1] == '\n')
 		((char *) buf)[count-1] = 0;		/* Ugh! */
 
-	/* Load new medium */
 	down_write(filesem);
+	/* Eject current medium */
+	 if (fsg_lun_is_open(curlun)) {
+		fsg_lun_close(curlun);
+		curlun->unit_attention_data = SS_MEDIUM_NOT_PRESENT;
+	}
+	 /* Load new medium */
 	if (count > 0 && buf[0]) {
 		/* fsg_lun_open() will close existing file if any. */
 		rc = fsg_lun_open(curlun, buf);
 		if (rc == 0)
 			curlun->unit_attention_data =
 					SS_NOT_READY_TO_READY_TRANSITION;
-	} else if (fsg_lun_is_open(curlun)) {
-		fsg_lun_close(curlun);
-		curlun->unit_attention_data = SS_MEDIUM_NOT_PRESENT;
 	}
 	up_write(filesem);
 	return (rc < 0 ? rc : count);
 }
+static ssize_t fsg_show_cdrom(struct device *dev, struct device_attribute *attr,
+                           char *buf)
+{
+        struct fsg_lun  *curlun = fsg_lun_from_dev(dev);
+
+        return sprintf(buf, "%d\n", curlun->cdrom);
+}
+static ssize_t fsg_store_cdrom(struct device *dev, struct device_attribute *attr,
+                            const char *buf, size_t count)
+{
+        ssize_t         rc;
+        struct fsg_lun  *curlun = fsg_lun_from_dev(dev);
+        struct rw_semaphore     *filesem = dev_get_drvdata(dev);
+        unsigned        cdrom;
+
+        if (sscanf(buf, "%d", &cdrom) != 1)
+                return -EINVAL;
+
+        /*
+         * Allow the write-enable status to change only while the
+         * backing file is closed.
+         */
+        down_read(filesem);
+        if (fsg_lun_is_open(curlun)) {
+                LDBG(curlun, "read-only status change prevented\n");
+                rc = -EBUSY;
+        } else {
+                curlun->cdrom = cdrom;
+                LDBG(curlun, "file storage set to cdrom: %d\n", curlun->cdrom);
+                rc = count;
+        }
+        up_read(filesem);
+        return rc;
+}
+

@@ -1429,33 +1429,6 @@ enum nl80211_commands {
  * @NL80211_ATTR_MAX_CRIT_PROT_DURATION: duration in milliseconds in which
  *      the connection should have increased reliability (u16).
  *
- * @NL80211_ATTR_PEER_AID: Association ID for the peer TDLS station (u16).
- *	This is similar to @NL80211_ATTR_STA_AID but with a difference of being
- *	allowed to be used with the first @NL80211_CMD_SET_STATION command to
- *	update a TDLS peer STA entry.
- *
- * @NL80211_ATTR_COALESCE_RULE: Coalesce rule information.
- *
- * @NL80211_ATTR_CH_SWITCH_COUNT: u32 attribute specifying the number of TBTT's
- *	until the channel switch event.
- * @NL80211_ATTR_CH_SWITCH_BLOCK_TX: flag attribute specifying that transmission
- *	must be blocked on the current channel (before the channel switch
- *	operation).
- * @NL80211_ATTR_CSA_IES: Nested set of attributes containing the IE information
- *	for the time while performing a channel switch.
- * @NL80211_ATTR_CSA_C_OFF_BEACON: Offset of the channel switch counter
- *	field in the beacons tail (%NL80211_ATTR_BEACON_TAIL).
- * @NL80211_ATTR_CSA_C_OFF_PRESP: Offset of the channel switch counter
- *	field in the probe response (%NL80211_ATTR_PROBE_RESP).
- *
- * @NL80211_ATTR_RXMGMT_FLAGS: flags for nl80211_send_mgmt(), u32.
- *	As specified in the &enum nl80211_rxmgmt_flags.
- *
- * @NL80211_ATTR_STA_SUPPORTED_CHANNELS: array of supported channels.
- *
- * @NL80211_ATTR_STA_SUPPORTED_OPER_CLASSES: array of supported
- *      supported operating classes.
- *
  * @NL80211_ATTR_MAX: highest attribute number currently defined
  * @__NL80211_ATTR_AFTER_LAST: internal use
  */
@@ -1754,21 +1727,6 @@ enum nl80211_attrs {
 	NL80211_ATTR_CRIT_PROT_ID,
 	NL80211_ATTR_MAX_CRIT_PROT_DURATION,
 
-	NL80211_ATTR_PEER_AID,
-
-	NL80211_ATTR_COALESCE_RULE,
-
-	NL80211_ATTR_CH_SWITCH_COUNT,
-	NL80211_ATTR_CH_SWITCH_BLOCK_TX,
-	NL80211_ATTR_CSA_IES,
-	NL80211_ATTR_CSA_C_OFF_BEACON,
-	NL80211_ATTR_CSA_C_OFF_PRESP,
-
-	NL80211_ATTR_RXMGMT_FLAGS,
-
-	NL80211_ATTR_STA_SUPPORTED_CHANNELS,
-
-	NL80211_ATTR_STA_SUPPORTED_OPER_CLASSES,
 	/* add attributes here, update the policy in nl80211.c */
 
 	__NL80211_ATTR_AFTER_LAST,
@@ -2275,34 +2233,6 @@ enum nl80211_reg_type {
 	NL80211_REGDOM_TYPE_WORLD,
 	NL80211_REGDOM_TYPE_CUSTOM_WORLD,
 	NL80211_REGDOM_TYPE_INTERSECTION,
-};
-
-/**
- * enum nl80211_country_ie_pref - country IE processing preferences
- *
- * enumerates the different preferences a 802.11 card can advertize
- * for parsing the country IEs. As per the current implementation
- * country IEs are only used derive the apha2, the information
- * for power settings that comes with the country IE is ignored
- * and we use the power settings from regdb.
- *
- * @NL80211_COUNTRY_IE_FOLLOW_CORE - This is the default behaviour.
- *	It allows the core to update channel flags according to the
- *	ISO3166-alpha2 in the country IE. The applied power is -
- *	MIN(power specified by custom domain, power obtained from regdb)
- * @NL80211_COUNTRY_IE_FOLLOW_POWER - for devices that have a
- *	preference that even though they may have programmed their own
- *	custom power setting prior to wiphy registration, they want
- *	to ensure their channel power settings are updated for this
- *	connection with the power settings derived from alpha2 of the
- *	country IE.
- * @NL80211_COUNTRY_IE_IGNORE_CORE - for devices that have a preference to
- *	to ignore all country IE information processed by the core.
- */
-enum nl80211_country_ie_pref {
-	NL80211_COUNTRY_IE_FOLLOW_CORE,
-	NL80211_COUNTRY_IE_FOLLOW_POWER,
-	NL80211_COUNTRY_IE_IGNORE_CORE,
 };
 
 /**
@@ -2926,6 +2856,7 @@ enum nl80211_mfp {
 enum nl80211_wpa_versions {
 	NL80211_WPA_VERSION_1 = 1 << 0,
 	NL80211_WPA_VERSION_2 = 1 << 1,
+        NL80211_WAPI_VERSION_1 = 1 << 2,  /*Add by SPRD for WAPI function*/
 };
 
 /**

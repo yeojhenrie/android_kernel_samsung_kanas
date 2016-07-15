@@ -6,14 +6,9 @@ config ARM_GIC
 	bool
 	select IRQ_DOMAIN
 	select MULTI_IRQ_HANDLER
-	select MSM_SHOW_RESUME_IRQ
 
 config GIC_NON_BANKED
 	bool
-
-config GIC_SECURE
-	bool
-	depends on ARM_GIC
 
 config ARM_VIC
 	bool
@@ -46,7 +41,3 @@ config VERSATILE_FPGA_IRQ_NR
        int
        default 4
        depends on VERSATILE_FPGA_IRQ
-
-config MSM_IRQ
-	bool
-	select IRQ_DOMAIN

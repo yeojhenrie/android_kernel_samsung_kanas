@@ -46,6 +46,10 @@
 #include <asm/virt.h>
 #include <asm/mach/arch.h>
 
+#ifdef CONFIG_SEC_DEBUG_SCHED_LOG
+#include <mach/sec_debug.h>
+#endif
+
 /*
  * as from 2.5, kernels no longer have an init_tasks structure
  * so we need some other way of telling a new secondary core
@@ -210,7 +214,7 @@ void __cpuinit __cpu_die(unsigned int cpu)
 		pr_err("CPU%u: cpu didn't die\n", cpu);
 		return;
 	}
-	pr_debug("CPU%u: shutdown\n", cpu);
+	printk(KERN_NOTICE "CPU%u: shutdown\n", cpu);
 
 	/*
 	 * platform_cpu_kill() is generally expected to do the powering off
@@ -335,7 +339,7 @@ asmlinkage void __cpuinit secondary_start_kernel(void)
 
 	cpu_init();
 
-	pr_debug("CPU%u: Booted secondary processor\n", cpu);
+	printk("CPU%u: Booted secondary processor\n", cpu);
 
 	preempt_disable();
 	trace_hardirqs_off();
@@ -568,27 +572,23 @@ static void percpu_timer_stop(void)
 
 static DEFINE_RAW_SPINLOCK(stop_lock);
 
-DEFINE_PER_CPU(struct pt_regs, regs_before_stop);
 /*
  * ipi_cpu_stop - handle IPI from smp_send_stop()
  */
-static void ipi_cpu_stop(unsigned int cpu, struct pt_regs *regs)
+static void ipi_cpu_stop(unsigned int cpu)
 {
 	if (system_state == SYSTEM_BOOTING ||
 	    system_state == SYSTEM_RUNNING) {
-		per_cpu(regs_before_stop, cpu) = *regs;
 		raw_spin_lock(&stop_lock);
 		printk(KERN_CRIT "CPU%u: stopping\n", cpu);
 		dump_stack();
 		raw_spin_unlock(&stop_lock);
 	}
 
-	set_cpu_active(cpu, false);
+	set_cpu_online(cpu, false);
 
 	local_fiq_disable();
 	local_irq_disable();
-
-	flush_cache_all();
 
 	while (1)
 		cpu_relax();
@@ -619,8 +619,7 @@ void smp_send_all_cpu_backtrace(void)
 	dump_stack();
 
 	pr_info("\nsending IPI to all other CPUs:\n");
-	if (!cpus_empty(backtrace_mask))
-		smp_cross_call(&backtrace_mask, IPI_CPU_BACKTRACE);
+	smp_cross_call(&backtrace_mask, IPI_CPU_BACKTRACE);
 
 	/* Wait for up to 10 seconds for all other CPUs to do the backtrace */
 	for (i = 0; i < 10 * 1000; i++) {
@@ -655,6 +654,9 @@ asmlinkage void __exception_irq_entry do_IPI(int ipinr, struct pt_regs *regs)
 	handle_IPI(ipinr, regs);
 }
 
+#ifdef CONFIG_SPRD_SYSDUMP
+		extern void sysdump_ipi(struct pt_regs *regs);
+#endif
 void handle_IPI(int ipinr, struct pt_regs *regs)
 {
 	unsigned int cpu = smp_processor_id();
@@ -662,6 +664,10 @@ void handle_IPI(int ipinr, struct pt_regs *regs)
 
 	if (ipinr < NR_IPI)
 		__inc_irq_stat(cpu, ipi_irqs[ipinr]);
+
+#ifdef CONFIG_SEC_DEBUG_SCHED_LOG
+	sec_debug_irq_log(ipinr, do_IPI, 1);
+#endif
 
 	switch (ipinr) {
 	case IPI_WAKEUP:
@@ -693,7 +699,10 @@ void handle_IPI(int ipinr, struct pt_regs *regs)
 
 	case IPI_CPU_STOP:
 		irq_enter();
-		ipi_cpu_stop(cpu, regs);
+#ifdef CONFIG_SPRD_SYSDUMP
+		sysdump_ipi(regs);
+#endif
+		ipi_cpu_stop(cpu);
 		irq_exit();
 		break;
 
@@ -706,6 +715,11 @@ void handle_IPI(int ipinr, struct pt_regs *regs)
 		       cpu, ipinr);
 		break;
 	}
+
+#ifdef CONFIG_SEC_DEBUG_SCHED_LOG
+	sec_debug_irq_log(ipinr, do_IPI, 2);
+#endif
+
 	set_irq_regs(old_regs);
 }
 
@@ -726,10 +740,10 @@ void smp_send_stop(void)
 
 	/* Wait up to one second for other CPUs to stop */
 	timeout = USEC_PER_SEC;
-	while (num_active_cpus() > 1 && timeout--)
+	while (num_online_cpus() > 1 && timeout--)
 		udelay(1);
 
-	if (num_active_cpus() > 1)
+	if (num_online_cpus() > 1)
 		pr_warning("SMP: failed to stop secondary CPUs\n");
 }
 

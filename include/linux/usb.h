@@ -337,15 +337,6 @@ struct usb_bus {
 					 * the ep queue on a short transfer
 					 * with the URB_SHORT_NOT_OK flag set.
 					 */
-	unsigned hnp_support:1;		/* OTG: HNP is supported on OTG port */
-	unsigned quick_hnp:1;		/* OTG: Indiacates if hnp is required
-					   irrespective of host_request flag
-					 */
-	unsigned otg_vbus_off:1;	/* OTG: OTG test device feature bit that
-					 * tells A-device to turn off VBUS after
-					 * B-device is disconnected.
-					 */
-	struct delayed_work hnp_polling;/* OTG: HNP polling work */
 	unsigned sg_tablesize;		/* 0 or largest number of sg list entries */
 
 	int devnum_next;		/* Next open device number in
@@ -372,15 +363,6 @@ struct usb_bus {
 	struct mon_bus *mon_bus;	/* non-null when associated */
 	int monitored;			/* non-zero when monitored */
 #endif
-	unsigned skip_resume:1;		/* All USB devices are brought into full
-					 * power state after system resume. It
-					 * is desirable for some buses to keep
-					 * their devices in suspend state even
-					 * after system resume. The devices
-					 * are resumed later when a remote
-					 * wakeup is detected or an interface
-					 * driver starts I/O.
-					 */
 };
 
 /* ----------------------------------------------------------------------- */
@@ -1437,7 +1419,6 @@ struct urb {
 	usb_complete_t complete;	/* (in) completion routine */
 	struct usb_iso_packet_descriptor iso_frame_desc[0];
 					/* (in) ISO ONLY */
-	void *priv_data;		/* (in) additional private data */
 };
 
 /* ----------------------------------------------------------------------- */
@@ -1656,7 +1637,7 @@ extern int usb_driver_set_configuration(struct usb_device *udev, int config);
  * USB identifies 5 second timeouts, maybe more in a few cases, and a few
  * slow devices (like some MGE Ellipse UPSes) actually push that limit.
  */
-#define USB_CTRL_GET_TIMEOUT	5000
+#define USB_CTRL_GET_TIMEOUT	3000
 #define USB_CTRL_SET_TIMEOUT	5000
 
 
@@ -1823,15 +1804,8 @@ static inline int usb_translate_errors(int error_code)
 #define USB_DEVICE_REMOVE	0x0002
 #define USB_BUS_ADD		0x0003
 #define USB_BUS_REMOVE		0x0004
-#define USB_DEVICE_CONFIG	0x0005
-
-#ifdef CONFIG_USB
 extern void usb_register_notify(struct notifier_block *nb);
 extern void usb_unregister_notify(struct notifier_block *nb);
-#else
-static inline void usb_register_notify(struct notifier_block *nb) {}
-static inline void usb_unregister_notify(struct notifier_block *nb) {}
-#endif
 
 /* debugfs stuff */
 extern struct dentry *usb_debug_root;

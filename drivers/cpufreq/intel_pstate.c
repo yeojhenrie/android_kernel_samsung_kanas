@@ -606,7 +606,9 @@ static int intel_pstate_set_policy(struct cpufreq_policy *policy)
 
 static int intel_pstate_verify_policy(struct cpufreq_policy *policy)
 {
-	cpufreq_verify_within_cpu_limits(policy);
+	cpufreq_verify_within_limits(policy,
+				policy->cpuinfo.min_freq,
+				policy->cpuinfo.max_freq);
 
 	if ((policy->policy != CPUFREQ_POLICY_POWERSAVE) &&
 		(policy->policy != CPUFREQ_POLICY_PERFORMANCE))
@@ -615,7 +617,7 @@ static int intel_pstate_verify_policy(struct cpufreq_policy *policy)
 	return 0;
 }
 
-static int intel_pstate_cpu_exit(struct cpufreq_policy *policy)
+static int __cpuinit intel_pstate_cpu_exit(struct cpufreq_policy *policy)
 {
 	int cpu = policy->cpu;
 
@@ -625,7 +627,7 @@ static int intel_pstate_cpu_exit(struct cpufreq_policy *policy)
 	return 0;
 }
 
-static int intel_pstate_cpu_init(struct cpufreq_policy *policy)
+static int __cpuinit intel_pstate_cpu_init(struct cpufreq_policy *policy)
 {
 	int rc, min_pstate, max_pstate;
 	struct cpudata *cpu;
@@ -663,6 +665,7 @@ static struct cpufreq_driver intel_pstate_driver = {
 	.init		= intel_pstate_cpu_init,
 	.exit		= intel_pstate_cpu_exit,
 	.name		= "intel_pstate",
+	.owner		= THIS_MODULE,
 };
 
 static int __initdata no_load;

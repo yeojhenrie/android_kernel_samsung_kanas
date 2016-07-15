@@ -1305,6 +1305,7 @@ static void binder_transaction(struct binder_proc *proc,
 	struct binder_transaction *t;
 	struct binder_work *tcomplete;
 	size_t *offp, *off_end;
+	size_t off_min;
 	struct binder_proc *target_proc;
 	struct binder_thread *target_thread = NULL;
 	struct binder_node *target_node = NULL;
@@ -1498,17 +1499,23 @@ static void binder_transaction(struct binder_proc *proc,
 		goto err_bad_offset;
 	}
 	off_end = (void *)offp + tr->offsets_size;
+	off_min = 0;
 	for (; offp < off_end; offp++) {
 		struct flat_binder_object *fp;
 		if (*offp > t->buffer->data_size - sizeof(*fp) ||
+		    *offp < off_min ||
 		    t->buffer->data_size < sizeof(*fp) ||
 		    !IS_ALIGNED(*offp, sizeof(void *))) {
-			binder_user_error("%d:%d got transaction with invalid offset, %zd\n",
-					proc->pid, thread->pid, *offp);
+			binder_user_error("%d:%d got transaction with invalid offset, %zd (min %zd, max %zd)\n",
+			  proc->pid, thread->pid, *offp,
+			  off_min,
+			  (t->buffer->data_size -
+			     sizeof(*fp)));
 			return_error = BR_FAILED_REPLY;
 			goto err_bad_offset;
 		}
 		fp = (struct flat_binder_object *)(t->buffer->data + *offp);
+		off_min = *offp + sizeof(struct flat_binder_object);
 		switch (fp->type) {
 		case BINDER_TYPE_BINDER:
 		case BINDER_TYPE_WEAK_BINDER: {
@@ -2922,18 +2929,34 @@ static int binder_node_release(struct binder_node *node, int refs)
 
 	hlist_for_each_entry(ref, &node->refs, node_entry) {
 		refs++;
+
+#if 0
+		if (!ref->death)
+			goto out;
+
+		death++;
+
+		if (list_empty(&ref->death->work.entry)) {
+			ref->death->work.type = BINDER_WORK_DEAD_BINDER;
+			list_add_tail(&ref->death->work.entry,
+				      &ref->proc->todo);
+			wake_up_interruptible(&ref->proc->wait);
+		} else
+			BUG();
+#endif
 		if (ref->death) {
 			death++;
 			if (list_empty(&ref->death->work.entry)) {
 				ref->death->work.type = BINDER_WORK_DEAD_BINDER;
-				list_add_tail(&ref->death->work.entry,
-						&ref->proc->todo);
+				list_add_tail(&ref->death->work.entry, &ref->proc->todo);
 				wake_up_interruptible(&ref->proc->wait);
 			} else
 				BUG();
 		}
 	}
-
+#if 0
+out:
+#endif
 	binder_debug(BINDER_DEBUG_DEAD_BINDER,
 		     "node %d now dead, refs %d, death %d\n",
 		     node->debug_id, refs, death);

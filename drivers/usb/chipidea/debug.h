@@ -16,8 +16,6 @@
 #ifdef CONFIG_USB_CHIPIDEA_DEBUG
 int dbg_create_files(struct ci13xxx *ci);
 void dbg_remove_files(struct ci13xxx *ci);
-void dbg_usb_op_fail(u8 addr, const char *name,
-				const struct ci13xxx_ep *mep);
 #else
 static inline int dbg_create_files(struct ci13xxx *ci)
 {

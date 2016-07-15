@@ -10,7 +10,6 @@
 
 #include <linux/types.h>
 #include <linux/scatterlist.h>
-#include <linux/device.h>
 
 struct scsi_cmnd;
 
@@ -326,7 +325,6 @@ static inline int scsi_status_is_good(int status)
 #define TYPE_ENCLOSURE      0x0d    /* Enclosure Services Device */
 #define TYPE_RBC	    0x0e
 #define TYPE_OSD            0x11
-#define TYPE_WLUN           0x1e    /* well-known logical unit */
 #define TYPE_NO_LUN         0x7f
 
 /* SCSI protocols; these are taken from SPC-3 section 7.5 */
@@ -575,7 +573,5 @@ static inline __u32 scsi_to_u32(__u8 *ptr)
 {
 	return (ptr[0]<<24) + (ptr[1]<<16) + (ptr[2]<<8) + ptr[3];
 }
-
-struct scsi_disk *scsi_disk_get_from_dev(struct device *dev);
 
 #endif /* _SCSI_SCSI_H */

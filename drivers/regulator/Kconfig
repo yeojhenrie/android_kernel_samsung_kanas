@@ -64,16 +64,6 @@ config REGULATOR_USERSPACE_CONSUMER
 
 	  If unsure, say no.
 
-config REGULATOR_PROXY_CONSUMER
-	bool "Boot time regulator proxy consumer support"
-	help
-	  This driver provides support for boot time regulator proxy requests.
-	  It can enforce a specified voltage range, set a minimum current,
-	  and/or keep a regulator enabled.  It is needed in circumstances where
-	  reducing one or more of these three quantities will cause hardware to
-	  stop working if performed before the driver managing the hardware has
-	  probed.
-
 config REGULATOR_GPIO
 	tristate "GPIO regulator support"
 	depends on GPIOLIB
@@ -260,15 +250,6 @@ config REGULATOR_MAX77686
 	  via I2C bus. The provided regulator is suitable for
 	  Exynos-4 chips to control VARM and VINT voltages.
 
-config REGULATOR_ONSEMI_NCP6335D
-	tristate "OnSemi NCP6335D regulator support"
-	depends on I2C
-	help
-	 This driver supports the OnSemi NCP6335D switching voltage regulator
-	 (buck convertor). The regulator is controlled using an I2C interface
-	 and supports a programmable voltage range from 0.6V to 1.4V in steps
-	 of 6.25mV.
-
 config REGULATOR_PCAP
 	tristate "Motorola PCAP2 regulator driver"
 	depends on EZX_PCAP
@@ -318,6 +299,12 @@ config REGULATOR_PCF50633
 	help
 	 Say Y here to support the voltage regulators and convertors
 	 on PCF50633
+
+config REGULATOR_RT5033
+	depends on MFD_RT5033
+	tristate "RT5033 LDO and Buck"
+	help
+	  Say y here to support the regulators found on the Richtek RT5033 I/F PMIC.
 
 config REGULATOR_RC5T583
 	tristate "RICOH RC5T583 Power regulators"
@@ -533,37 +520,63 @@ config REGULATOR_AS3711
 	  This driver provides support for the voltage regulators on the
 	  AS3711 PMIC
 
-config REGULATOR_STUB
-	tristate "Stub Regulator"
+config REGULATOR_SPRD
+	tristate "Spreadtrum Power Regulators"
+	depends on ARCH_SC8825
+	default y if ARCH_SC8825
 	help
-	  This driver adds stub regulator support. The driver is absent of any
-	  real hardware based implementation. It allows for clients to register
-	  their regulator device constraints and use all of the standard
-	  regulator interfaces. This is useful for bringing up new platforms
-	  when the real hardware based implementation may not be yet available.
-	  Clients can use the real regulator device names with proper
-	  constraint checking while the real driver is being developed.
+	  This driver supports spreadtrum voltage regulator chips.
 
-config REGULATOR_RPM_SMD
-	bool "RPM SMD regulator driver"
-	depends on OF
-	depends on MSM_RPM_SMD
+config REGULATOR_SC2711
+	tristate "Spreadtrum PMIC for shark, also integrated audio codec"
+	depends on ARCH_SCX15
+	default y
 	help
-	  Compile in support for the RPM SMD regulator driver which is used for
-	  setting voltages and other parameters of the various power rails
-	  supplied by some Qualcomm PMICs. The RPM SMD regulator driver should
-	  be used on systems which contain an RPM which communicates with the
-	  application processor over SMD.
+	  This driver supports spreadtrum voltage regulator chips.
 
-config REGULATOR_QPNP
-	depends on SPMI
-	depends on OF_SPMI
-	tristate "Qualcomm QPNP regulator support"
+config REGULATOR_SC2713
+	tristate "Spreadtrum PMIC for shark, also integrated audio codec"
+	depends on (ARCH_SCX35 && !ARCH_SCX15 && !ADIE_SC2713S) || ARCH_SC7710
+	default y
 	help
-	  This driver supports voltage regulators in Qualcomm PMIC chips which
-	  comply with QPNP.  QPNP is a SPMI based PMIC implementation.  These
-	  chips provide several different varieties of LDO and switching
-	  regulators.  They also provide voltage switches and boost regulators.
+	  This driver supports spreadtrum voltage regulator chips.
 
+config REGULATOR_SC2713S
+	tristate "Spreadtrum PMIC SC2713S regulator driver"
+	depends on ADIE_SC2713S
+	default y
+	help
+	  Say Y here to support the voltage regulators for sc2713s
+
+config REGULATOR_CAL_DUMMY
+    bool "Regulator calibration is dummy"
+    depends on REGULATOR_SC2713S || REGULATOR_SC2713
+    default n
+    help
+        This option only for debug purpose
+
+config REGULATOR_ADC_DEBUG
+    bool "Regulator auxadc channel value debug"
+    depends on  REGULATOR_SC2713S || REGULATOR_SC2713 || REGULATOR_SC2711
+    default n
+    help
+        This option only for debug purpose
+
+config REGULATOR_SPRD_MAP
+	string "regulator map file name"
+	depends on REGULATOR_SPRD || REGULATOR_SC2713S || REGULATOR_SC2713 || REGULATOR_SC2711
+	default "mach/__sc7710_regulator_map.h" if ARCH_SC7710
+	default "mach/chip_x30g/__sc2713s_regulator_map.h" if ARCH_SCX30G && ADIE_SC2713S
+	default "mach/chip_x35/__sc2713s_regulator_map.h" if ARCH_SCX35 && ADIE_SC2713S
+	default "mach/chip_x35/__regulator_map.h" if ARCH_SCX35 && !ARCH_SCX15
+	default "mach/chip_x15/__regulator_map.h" if ARCH_SCX15
+	default "mach/__regulator_map.h"
+
+config REGULATOR_SUPPORT_CAMIO_1200MV
+        bool "Regulator support camio 1200mv voltage"
+        depends on REGULATOR_SC2713S
+        default n
+        help
+          Say Y here to support camio 1200mv voltage for sc2713s
 endif
 

@@ -41,6 +41,10 @@
 #include <asm/tlbflush.h>
 #include "internal.h"
 
+#ifdef CONFIG_OPTIMIZE_KSM
+#include <asm/checksum.h>
+#endif
+
 #ifdef CONFIG_NUMA
 #define NUMA(x)		(x)
 #define DO_NUMA(x)	do { (x); } while (0)
@@ -214,8 +218,36 @@ static unsigned long ksm_pages_sharing;
 /* The number of nodes in the unstable tree */
 static unsigned long ksm_pages_unshared;
 
+#ifdef CONFIG_OPTIMIZE_KSM
+/* The number of pages arrived during this scan */
+static unsigned long ksm_pages_newcomer;
+#endif
+
 /* The number of rmap_items in use: to calculate pages_volatile */
 static unsigned long ksm_rmap_items;
+
+#ifdef CONFIG_OPTIMIZE_KSM
+/* Number of pages ksmd scanned so far in one batch */
+static unsigned int ksm_thread_pages_scanned;
+
+/* The number of memcmp operations performed thus far */
+//static unsigned long ksm_memcmp_count = 0;
+
+/* The number of jiffies taken for these memcmp operations. */
+//static unsigned long ksm_memcmp_jiffies = 0;
+
+/* Turn off KSM over this point (% memfree/memtotal) */
+static unsigned long ksm_memfree_high=60;
+
+/* Turn on KSM under this point (% memfree/memtotal) */
+static unsigned long ksm_memfree_low=40;
+
+/* Turn off KSM over this point (% cpu util) */
+static unsigned long ksm_cpu_util_high=95;
+
+/* Turn on KSM under this point (% cpu util) */
+static unsigned long ksm_cpu_util_low=75;
+#endif
 
 /* Number of pages ksmd should scan in one batch */
 static unsigned int ksm_thread_pages_to_scan = 100;
@@ -236,7 +268,11 @@ static int ksm_nr_node_ids = 1;
 #define KSM_RUN_MERGE	1
 #define KSM_RUN_UNMERGE	2
 #define KSM_RUN_OFFLINE	4
+#ifdef CONFIG_OPTIMIZE_KSM
+static unsigned int ksm_run = KSM_RUN_MERGE;
+#else
 static unsigned long ksm_run = KSM_RUN_STOP;
+#endif
 static void wait_while_offlining(void);
 
 static DECLARE_WAIT_QUEUE_HEAD(ksm_thread_wait);
@@ -284,8 +320,12 @@ static inline struct rmap_item *alloc_rmap_item(void)
 	struct rmap_item *rmap_item;
 
 	rmap_item = kmem_cache_zalloc(rmap_item_cache, GFP_KERNEL);
-	if (rmap_item)
+		if (rmap_item) {
+			#ifdef CONFIG_OPTIMIZE_KSM
+			ksm_pages_newcomer++;
+			#endif
 		ksm_rmap_items++;
+		}
 	return rmap_item;
 }
 
@@ -813,6 +853,11 @@ static int unmerge_and_remove_all_rmap_items(void)
 
 	/* Clean up stable nodes, but don't worry if some are still busy */
 	remove_all_stable_nodes();
+		#ifdef CONFIG_OPTIMIZE_KSM
+	ksm_thread_pages_scanned = 0;
+	ksm_pages_newcomer = 0;
+	#endif	
+	
 	ksm_scan.seqnr = 0;
 	return 0;
 
@@ -829,7 +874,12 @@ static u32 calc_checksum(struct page *page)
 {
 	u32 checksum;
 	void *addr = kmap_atomic(page);
-	checksum = jhash2(addr, PAGE_SIZE / 4, 17);
+	
+		#ifdef CONFIG_OPTIMIZE_KSM
+			checksum = csum_partial(addr, PAGE_SIZE / 4, 17);
+		#else
+			checksum = jhash2(addr, PAGE_SIZE / 4, 17);
+		#endif	
 	kunmap_atomic(addr);
 	return checksum;
 }
@@ -841,7 +891,11 @@ static int memcmp_pages(struct page *page1, struct page *page2)
 
 	addr1 = kmap_atomic(page1);
 	addr2 = kmap_atomic(page2);
+	#ifdef CONFIG_KSM_NEON_MEMCMP
+	ret = memcmpksm(addr1, addr2, PAGE_SIZE);
+	#else
 	ret = memcmp(addr1, addr2, PAGE_SIZE);
+	#endif
 	kunmap_atomic(addr2);
 	kunmap_atomic(addr1);
 	return ret;
@@ -1340,6 +1394,16 @@ struct rmap_item *unstable_tree_search_insert(struct rmap_item *rmap_item,
 
 		cond_resched();
 		tree_rmap_item = rb_entry(*new, struct rmap_item, node);
+			#ifdef CONFIG_OPTIMIZE_KSM
+				parent = *new;
+			if ((rmap_item->address & PAGE_MASK) < (tree_rmap_item->address & PAGE_MASK)) {
+				new = &parent->rb_left;
+				continue;
+			} else if ((rmap_item->address & PAGE_MASK) > (tree_rmap_item->address & PAGE_MASK)) {
+				new = &parent->rb_right;
+				continue;
+			}
+		#endif
 		tree_page = get_mergeable_page(tree_rmap_item);
 		if (IS_ERR_OR_NULL(tree_page))
 			return NULL;
@@ -1353,6 +1417,12 @@ struct rmap_item *unstable_tree_search_insert(struct rmap_item *rmap_item,
 		}
 
 		ret = memcmp_pages(page, tree_page);
+			#ifdef CONFIG_OPTIMIZE_KSM
+		{
+		}
+		#else
+			parent = *new;
+		#endif
 
 		parent = *new;
 		if (ret < 0) {
@@ -1682,6 +1752,9 @@ next_mm:
 	slot = ksm_scan.mm_slot;
 	if (slot != &ksm_mm_head)
 		goto next_mm;
+			#ifdef CONFIG_OPTIMIZE_KSM
+		ksm_pages_newcomer = 0;
+		#endif
 
 	ksm_scan.seqnr++;
 	return NULL;
@@ -1703,6 +1776,9 @@ static void ksm_do_scan(unsigned int scan_npages)
 			return;
 		cmp_and_merge_page(page, rmap_item);
 		put_page(page);
+			#ifdef CONFIG_OPTIMIZE_KSM
+				++ksm_thread_pages_scanned;
+			#endif
 	}
 }
 
@@ -2204,6 +2280,16 @@ static ssize_t sleep_millisecs_store(struct kobject *kobj,
 }
 KSM_ATTR(sleep_millisecs);
 
+#ifdef CONFIG_OPTIMIZE_KSM
+static ssize_t pages_scanned_show(struct kobject *kobj,
+				  struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%u\n", ksm_thread_pages_scanned);
+}
+KSM_ATTR_RO(pages_scanned);
+#endif
+
+
 static ssize_t pages_to_scan_show(struct kobject *kobj,
 				  struct kobj_attribute *attr, char *buf)
 {
@@ -2354,6 +2440,15 @@ static ssize_t pages_unshared_show(struct kobject *kobj,
 }
 KSM_ATTR_RO(pages_unshared);
 
+#ifdef CONFIG_OPTIMIZE_KSM
+static ssize_t pages_newcomer_show(struct kobject *kobj,
+				   struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", ksm_pages_newcomer);
+}
+KSM_ATTR_RO(pages_newcomer);
+#endif
+
 static ssize_t pages_volatile_show(struct kobject *kobj,
 				   struct kobj_attribute *attr, char *buf)
 {
@@ -2378,8 +2473,107 @@ static ssize_t full_scans_show(struct kobject *kobj,
 }
 KSM_ATTR_RO(full_scans);
 
+#ifdef CONFIG_OPTIMIZE_KSM
+/*static ssize_t memcmp_count_show(struct kobject *kobj,
+				 struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", ksm_memcmp_count);
+}
+KSM_ATTR_RO(memcmp_count);
+
+static ssize_t memcmp_jiffies_show(struct kobject *kobj,
+				   struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", ksm_memcmp_jiffies);
+}
+KSM_ATTR_RO(memcmp_jiffies); */
+
+static ssize_t memfree_high_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", ksm_memfree_high);
+}
+
+static ssize_t memfree_high_store(struct kobject *kobj,
+				     struct kobj_attribute *attr,
+				     const char *buf, size_t count)
+{
+	int err = strict_strtoul(buf, 10, &ksm_memfree_high);
+	if (err)
+		return -EINVAL;
+
+	return count;
+}
+KSM_ATTR(memfree_high);
+
+static ssize_t memfree_low_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", ksm_memfree_low);
+}
+
+static ssize_t memfree_low_store(struct kobject *kobj,
+				     struct kobj_attribute *attr,
+				     const char *buf, size_t count)
+{
+	int err = strict_strtoul(buf, 10, &ksm_memfree_low);
+	if (err)
+		return -EINVAL;
+
+	return count;
+}
+KSM_ATTR(memfree_low);
+
+static ssize_t cpu_util_high_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", ksm_cpu_util_high);
+}
+
+static ssize_t cpu_util_high_store(struct kobject *kobj,
+				     struct kobj_attribute *attr,
+				     const char *buf, size_t count)
+{
+	int err = strict_strtoul(buf, 10, &ksm_cpu_util_high);
+	if (err)
+		return -EINVAL;
+
+	return count;
+}
+KSM_ATTR(cpu_util_high);
+
+static ssize_t cpu_util_low_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lu\n", ksm_cpu_util_low);
+}
+
+static ssize_t cpu_util_low_store(struct kobject *kobj,
+				     struct kobj_attribute *attr,
+				     const char *buf, size_t count)
+{
+	int err = strict_strtoul(buf, 10, &ksm_cpu_util_low);
+	if (err)
+		return -EINVAL;
+
+	return count;
+}
+KSM_ATTR(cpu_util_low);
+#endif
+
+
 static struct attribute *ksm_attrs[] = {
 	&sleep_millisecs_attr.attr,
+	#ifdef CONFIG_OPTIMIZE_KSM
+	&pages_scanned_attr.attr,
+	&pages_newcomer_attr.attr,
+	/* &memcmp_count_attr.attr,
+	&memcmp_jiffies_attr.attr,*/
+	&memfree_high_attr.attr,
+	&memfree_low_attr.attr,
+	&cpu_util_high_attr.attr,
+	&cpu_util_low_attr.attr,
+#endif
 	&pages_to_scan_attr.attr,
 	&run_attr.attr,
 	&pages_shared_attr.attr,

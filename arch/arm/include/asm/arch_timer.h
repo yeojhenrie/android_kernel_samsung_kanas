@@ -17,8 +17,7 @@ int arch_timer_arch_init(void);
  * nicely work out which register we want, and chuck away the rest of
  * the code. At least it does so with a recent GCC (4.6.3).
  */
-static inline void arch_timer_reg_write_cp15(const int access, const int reg,
-					  u32 val)
+static inline void arch_timer_reg_write(const int access, const int reg, u32 val)
 {
 	if (access == ARCH_TIMER_PHYS_ACCESS) {
 		switch (reg) {
@@ -45,7 +44,7 @@ static inline void arch_timer_reg_write_cp15(const int access, const int reg,
 	isb();
 }
 
-static inline u32 arch_timer_reg_read_cp15(const int access, const int reg)
+static inline u32 arch_timer_reg_read(const int access, const int reg)
 {
 	u32 val = 0;
 
@@ -81,7 +80,7 @@ static inline u32 arch_timer_get_cntfrq(void)
 	return val;
 }
 
-static inline u64 arch_counter_get_cntpct_cp15(void)
+static inline u64 arch_counter_get_cntpct(void)
 {
 	u64 cval;
 
@@ -90,7 +89,7 @@ static inline u64 arch_counter_get_cntpct_cp15(void)
 	return cval;
 }
 
-static notrace inline u64 arch_counter_get_cntvct_cp15(void)
+static inline u64 arch_counter_get_cntvct(void)
 {
 	u64 cval;
 

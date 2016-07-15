@@ -60,7 +60,6 @@
 #include <linux/gfp.h>
 #include <linux/migrate.h>
 #include <linux/string.h>
-#include <linux/bug.h>
 
 #include <asm/io.h>
 #include <asm/pgalloc.h>
@@ -712,11 +711,9 @@ static void print_bad_pte(struct vm_area_struct *vma, unsigned long addr,
 	if (vma->vm_file && vma->vm_file->f_op)
 		printk(KERN_ALERT "vma->vm_file->f_op->mmap: %pSR\n",
 		       vma->vm_file->f_op->mmap);
-
-	BUG_ON(PANIC_CORRUPTION);
-
 	dump_stack();
 	add_taint(TAINT_BAD_PAGE, LOCKDEP_NOW_UNRELIABLE);
+	BUG();
 }
 
 static inline bool is_cow_mapping(vm_flags_t flags)
@@ -1791,19 +1788,6 @@ long __get_user_pages(struct task_struct *tsk, struct mm_struct *mm,
 			pte_unmap(pte);
 			page_mask = 0;
 			goto next_page;
-		}
-
-		if (use_user_accessible_timers()) {
-			if (!vma && in_user_timers_area(mm, start)) {
-				int goto_next_page = 0;
-				int user_timer_ret = get_user_timer_page(vma,
-					mm, start, gup_flags, pages, i,
-					&goto_next_page);
-				if (goto_next_page)
-					goto next_page;
-				else
-					return user_timer_ret;
-			}
 		}
 
 		if (!vma ||
@@ -3010,6 +2994,14 @@ void unmap_mapping_range(struct address_space *mapping,
 }
 EXPORT_SYMBOL(unmap_mapping_range);
 
+#ifdef CONFIG_ZRAM
+#include <linux/module.h>
+// always try to free swap in zram swap case
+static int keep_to_free_swap = 1;
+module_param_named(keep_to_free_swap,keep_to_free_swap, int, S_IRUGO | S_IWUSR);
+#endif
+
+
 /*
  * We enter with non-exclusive mmap_sem (to exclude vma changes,
  * but allow concurrent faults), and pte mapped but not yet locked.
@@ -3160,7 +3152,12 @@ static int do_swap_page(struct mm_struct *mm, struct vm_area_struct *vma,
 	mem_cgroup_commit_charge_swapin(page, ptr);
 
 	swap_free(entry);
+
+#ifdef CONFIG_ZRAM
+	if (keep_to_free_swap || vm_swap_full() || (vma->vm_flags & VM_LOCKED) || PageMlocked(page))
+#else
 	if (vm_swap_full() || (vma->vm_flags & VM_LOCKED) || PageMlocked(page))
+#endif
 		try_to_free_swap(page);
 	unlock_page(page);
 	if (page != swapcache) {
@@ -4238,7 +4235,7 @@ void print_vma_addr(char *prefix, unsigned long ip)
 	up_read(&mm->mmap_sem);
 }
 
-#if defined(CONFIG_PROVE_LOCKING) || defined(CONFIG_DEBUG_ATOMIC_SLEEP)
+#ifdef CONFIG_PROVE_LOCKING
 void might_fault(void)
 {
 	/*
@@ -4250,17 +4247,13 @@ void might_fault(void)
 	if (segment_eq(get_fs(), KERNEL_DS))
 		return;
 
+	might_sleep();
 	/*
 	 * it would be nicer only to annotate paths which are not under
 	 * pagefault_disable, however that requires a larger audit and
 	 * providing helpers like get_user_atomic.
 	 */
-	if (in_atomic())
-		return;
-
-	__might_sleep(__FILE__, __LINE__, 0);
-
-	if (current->mm)
+	if (!in_atomic() && current->mm)
 		might_lock_read(&current->mm->mmap_sem);
 }
 EXPORT_SYMBOL(might_fault);

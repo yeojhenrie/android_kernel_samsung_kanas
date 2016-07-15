@@ -53,7 +53,6 @@
 #include "core.h"
 #include "gadget.h"
 #include "io.h"
-#include "debug.h"
 
 static void __dwc3_ep0_do_control_status(struct dwc3 *dwc, struct dwc3_ep *dep);
 static void __dwc3_ep0_do_control_data(struct dwc3 *dwc,
@@ -479,10 +478,6 @@ static int dwc3_ep0_handle_feature(struct dwc3 *dwc,
 			dep = dwc3_wIndex_to_dep(dwc, wIndex);
 			if (!dep)
 				return -EINVAL;
-
-			if (!set && (dep->flags & DWC3_EP_WEDGE))
-				return 0;
-
 			ret = __dwc3_gadget_ep_set_halt(dep, set);
 			if (ret)
 				return -EINVAL;
@@ -751,7 +746,6 @@ static void dwc3_ep0_inspect_setup(struct dwc3 *dwc,
 		dwc->ep0_next_event = DWC3_EP0_NRDY_DATA;
 	}
 
-	dbg_setup(0x00, ctrl);
 	if ((ctrl->bRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD)
 		ret = dwc3_ep0_std_request(dwc, ctrl);
 	else
@@ -765,7 +759,6 @@ out:
 		dwc3_ep0_stall_and_restart(dwc);
 }
 
-bool zlp_required;
 static void dwc3_ep0_complete_data(struct dwc3 *dwc,
 		const struct dwc3_event_depevt *event)
 {
@@ -784,31 +777,19 @@ static void dwc3_ep0_complete_data(struct dwc3 *dwc,
 	dwc->ep0_next_event = DWC3_EP0_NRDY_STATUS;
 
 	r = next_request(&ep0->request_list);
-	if (r == NULL)
-		return;
-
 	ur = &r->request;
-	if ((epnum & 1) && ur->zero &&
-		(ur->length % ep0->endpoint.maxpacket == 0)) {
-		zlp_required = true;
-		ur->zero = false;
-	}
 
 	trb = dwc->ep0_trb;
 
 	status = DWC3_TRB_SIZE_TRBSTS(trb->size);
 	if (status == DWC3_TRBSTS_SETUP_PENDING) {
 		dev_dbg(dwc->dev, "Setup Pending received\n");
-		zlp_required = false;
 
 		if (r)
 			dwc3_gadget_giveback(ep0, r, -ECONNRESET);
 
 		return;
 	}
-
-	if (zlp_required)
-		return;
 
 	length = trb->size & DWC3_TRB_SIZE_MASK;
 
@@ -873,7 +854,6 @@ static void dwc3_ep0_complete_status(struct dwc3 *dwc,
 	if (status == DWC3_TRBSTS_SETUP_PENDING)
 		dev_dbg(dwc->dev, "Setup Pending received\n");
 
-	dbg_print(dep->number, "DONE", status, "STATUS");
 	dwc->ep0state = EP0_SETUP_PHASE;
 	dwc3_ep0_out_start(dwc);
 }
@@ -953,15 +933,10 @@ static void __dwc3_ep0_do_control_data(struct dwc3 *dwc,
 			return;
 		}
 
-		if (dep->number &&
-			!(req->request.length % dwc->gadget.ep0->maxpacket))
-			req->request.zero = true;
-
 		ret = dwc3_ep0_start_trans(dwc, dep->number, req->request.dma,
 				req->request.length, DWC3_TRBCTL_CONTROL_DATA);
 	}
 
-	dbg_queue(dep->number, &req->request, ret);
 	WARN_ON(ret < 0);
 }
 
@@ -979,16 +954,13 @@ static int dwc3_ep0_start_control_status(struct dwc3_ep *dep)
 
 static void __dwc3_ep0_do_control_status(struct dwc3 *dwc, struct dwc3_ep *dep)
 {
-	int ret;
 	if (dwc->resize_fifos) {
 		dev_dbg(dwc->dev, "starting to resize fifos\n");
 		dwc3_gadget_resize_tx_fifos(dwc);
 		dwc->resize_fifos = 0;
 	}
 
-	ret = dwc3_ep0_start_control_status(dep);
-	dbg_print(dep->number, "QUEUE", ret, "STATUS");
-	WARN_ON(ret);
+	WARN_ON(dwc3_ep0_start_control_status(dep));
 }
 
 static void dwc3_ep0_do_control_status(struct dwc3 *dwc,
@@ -1020,11 +992,7 @@ static void dwc3_ep0_end_control_data(struct dwc3 *dwc, struct dwc3_ep *dep)
 static void dwc3_ep0_xfernotready(struct dwc3 *dwc,
 		const struct dwc3_event_depevt *event)
 {
-	u8			epnum;
-	int			ret;
-
 	dwc->setup_packet_pending = true;
-	epnum = event->endpoint_number;
 
 	switch (event->status) {
 	case DEPEVT_STATUS_CONTROL_DATA:
@@ -1048,15 +1016,6 @@ static void dwc3_ep0_xfernotready(struct dwc3 *dwc,
 			return;
 		}
 
-		if (zlp_required) {
-			zlp_required = false;
-			ret = dwc3_ep0_start_trans(dwc, epnum,
-					dwc->ctrl_req_addr, 0,
-					DWC3_TRBCTL_CONTROL_DATA);
-			dbg_event(epnum, "ZLP", ret);
-			WARN_ON(ret < 0);
-		}
-
 		break;
 
 	case DEPEVT_STATUS_CONTROL_STATUS:
@@ -1065,16 +1024,13 @@ static void dwc3_ep0_xfernotready(struct dwc3 *dwc,
 
 		dev_vdbg(dwc->dev, "Control Status\n");
 
-		zlp_required = false;
 		dwc->ep0state = EP0_STATUS_PHASE;
 
-		if (dwc->delayed_status &&
-				list_empty(&dwc->eps[0]->request_list)) {
+		if (dwc->delayed_status) {
 			WARN_ON_ONCE(event->endpoint_number != 1);
 			dev_vdbg(dwc->dev, "Mass Storage delayed status\n");
 			return;
 		}
-		dwc->delayed_status = false;
 
 		dwc3_ep0_do_control_status(dwc, event);
 	}

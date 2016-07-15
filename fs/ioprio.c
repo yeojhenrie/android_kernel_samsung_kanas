@@ -38,6 +38,9 @@ int set_task_ioprio(struct task_struct *task, int ioprio)
 	rcu_read_lock();
 	tcred = __task_cred(task);
 	if (!uid_eq(tcred->uid, cred->euid) &&
+#ifdef CONFIG_IOSCHED_CLASS_CONTROL
+	    !uid_eq(cred->euid,GLOBAL_SYSTEM_UID) &&
+#endif
 	    !uid_eq(tcred->uid, cred->uid) && !capable(CAP_SYS_NICE)) {
 		rcu_read_unlock();
 		return -EPERM;

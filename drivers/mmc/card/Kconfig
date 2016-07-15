@@ -66,6 +66,18 @@ config SDIO_UART
 	  SDIO function driver for SDIO cards that implements the UART
 	  class, as well as the GPS class which appears like a UART.
 
+config SDIO_CHANNEL
+	tristate "SDIO CHANNEL class support"
+	default y
+	help
+	  SDIO function driver for Modem Devices.
+
+config SDIO_CARD
+	tristate "SDIO CARD class runtime support"
+	default n
+	help
+	SDIO card driver for Devices supporting customized runtime.
+
 config MMC_TEST
 	tristate "MMC host test driver"
 	help
@@ -77,13 +89,3 @@ config MMC_TEST
 
 	  This driver is only of interest to those developing or
 	  testing a host driver. Most people should say N here.
-
-config MMC_BLOCK_TEST
-	tristate "MMC block test"
-	depends on MMC_BLOCK && IOSCHED_TEST
-	help
-	  MMC block test can be used with test iosched to test the MMC block
-	  device.
-	  Currently used to test eMMC 4.5 features (packed commands, sanitize,
-	  BKOPs).
-

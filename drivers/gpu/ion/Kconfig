@@ -1,5 +1,6 @@
 menuconfig ION
 	tristate "Ion Memory Manager"
+	depends on ARM
 	select GENERIC_ALLOCATOR
 	select DMA_SHARED_BUFFER
 	help
@@ -11,8 +12,9 @@ config ION_TEGRA
 	help
 	  Choose this option if you wish to use ion on an nVidia Tegra.
 
-config ION_MSM
-	tristate "Ion for MSM"
-	depends on ARCH_MSM && ION
+config ION_SPRD
+	tristate "Ion for SPRD"
+	depends on ION
 	help
-	  Choose this option if you wish to use ion on an MSM target.
+	  Choose this option if you wish to use ion on an SPRD chip.
+

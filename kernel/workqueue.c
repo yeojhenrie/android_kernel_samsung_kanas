@@ -47,7 +47,10 @@
 #include <linux/nodemask.h>
 #include <linux/moduleparam.h>
 #include <linux/uaccess.h>
-#include <linux/bug.h>
+
+#ifdef CONFIG_SEC_DEBUG_SCHED_LOG
+#include <mach/sec_debug.h>
+#endif
 
 #include "workqueue_internal.h"
 
@@ -2171,7 +2174,14 @@ __acquires(&pool->lock)
 	lock_map_acquire_read(&pwq->wq->lockdep_map);
 	lock_map_acquire(&lockdep_map);
 	trace_workqueue_execute_start(work);
+
+#ifdef CONFIG_SEC_DEBUG_SCHED_LOG
+	sec_debug_work_log(worker, work, worker->current_func, 1);
+#endif
 	worker->current_func(work);
+#ifdef CONFIG_SEC_DEBUG_SCHED_LOG
+	sec_debug_work_log(worker, work, worker->current_func, 2);
+#endif
 	/*
 	 * While we must be careful to not use "work" after this, the trace
 	 * point will only record its address.
@@ -2186,7 +2196,6 @@ __acquires(&pool->lock)
 		       current->comm, preempt_count(), task_pid_nr(current),
 		       worker->current_func);
 		debug_show_held_locks(current);
-		BUG_ON(PANIC_CORRUPTION);
 		dump_stack();
 	}
 

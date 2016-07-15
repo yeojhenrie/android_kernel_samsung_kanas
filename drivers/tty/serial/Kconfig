@@ -1026,7 +1026,7 @@ config SERIAL_SGI_IOC3
 
 config SERIAL_MSM
 	bool "MSM on-chip serial port support"
-	depends on ARM && ARCH_MSM
+	depends on ARCH_MSM
 	select SERIAL_CORE
 
 config SERIAL_MSM_CONSOLE
@@ -1045,36 +1045,6 @@ config SERIAL_MSM_HS
 
 	  Choose M here to compile it as a module. The module will be
 	  called msm_serial_hs.
-
-config SERIAL_MSM_RX_WAKEUP
-	bool "Wakeup the msm uart clock on GPIO activity."
-	depends on SERIAL_MSM_CLOCK_CONTROL
-	default n
-	help
-	 Requires SERIAL_MSM_CLOCK_CONTROL. Wake up the uart while the uart
-	 clock is off, using a wakeup GPIO.
-
-config SERIAL_MSM_HSL
-	tristate "MSM UART High Speed : Legacy mode Serial Driver"
-	depends on ARM && ARCH_MSM
-	select SERIAL_CORE
-	default n
-	help
-	  Select this module to enable MSM high speed UART driver.
-
-config SERIAL_MSM_HSL_CONSOLE
-	bool "MSM High speed serial legacy mode console support"
-	depends on SERIAL_MSM_HSL=y
-	select SERIAL_CORE_CONSOLE
-	default n
-
-config SERIAL_BCM_BT_LPM
-	tristate "Broadcom Bluetooth Low Power Mode"
-	depends on ARM && ARCH_MSM
-	select SERIAL_CORE
-	default n
-	help
-	  Select this module for Broadcom Bluetooth low power management.
 
 config SERIAL_VT8500
 	bool "VIA VT8500 on-chip serial port support"
@@ -1513,6 +1483,24 @@ config SERIAL_RP2_NR_UARTS
 	help
 	  If multiple cards are present, the default limit of 32 ports may
 	  need to be increased.
+
+config SERIAL_SPRD_UART
+	tristate "Spreadtrum UART support"
+	select SERIAL_CORE
+	help
+	  This driver supports the Spreadtrum UART port.
+
+config SERIAL_SPRD_UART_NR
+	int "Maximum number of sprd serial ports"
+	depends on SERIAL_SPRD_UART
+	default "4"
+
+config SERIAL_SPRD_UART_CONSOLE
+	bool "SPRD UART console support"
+	depends on SERIAL_SPRD_UART=y
+	select SERIAL_CORE_CONSOLE
+	help
+	  Enable UART1 port to be the system console.
 
 endmenu
 

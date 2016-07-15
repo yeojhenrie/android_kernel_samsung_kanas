@@ -58,7 +58,7 @@ struct thread_info {
 	struct cpu_context_save	cpu_context;	/* cpu context */
 	__u32			syscall;	/* syscall number */
 	__u8			used_cp[16];	/* thread used copro */
-	unsigned long		tp_value[2];	/* TLS registers */
+	unsigned long		tp_value;
 #ifdef CONFIG_CRUNCH
 	struct crunch_state	crunchstate;
 #endif
@@ -127,6 +127,10 @@ extern int vfp_preserve_user_clear_hwstate(struct user_vfp __user *,
 					   struct user_vfp_exc __user *);
 extern int vfp_restore_user_hwstate(struct user_vfp __user *,
 				    struct user_vfp_exc __user *);
+#ifdef CONFIG_SPRD_MEM_POOL
+#include <mach/sprd_mem_pool.h>
+#endif
+
 #endif
 
 /*
@@ -156,6 +160,7 @@ extern int vfp_restore_user_hwstate(struct user_vfp __user *,
 #define TIF_USING_IWMMXT	17
 #define TIF_MEMDIE		18	/* is terminating due to OOM killer */
 #define TIF_RESTORE_SIGMASK	20
+#define TIF_MM_RELEASED		23	/* task MM has been released */
 
 #define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
 #define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)

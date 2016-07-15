@@ -37,12 +37,10 @@ static struct op_perf_name {
 	{ "xscale1",		"arm/xscale2"	},
 	{ "v6",			"arm/armv6"	},
 	{ "v6mpcore",		"arm/mpcore"	},
-	{ "ARMv7 Cortex-A5",	"arm/armv7"	},
 	{ "ARMv7 Cortex-A8",	"arm/armv7"	},
 	{ "ARMv7 Cortex-A9",	"arm/armv7-ca9"	},
-	{ "ARMv7 Scorpion",	"arm/armv7-scorpion"	},
-	{ "ARMv7 Scorpion-MP",	"arm/armv7-scorpionmp"	},
-	{ "ARMv7 Krait",	"arm/armv7-krait"	},
+	{ "ARMv7 Cortex-A5",	"arm/armv7-ca5"	},
+	{ "ARMv7 Cortex-A7",	"arm/armv7-ca7"	},
 };
 
 char *op_name_from_perf_id(void)

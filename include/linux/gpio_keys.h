@@ -2,7 +2,7 @@
 #define _GPIO_KEYS_H
 
 struct device;
-
+extern struct class *key_class;
 struct gpio_keys_button {
 	/* Configuration parameters */
 	unsigned int code;	/* input event code (KEY_*, SW_*) */
@@ -15,6 +15,7 @@ struct gpio_keys_button {
 	bool can_disable;
 	int value;		/* axis value for EV_ABS */
 	unsigned int irq;	/* Irq number in case of interrupt keys */
+	unsigned long ds_irqflags; /* deepsleep irq flags */
 };
 
 struct gpio_keys_platform_data {
@@ -26,6 +27,10 @@ struct gpio_keys_platform_data {
 	int (*enable)(struct device *dev);
 	void (*disable)(struct device *dev);
 	const char *name;		/* input device name */
+	//HALL_IC
+#ifdef CONFIG_SENSORS_HALL
+    int gpio_flip_cover;		/* flip cover */
+#endif
 };
 
 #endif

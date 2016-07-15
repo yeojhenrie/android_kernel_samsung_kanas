@@ -159,12 +159,6 @@ config PINCTRL_SINGLE
 	help
 	  This selects the device tree based generic pinctrl driver.
 
-config PINCTRL_MSM_TLMM_V3
-	bool "MSM TLMMv3 pinctrl driver"
-	depends on OF && ARCH_MSM
-	select PINMUX
-	select GENERIC_PINCONF
-
 config PINCTRL_SIRF
 	bool "CSR SiRFprimaII/SiRFmarco pin controller driver"
 	depends on ARCH_SIRF
