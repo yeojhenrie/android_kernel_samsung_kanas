@@ -37,18 +37,18 @@ static void gpu_ddr_dfs_func(struct work_struct *work)
 
 static mali_bool mali_power_on = MALI_FALSE;
 
+#if GPU_DDR_DFS_FREQ
 static u32 num_active_gps = 0;
 static u32 num_active_pps = 0;
+#endif
 
 _mali_osk_errcode_t mali_pm_initialize(void)
 {
 	_mali_osk_pm_dev_enable();
 	
 #if GPU_DDR_DFS_FREQ
-	if(gpu_ddr_dfs_workqueue == NULL)
-	{
+	if (gpu_ddr_dfs_workqueue == NULL)
 		gpu_ddr_dfs_workqueue = create_singlethread_workqueue("gpu_ddr_dfs");
-	}
 #endif
 
 	return _MALI_OSK_ERR_OK;
@@ -102,9 +102,8 @@ void mali_pm_os_resume(void)
 		do_reset = MALI_TRUE;
 	}
 
-	if (NULL != pmu) {
+	if (NULL != pmu)
 		mali_pmu_reset(pmu);
-	}
 
 	mali_power_on = MALI_TRUE;
 	_mali_osk_write_mem_barrier();
@@ -138,9 +137,8 @@ void mali_pm_runtime_resume(void)
 		do_reset = MALI_TRUE;
 	}
 
-	if (NULL != pmu) {
+	if (NULL != pmu)
 		mali_pmu_reset(pmu);
-	}
 
 	mali_power_on = MALI_TRUE;
 	_mali_osk_write_mem_barrier();
@@ -167,43 +165,32 @@ void mali_pm_core_event(enum mali_core_event core_event)
 	mali_bool transition_working = MALI_FALSE;
 	mali_bool transition_idle = MALI_FALSE;
 
-	switch (core_event)
-	{
+	switch (core_event) {
 		case MALI_CORE_EVENT_GP_START:
 			if (num_active_pps + num_active_gps == 0)
-			{
 				transition_working = MALI_TRUE;
-			}
 			num_active_gps++;
 			break;
 		case MALI_CORE_EVENT_GP_STOP:
 			if (num_active_pps + num_active_gps == 1)
-			{
 				transition_idle = MALI_TRUE;
-			}
 			num_active_gps--;
 			break;
 		case MALI_CORE_EVENT_PP_START:
 			if (num_active_pps + num_active_gps == 0)
-			{
 				transition_working = MALI_TRUE;
-			}
 			num_active_pps++;
 			break;
 		case MALI_CORE_EVENT_PP_STOP:
 			if (num_active_pps + num_active_gps == 1)
-			{
 				transition_idle = MALI_TRUE;
-			}
 			num_active_pps--;
 			break;
 	}
 
 	if ((transition_working == MALI_TRUE) &&
-		(gpu_ddr_dfs_workqueue != NULL))
-	{
+			(gpu_ddr_dfs_workqueue != NULL))
 		queue_work(gpu_ddr_dfs_workqueue, &gpu_ddr_dfs_work);
-	}
 #endif
 
 }

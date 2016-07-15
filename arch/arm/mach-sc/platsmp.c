@@ -326,7 +326,7 @@ struct smp_operations sprd_smp_ops __initdata = {
 	.smp_secondary_init = sprd_secondary_init,
 	.smp_boot_secondary = sprd_boot_secondary,
 #ifdef CONFIG_HOTPLUG_CPU
-	.cpu_kill		= sprd_cpu_kill,
+	.cpu_kill	= sprd_cpu_kill,
 	.cpu_disable	= sprd_cpu_disable,
 	.cpu_die        = sprd_cpu_die,
 #endif

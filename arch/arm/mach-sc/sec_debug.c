@@ -973,7 +973,9 @@ static void sec_debug_set_build_info(void)
 
 __init int sec_debug_init(void)
 {
+#ifdef CONFIG_SEC_DEBUG_SCHED_LOG_NONCACHED
 	unsigned int addr;
+#endif
 	if (!sec_debug_level.en.kernel_fault)
 		return -1;
 
