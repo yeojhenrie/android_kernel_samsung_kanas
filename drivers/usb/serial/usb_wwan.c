@@ -364,44 +364,28 @@ static void usb_wwan_indat_callback(struct urb *urb)
 	portdata = usb_get_serial_port_data(port);
 	intfdata = port->serial->private;
 
-	spin_lock(&intfdata->susp_lock);
-	if (!portdata->opened) {
-		spin_unlock(&intfdata->susp_lock);
-		return;
+	if (status) {
+		dev_dbg(dev, "%s: nonzero status: %d on endpoint %02x.\n",
+			__func__, status, endpoint);
+	} else {
+		if (urb->actual_length) {
+			tty_insert_flip_string(&port->port, data,
+					urb->actual_length);
+			tty_flip_buffer_push(&port->port);
+		} else
+			dev_dbg(dev, "%s: empty read urb received\n", __func__);
 	}
-	spin_unlock(&intfdata->susp_lock);
-
-	usb_mark_last_busy(port->serial->dev);
-
-	if ((status == -ENOENT || !status) && urb->actual_length) {
-		spin_lock_irqsave(&portdata->in_lock, flags);
-		list_add_tail(&urb->urb_list, &portdata->in_urb_list);
-		spin_unlock_irqrestore(&portdata->in_lock, flags);
-
-		queue_work(system_nrt_wq, &portdata->in_work);
-
-		return;
-	}
-
-	dev_dbg(dev, "%s: nonzero status: %d on endpoint %02x.",
-		__func__, status, endpoint);
-
-	spin_lock(&intfdata->susp_lock);
-	if (intfdata->suspended) {
-		spin_unlock(&intfdata->susp_lock);
-		return;
-	}
-	spin_unlock(&intfdata->susp_lock);
-
-	if (status != -ESHUTDOWN) {
-		usb_anchor_urb(urb, &portdata->submitted);
-		err = usb_submit_urb(urb, GFP_ATOMIC);
-		if (err) {
-			usb_unanchor_urb(urb);
-			if (err != -EPERM)
-				dev_err(dev, "%s: submit read urb failed:%d",
-						__func__, err);
+	/* Resubmit urb so we continue receiving */
+	err = usb_submit_urb(urb, GFP_ATOMIC);
+	if (err) {
+		if (err != -EPERM) {
+			dev_err(dev, "%s: resubmit read urb failed. (%d)\n",
+				__func__, err);
+			/* busy also in error unless we are killed */
+			usb_mark_last_busy(port->serial->dev);
 		}
+	} else {
+		usb_mark_last_busy(port->serial->dev);
 	}
 }
 

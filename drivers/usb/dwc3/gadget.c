@@ -1746,25 +1746,23 @@ static int dwc3_gadget_vbus_session(struct usb_gadget *_gadget, int is_active)
 
 	is_active = !!is_active;
 
+	irq = platform_get_irq(to_platform_device(dwc->dev), 0);
+	ret = request_threaded_irq(irq, dwc3_interrupt, dwc3_thread_interrupt,
+			IRQF_SHARED | IRQF_ONESHOT, "dwc3", dwc);
+	if (ret) {
+		dev_err(dwc->dev, "failed to request irq #%d --> %d\n",
+				irq, ret);
+		goto err0;
+	}
+
 	spin_lock_irqsave(&dwc->lock, flags);
 
-	/* Mark that the vbus was powered */
-	dwc->vbus_active = is_active;
-
-	/*
-	 * Check if upper level usb_gadget_driver was already registerd with
-	 * this udc controller driver (if dwc3_gadget_start was called)
-	 */
-	if (dwc->gadget_driver && dwc->softconnect) {
-		if (dwc->vbus_active) {
-			/*
-			 * Both vbus was activated by otg and pullup was
-			 * signaled by the gadget driver.
-			 */
-			dwc3_gadget_run_stop(dwc, 1);
-		} else {
-			dwc3_gadget_run_stop(dwc, 0);
-		}
+	if (dwc->gadget_driver) {
+		dev_err(dwc->dev, "%s is already bound to %s\n",
+				dwc->gadget.name,
+				dwc->gadget_driver->driver.name);
+		ret = -EBUSY;
+		goto err1;
 	}
 
 	/*
@@ -1836,7 +1834,7 @@ static int __dwc3_gadget_start(struct dwc3 *dwc)
 	ret = __dwc3_gadget_ep_enable(dep, &dwc3_gadget_ep0_desc, NULL, false);
 	if (ret) {
 		dev_err(dwc->dev, "failed to enable %s\n", dep->name);
-		return ret;
+		goto err2;
 	}
 
 	dep = dwc->eps[1];
@@ -1845,8 +1843,7 @@ static int __dwc3_gadget_start(struct dwc3 *dwc)
 	ret = __dwc3_gadget_ep_enable(dep, &dwc3_gadget_ep0_desc, NULL, false);
 	if (ret) {
 		dev_err(dwc->dev, "failed to enable %s\n", dep->name);
-		__dwc3_gadget_ep_disable(dwc->eps[0]);
-		return ret;
+		goto err3;
 	}
 
 	/* begin to receive SETUP packets */
@@ -1855,75 +1852,23 @@ static int __dwc3_gadget_start(struct dwc3 *dwc)
 
 	dwc3_gadget_enable_irq(dwc);
 
-	return ret;
-}
-
-/* Required gadget re-initialization before switching to gadget in OTG mode */
-void dwc3_gadget_restart(struct dwc3 *dwc)
-{
-	/* automatic phy suspend only on recent versions */
-	if (dwc->revision >= DWC3_REVISION_194A) {
-		dwc3_gadget_usb2_phy_suspend(dwc, true);
-		dwc3_gadget_usb3_phy_suspend(dwc, true);
-	}
-
-	__dwc3_gadget_start(dwc);
-}
-
-static int dwc3_gadget_start(struct usb_gadget *g,
-		struct usb_gadget_driver *driver)
-{
-	struct dwc3		*dwc = gadget_to_dwc(g);
-	unsigned long		flags;
-	int			ret = 0;
-	int			irq;
-
-	pm_runtime_get_sync(dwc->dev);
-	irq = platform_get_irq(to_platform_device(dwc->dev), 0);
-	ret = request_threaded_irq(irq, dwc3_interrupt, dwc3_thread_interrupt,
-			IRQF_SHARED | IRQF_ONESHOT, "dwc3", dwc);
-	if (ret) {
-		dev_err(dwc->dev, "failed to request irq #%d --> %d\n",
-				irq, ret);
-		goto err0;
-	}
-
-	spin_lock_irqsave(&dwc->lock, flags);
-
-	if (dwc->gadget_driver) {
-		dev_err(dwc->dev, "%s is already bound to %s\n",
-				dwc->gadget.name,
-				dwc->gadget_driver->driver.name);
-		ret = -EBUSY;
-		goto err1;
-	}
-
-	dwc->gadget_driver	= driver;
-
-	/*
-	 * For DRD, this might get called by gadget driver during bootup
-	 * even though host mode might be active. Don't actually perform
-	 * device-specific initialization until device mode is activated.
-	 * In that case dwc3_gadget_restart() will handle it.
-	 */
-	if (!dwc->dotg) {
-		ret = __dwc3_gadget_start(dwc);
-		if (ret)
-			goto err1;
-	}
-
 	spin_unlock_irqrestore(&dwc->lock, flags);
 	pm_runtime_put(dwc->dev);
 
 	return 0;
 
+err3:
+	__dwc3_gadget_ep_disable(dwc->eps[0]);
+
+err2:
+	dwc->gadget_driver = NULL;
+
 err1:
 	spin_unlock_irqrestore(&dwc->lock, flags);
-	pm_runtime_put(dwc->dev);
 
-err0:
 	free_irq(irq, dwc);
 
+err0:
 	return ret;
 }
 

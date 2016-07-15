@@ -101,13 +101,10 @@ struct zram_slot_free {
 
 struct zram {
 	struct zram_meta *meta;
+	spinlock_t stat64_lock;	/* protect 64-bit stats */
 	struct rw_semaphore lock; /* protect compression buffers, table,
 				   * 32bit stat counters against concurrent
 				   * notifications, reads and writes */
-
-	struct work_struct free_work;  /* handle pending free request */
-	struct zram_slot_free *slot_free_rq; /* list head of free request */
-
 	struct request_queue *queue;
 	struct gendisk *disk;
 	int init_done;

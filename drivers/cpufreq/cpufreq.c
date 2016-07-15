@@ -1259,24 +1259,24 @@ static int __cpufreq_remove_dev_finish(struct device *dev,
 		return -EINVAL;
 	}
 
-	down_write(&policy->rwsem);
-	cpus = cpumask_weight(policy->cpus);
-
-	if (cpus > 1)
-		cpumask_clear_cpu(cpu, policy->cpus);
-	up_write(&policy->rwsem);
-
 	/* If cpu is last user of policy, free policy */
 	if (cpus == 1) {
-		if (has_target()) {
-			ret = __cpufreq_governor(policy,
-					CPUFREQ_GOV_POLICY_EXIT);
-			if (ret) {
-				pr_err("%s: Failed to exit governor\n",
-						__func__);
-				return ret;
-			}
-		}
+		if (cpufreq_driver->target)
+			__cpufreq_governor(data, CPUFREQ_GOV_POLICY_EXIT);
+
+		lock_policy_rwsem_read(cpu);
+		kobj = &data->kobj;
+		cmp = &data->kobj_unregister;
+		unlock_policy_rwsem_read(cpu);
+		kobject_put(kobj);
+
+		/* we need to make sure that the underlying kobj is actually
+		 * not referenced anymore by anybody before we proceed with
+		 * unloading.
+		 */
+		pr_debug("waiting for dropping of refcount\n");
+		wait_for_completion(cmp);
+		pr_debug("wait complete\n");
 
 		if (!frozen) {
 			down_read(&policy->rwsem);
@@ -1301,23 +1301,17 @@ static int __cpufreq_remove_dev_finish(struct device *dev,
 		 * subsequent light-weight ->init() to succeed.
 		 */
 		if (cpufreq_driver->exit)
-			cpufreq_driver->exit(policy);
+			cpufreq_driver->exit(data);
 
-		/* Remove policy from list of active policies */
-		write_lock_irqsave(&cpufreq_driver_lock, flags);
-		list_del(&policy->policy_list);
-		write_unlock_irqrestore(&cpufreq_driver_lock, flags);
-
-		if (!frozen)
-			cpufreq_policy_free(policy);
+		free_cpumask_var(data->related_cpus);
+		free_cpumask_var(data->cpus);
+		kfree(data);
 	} else {
-		if (has_target()) {
-			if ((ret = __cpufreq_governor(policy, CPUFREQ_GOV_START)) ||
-					(ret = __cpufreq_governor(policy, CPUFREQ_GOV_LIMITS))) {
-				pr_err("%s: Failed to start governor\n",
-						__func__);
-				return ret;
-			}
+		pr_debug("%s: removing link, cpu: %d\n", __func__, cpu);
+		cpufreq_cpu_put(data);
+		if (cpufreq_driver->target) {
+			__cpufreq_governor(data, CPUFREQ_GOV_START);
+			__cpufreq_governor(data, CPUFREQ_GOV_LIMITS);
 		}
 	}
 
@@ -2113,12 +2107,13 @@ static int cpufreq_cpu_callback(struct notifier_block *nfb,
 
 		switch (action & ~CPU_TASKS_FROZEN) {
 		case CPU_ONLINE:
-			__cpufreq_add_dev(dev, NULL, frozen);
-			cpufreq_update_policy(cpu);
+		case CPU_ONLINE_FROZEN:
+			cpufreq_add_dev(dev, NULL);
 			break;
 
 		case CPU_DOWN_PREPARE:
-			__cpufreq_remove_dev_prepare(dev, NULL, frozen);
+		case CPU_DOWN_PREPARE_FROZEN:
+			__cpufreq_remove_dev(dev, NULL);
 			break;
 
 		case CPU_POST_DEAD:
@@ -2126,7 +2121,8 @@ static int cpufreq_cpu_callback(struct notifier_block *nfb,
 			break;
 
 		case CPU_DOWN_FAILED:
-			__cpufreq_add_dev(dev, NULL, frozen);
+		case CPU_DOWN_FAILED_FROZEN:
+			cpufreq_add_dev(dev, NULL);
 			break;
 		}
 	}
