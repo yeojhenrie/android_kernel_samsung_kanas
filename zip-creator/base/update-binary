@@ -1,14 +1,14 @@
 #!/sbin/sh
 # Live RAMDisk Patcher by Caio99BR <caiooliveirafarias0@gmail.com>
 
-# Sony Xperia E1 Values
+# Samsung Core 2 Values
 # Get device.prop values
 builder=$(sed -n "1p" "${working_dir}/device.prop")
 custom_kernel=$(sed -n "2p" "${working_dir}/device.prop")
 device_name=$(sed -n "3p" "${working_dir}/device.prop")
 release=$(sed -n "4p" "${working_dir}/device.prop")
 # Boot Partition
-boot_partition="/dev/block/platform/msm_sdcc.1/by-name/boot"
+boot_partition="/dev/block/platform/sprd-sdhci.3/by-name/system"
 # Boot Values
 new_boot_pagesize="--pagesize 2048"
 
