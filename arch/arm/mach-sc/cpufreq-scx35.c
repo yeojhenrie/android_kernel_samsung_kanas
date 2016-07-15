@@ -193,6 +193,7 @@ static struct cpufreq_table_data sc8830_cpufreq_table_data_cs = {
 /*
 for 7715 test
 */
+#if 0
 static struct cpufreq_table_data sc7715_cpufreq_table_data = {
 	.freq_tbl = {
 		{0, 1000000},
@@ -209,6 +210,7 @@ static struct cpufreq_table_data sc7715_cpufreq_table_data = {
 		1000000,
 	},
 };
+#endif
 
 
 static struct cpufreq_table_data sc8830_cpufreq_table_data_es = {
