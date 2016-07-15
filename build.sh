@@ -15,19 +15,23 @@ device_choice() {
 clear
 # Devices available
 #
-# Xperia E1
-device_variants_1="D2004 D2005 D2104 D2015 D2114" device_defconfig_1="cyanogenmod_falconss_defconfig" device_name_1="Sony-XperiaE1"
+# Samsung Core 2
+device_variants_1="SM-G355H SM-G355HN SM-G355M" device_defconfig_1="cyanogenmod_sa_defconfig" device_name_1="Samsung-Core2"
+device_variants_2="SM-G355H SM-G355HN SM-G355M" device_defconfig_2="cyanogenmod_kanas_defconfig" device_name_2="Samsung-Core2"
 # Menu
 echo "${x} | ${color_green}Device choice${color_stock}"
 echo
-echo "1 | ${device_variants_1} | ${device_name_1}"
+echo "1 | ${device_variants_1} | ${device_name_1} | ${device_defconfig_1}"
 defconfig_updater ${device_name_1}
+echo "2 | ${device_variants_2} | ${device_name_2} | ${device_defconfig_2}"
+defconfig_updater ${device_name_2}
 echo
 echo "* | Any other key to Exit"
 echo
 read -p "  | Choice | " -n 1 -s x
 case "${x}" in
 	1) device_defconfig=${device_defconfig_1} device_name=${device_name_1};;
+	2) device_defconfig=${device_defconfig_2} device_name=${device_name_2};;
 	a)
 		if [ -f .config ]
 		then

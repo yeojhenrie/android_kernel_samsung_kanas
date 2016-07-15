@@ -10,8 +10,6 @@ release=$(sed -n "4p" "${working_dir}/device.prop")
 # Boot Partition
 boot_partition="/dev/block/platform/msm_sdcc.1/by-name/boot"
 # Boot Values
-new_boot_ramdisk_offset="--ramdisk_offset 0x02000000"
-new_boot_tags_offset="--tags_offset 0x01E00000"
 new_boot_pagesize="--pagesize 2048"
 
 # Get values used in original zip
@@ -79,8 +77,6 @@ ${working_dir}/mkbootimg \
 --cmdline "$(cat ${working_dir}/boot.img-cmdline)" \
 --base "$(cat ${working_dir}/boot.img-base)" \
 --kernel "${working_dir}/zImage" \
-"${new_boot_ramdisk_offset}" \
-"${new_boot_tags_offset}" \
 "${new_boot_pagesize}" \
 "${new_boot_dt}" \
 -o "${new_boot_image}"
