@@ -165,17 +165,27 @@ static unsigned int get_mcu_clk_freq(void)
 
 static struct cpufreq_table_data sc8830_cpufreq_table_data_cs = {
 	.freq_tbl = {
-		{0, 1200000},
-		{1, 1000000},
-		{2, SHARK_TDPLL_FREQUENCY},
-		{3, 600000},
-		{4, CPUFREQ_TABLE_END},
+		{0, 1300000},
+		{1, 1200000},
+		{2, 1100000},
+		{3, 1000000},
+		{4, SHARK_TDPLL_FREQUENCY},
+		{5, 600000},
+		{6, 500000},
+		{7, 400000},
+		{8, 200000},
+		{9, CPUFREQ_TABLE_END},
 	},
 	.vddarm_mv = {
+		1350000,
 		1300000,
+		1250000,
 		1200000,
 		1150000,
 		1100000,
+		1125000,
+		1050000,
+		1025000,
 		1000000,
 	},
 };
@@ -183,7 +193,6 @@ static struct cpufreq_table_data sc8830_cpufreq_table_data_cs = {
 /*
 for 7715 test
 */
-#if 0
 static struct cpufreq_table_data sc7715_cpufreq_table_data = {
 	.freq_tbl = {
 		{0, 1000000},
@@ -200,18 +209,31 @@ static struct cpufreq_table_data sc7715_cpufreq_table_data = {
 		1000000,
 	},
 };
-#endif
 
 
 static struct cpufreq_table_data sc8830_cpufreq_table_data_es = {
 	.freq_tbl = {
-		{0, 1000000},
-		{1, SHARK_TDPLL_FREQUENCY},
-		{2, CPUFREQ_TABLE_END},
+		{0, 1300000},
+		{1, 1200000},
+		{2, 1100000},
+		{3, 1000000},
+		{4, SHARK_TDPLL_FREQUENCY},
+		{5, 600000},
+		{6, 500000},
+		{7, 400000},
+		{8, 200000},
+		{9, CPUFREQ_TABLE_END},
 	},
 	.vddarm_mv = {
+		1350000,
+		1300000,
 		1250000,
 		1200000,
+		1150000,
+		1100000,
+		1125000,
+		1050000,
+		1025000,
 		1000000,
 	},
 };
