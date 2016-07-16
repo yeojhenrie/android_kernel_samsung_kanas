@@ -60,6 +60,5 @@ deploy:
     secure: "Ff2z8V191nLZoQoYKoDzGbvwZuYBkupyXpLfcc79MTbu0k3qbeMw6J+UqIWMPDcEiRTGT6FP53JRE8A+c0yiTlZakagE9hfK0f0nF5sIIdUvbMLm6yR6K6GFM9n1G3d8NWFve8bz5Z3zBt4cl2ehkv414SzxsvMKRLYshnApGRt69e//d07ldLKlbSBd6UG5qWNex5aUjV4/KcLJC6UQfvbW1CekTIS+Ck+8Q/fnUGlMXcUDOC3A+XImzuWBDdnEOphHQrwVvjlAgdazeXFc+Ycus5pHDpQ47BXjdOaegg1CeqD106qKDjG1YRLDntL74lckSZy5I19Njp3ic6OKSfKct8HdD1DU1KbwYMVAVqxxjzEBuyjEJ97ymMTeSI4IDoVx6LKDSOPfJrSU4kKiRNvhwB/8EMcH1E8pMAyHaM6h07aWIIdeLE87mUSwClW9OrRhcS1XBNn8pmDO7a4yLhLCxczRAo5vhGhWL2TxTJ2QbxNKXypdbN0Toz4nm1c/zi6QKqZxvww7+ZjG6hIL8+n1SfX9G+9LH9WA206ziDdYESMrV3XU/X4LMCPmmO+1Rks5GShyNvfuic7m8y2uiTY/PVLcIS83HcKwE8CMDIa0v6pA00Bj+LXOIKg3KDjlxhogE3swlDINHVqvPxY+QQEN4SJcx/2VlTKe5k6ReUw="
   file:
     - "zip-creator/${zipfile1}"
-    - "zip-creator/${zipfile2}"
   on:
     tags: true
