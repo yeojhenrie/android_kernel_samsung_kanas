@@ -30,8 +30,8 @@ index 3acb77d..72f5bac 100644
 From 2e0a2dee7c23e1848a42e7b1b3adbabbd52958a0 Mon Sep 17 00:00:00 2001
 From: Caio Oliveira <caiooliveirafarias0@gmail.com>
 Date: Mon, 11 Jul 2016 19:41:32 -0300
-Subject: [PATCH 2/2] mkcompile_h: Add custom Caio99BR Kernel Version [DO NOT
- MERGE]
+Subject: [PATCH 2/2] mkcompile_h: Add name of idealizer to Kernel Version [D
+ O NOT MERGE]
 
 Signed-off-by: Caio Oliveira <caiooliveirafarias0@gmail.com>
 ---
@@ -48,7 +48,7 @@ index f221ddf..2bb7309 100755
  
 -  echo \#define LINUX_COMPILE_BY \"`echo $LINUX_COMPILE_BY | $UTS_TRUNCATE`\"
 -  echo \#define LINUX_COMPILE_HOST \"`echo $LINUX_COMPILE_HOST | $UTS_TRUNCATE`\"
-+  echo \#define LINUX_COMPILE_BY \"Caio99BR\"
++  echo \#define LINUX_COMPILE_BY \"fromECr34T1v3_byCaio99BR\"
 +  echo \#define LINUX_COMPILE_HOST \"TravisCI\"
  
    echo \#define LINUX_COMPILER \"`$CC -v 2>&1 | tail -n 1`\"
