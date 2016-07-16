@@ -16,24 +16,18 @@ clear
 # Devices available
 #
 # Samsung Core 2
-device_defconfig_1="cyanogenmod_sa_defconfig" device_name_1="Samsung-Core2-SA"
-device_defconfig_2="cyanogenmod_kanas_defconfig" device_name_2="Samsung-Core2-KANAS"
-device_variants="SM-G355H SM-G355HN SM-G355M"
+device_variants_1="SM-G355H SM-G355HN SM-G355M" device_defconfig_1="cyanogenmod_kanas_defconfig" device_name_2="Samsung-Core2-KANAS"
 # Menu
 echo "${x} | ${color_green}Device choice${color_stock}"
 echo
-echo "  | ${device_variants}"
-echo "1 |  | ${device_name_1} | ${device_defconfig_1}"
+echo "1 | ${device_variants_1} | ${device_name_1}"
 defconfig_updater ${device_name_1}
-echo "2 |  | ${device_name_2} | ${device_defconfig_2}"
-defconfig_updater ${device_name_2}
 echo
 echo "* | Any other key to Exit"
 echo
 read -p "  | Choice | " -n 1 -s x
 case "${x}" in
 	1) device_defconfig=${device_defconfig_1} device_name=${device_name_1};;
-	2) device_defconfig=${device_defconfig_2} device_name=${device_name_2};;
 	a)
 		if [ -f .config ]
 		then
@@ -182,16 +176,7 @@ if [ -f .config ]
 then
 	if [[ "${device_defconfig}" == "${1}" || "${device_name}" == "${1}" ]]
 	then
-		if [ $(cat arch/${ARCH}/configs/${device_defconfig} | grep "Automatically" | wc -l) == "0" ]
-		then
-			defconfig_format="a | Default Linux Kernel format  | Small"
-		else
-			defconfig_format="b | Usual copy of .config format | Complete"
-		fi
-		echo "  | Update defconfig from:"
-		echo "${defconfig_format}"
-		echo
-		echo "  | to:"
+		echo "  | Update defconfig to:"
 		echo "a | Default Linux Kernel format  | Small"
 		echo "b | Usual copy of .config format | Complete"
 		echo
@@ -241,8 +226,8 @@ then
 	color_yellow=$(tput bold)$(tput setaf 3)
 	color_blue=$(tput bold)$(tput setaf 4)
 	# Main Variables
-	custom_kernel=KanasProj-CAFKernel
-	builder=Caio99BR
+	custom_kernel=OMKernel
+	builder=TeamVee-Kanas
 	custom_kernel_branch=KK
 	ARCH=arm
 
