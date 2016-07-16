@@ -16,14 +16,16 @@ clear
 # Devices available
 #
 # Samsung Core 2
-device_variants_1="SM-G355H SM-G355HN SM-G355M" device_defconfig_1="cyanogenmod_sa_defconfig" device_name_1="Samsung-Core2-SA"
-device_variants_2="SM-G355H SM-G355HN SM-G355M" device_defconfig_2="cyanogenmod_kanas_defconfig" device_name_2="Samsung-Core2-KANAS"
+device_defconfig_1="cyanogenmod_sa_defconfig" device_name_1="Samsung-Core2-SA"
+device_defconfig_2="cyanogenmod_kanas_defconfig" device_name_2="Samsung-Core2-KANAS"
+device_variants="SM-G355H SM-G355HN SM-G355M"
 # Menu
 echo "${x} | ${color_green}Device choice${color_stock}"
 echo
-echo "1 | ${device_variants_1} | ${device_name_1} | ${device_defconfig_1}"
+echo "  | ${device_variants}"
+echo "1 |  | ${device_name_1} | ${device_defconfig_1}"
 defconfig_updater ${device_name_1}
-echo "2 | ${device_variants_2} | ${device_name_2} | ${device_defconfig_2}"
+echo "2 |  | ${device_name_2} | ${device_defconfig_2}"
 defconfig_updater ${device_name_2}
 echo
 echo "* | Any other key to Exit"
@@ -146,26 +148,11 @@ then
 		rm -rf ${zip_out}
 		mkdir -p ${zip_out}/META-INF/com/google/android/
 
-		# Making DT Image to Live Ramdisk
-		if [ "$(cat .config | grep '# CONFIG_OF is not set' | wc -l)" == "0" ]
-		then
-			chmod a+x zip-creator/base/dtbToolCM
-			./zip-creator/base/dtbToolCM -2 -s 2048 -p scripts/dtc/ arch/${ARCH}/boot/ -o ${zip_out}/dt.img &> /dev/null
-		fi
-
 		# Copy core files
 		cp zip-creator/base/update-binary ${zip_out}/META-INF/com/google/android/
 		cp zip-creator/base/mkbootimg ${zip_out}/
 		cp zip-creator/base/unpackbootimg ${zip_out}/
 		cp arch/${ARCH}/boot/zImage ${zip_out}/
-
-		# Copy modules
-		if [ "$(cat .config | grep '# CONFIG_MODULES is not set' | wc -l)" == "0" ]
-		then
-			mkdir ${zip_out}/modules
-			find . -name *.ko | xargs cp -a --target-directory=${zip_out}/modules/ &> /dev/null
-			${CROSS_COMPILE}strip --strip-unneeded ${zip_out}/modules/*.ko
-		fi
 
 		# Set device
 		echo "${builder}" >> ${zip_out}/device.prop
