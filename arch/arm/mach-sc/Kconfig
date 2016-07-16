@@ -532,12 +532,8 @@ config MACH_KANAS
 
 config KANAS_GPS_AVDD18
        bool "Kanas related regulator setting"
-       default n
-
-config SEC_LOG
-	bool "Samsung log buffer"
 	default n
-		
+
 config WLAN_SDIO
     bool "WIFI SDIO"
     default y
