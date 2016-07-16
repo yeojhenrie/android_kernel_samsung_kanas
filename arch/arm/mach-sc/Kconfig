@@ -2,7 +2,7 @@ if ARCH_SC
 
 menu "Spreadtrum SoC Type"
 
-config  ARCH_SC8825
+config ARCH_SC8825
 	bool "sc8825 series(tiger)"
 	select CPU_V7
 	select HAVE_SMP
@@ -17,7 +17,7 @@ config  ARCH_SC8825
 	select ARCH_HAS_CPUFREQ
 	select NEED_MACH_IO_H
 
-config  ARCH_SCX35
+config ARCH_SCX35
 	bool "sc8830 series(shark)"
 	select CPU_V7
 	select HAVE_SMP
@@ -34,39 +34,37 @@ config  ARCH_SCX35
 	select ARM_HAS_SG_CHAIN
 
 config ARCH_SCX15
-	bool "scx15 series(dolphin,depend on ARCH_SCX35)"
+	bool "SCX15 Series(Dolphin, depend on ARCH_SCX35)"
 	select ARCH_SCX35
 	help
-	  Support for Spreadtrum scx15(dolphin) based systems.
+	  Support for Spreadtrum SCX15(Dolphin) based systems.
 
 endmenu
-
 
 menu "Spreadtrum Adie Type"
 
 config ADIE_SC2713
-        bool "Spredtrum A-die SC2713 Chip Support"
-        default n
+	bool "Spredtrum A-die SC2713 Chip Support"
+	default n
 	help
-	  Say Y here to support for Spreadtrum a-die sc2713 chip.
+	  Say Y here to support for Spreadtrum A-die SC2713 chip.
 
 config ADIE_SC2713S
-        bool "Spredtrum A-die SC2713S Chip Support"
-        default n
+	bool "Spredtrum A-die SC2713S Chip Support"
+	default n
 	help
 	  Say Y here to support for Spreadtrum a-die sc2713s chip.
 
 config ADIE_SC2711
 	bool "Spredtrum A-die SC2711 Chip Support"
-        default n
+	default n
 	help
 	  Say Y here to support for Spreadtrum a-die sc2711 chip.
 endmenu
 
-
 config SC_FPGA
-       bool
-       default n
+	bool
+	default n
 
 menu "Spreadtrum Board Type"
 
@@ -142,7 +140,6 @@ config MACH_HUSKYTD
 	help
 	  HUSKYTD(SPX35EC) board based on SC8830 serial.
 
-
 config MACH_SP8830SSW
 	bool "sp8830ssw Phone Board"
 	depends on ARCH_SC
@@ -167,7 +164,6 @@ config MACH_KANAS_TD
 	help
 	  Samsung Kanass TD board based on SC8830 serial.
 
-
 config MACH_SC9620OPENPHONE
 	bool "sc9620openphone Board"
 	depends on ARCH_SC
@@ -177,12 +173,12 @@ config MACH_SC9620OPENPHONE
 	  ssc9620openphone board based on SC8830 serial.
 
 config MACH_SC9620FPGA
-        bool "sc9620fpga Board"
-        depends on ARCH_SC
-        depends on ARCH_SCX35
-        default n
-        help
-          ssc9620fpga board based on SC8830 serial.
+	bool "sc9620fpga Board"
+	depends on ARCH_SC
+	depends on ARCH_SCX35
+	default n
+	help
+	  ssc9620fpga board based on SC8830 serial.
 
 config MACH_SP7730EC
 	bool "sp7730ec Phone Board"
@@ -204,7 +200,7 @@ config MACH_SPX35FPGA
 	bool "sp8830 FPGA Board"
 	depends on ARCH_SC
 	depends on ARCH_SCX35
-        select  SC_FPGA
+	select SC_FPGA
 	default n
 	help
 	  SPX35 fpga board based on SC8830 serial.
@@ -217,14 +213,13 @@ config MACH_SP7735EC
 	help
 	  SP7735EC board based on SC8830 serial.
 
-
 config MACH_SPX15FPGA
 	bool "spx15 FPGA Board"
 	depends on ARCH_SC
 	depends on ARCH_SCX35
 	depends on ARCH_SCX15
 	default y
-        select  SC_FPGA
+	select SC_FPGA
 	help
 	  SPX15 fpga board based on dolphin serial.
 
@@ -236,6 +231,7 @@ config MACH_SP6815GA
 	default n
 	help
 	  SP6815GA board based on dolphin serial.
+
 config MACH_SP7715EA
 	bool "sp7715ea Phone Board"
 	depends on ARCH_SC
@@ -336,13 +332,13 @@ config MACH_YOUNG2
 	  YOUNG2 board based on dolphin serial.
 
 config MACH_HIGGS
-        bool "higgs Phone Board"
-        depends on ARCH_SC
-        depends on ARCH_SCX35
-        depends on ARCH_SCX15
-        default n
-        help
-          HIGGS board based on dolphin serial.
+	bool "higgs Phone Board"
+	depends on ARCH_SC
+	depends on ARCH_SCX35
+	depends on ARCH_SCX15
+	default n
+	help
+	  HIGGS board based on dolphin serial.
 
 config MACH_SP8830GA
 	bool "sp8830ga Phone Board"
@@ -363,35 +359,35 @@ config MACH_SP7730GA
 endmenu
 
 config SPRD_ION_MM_SIZE
-        int "size for ion"
-        range 1 64
-        default 1
+	int "size for ion"
+	range 1 64
+	default 1
 	depends on ION
 
 config SPRD_ION_OVERLAY_SIZE
-        int "size for ion overlay"
-        range 1 64
-        default 1
+	int "size for ion overlay"
+	range 1 64
+	default 1
 	depends on ION
 
 config SC_VIBRATOR
-        bool "vibrator for SC serials"
-        select ANDROID_TIMED_OUTPUT
-        default n
+	bool "vibrator for SC serials"
+	select ANDROID_TIMED_OUTPUT
+	default n
 
 config SC_VIBRATOR_GPIO
-        bool "vibrator for SC serials by gpio"
-        default n
+	bool "vibrator for SC serials by gpio"
+	default n
 	depends on SC_VIBRATOR
 
 config SC_VIBRATOR_POWER
-        bool "vibrator for SC serials by power"
-        default n
-       depends on SC_VIBRATOR
+	bool "vibrator for SC serials by power"
+	default n
+	depends on SC_VIBRATOR
 
 config EIRQ_NUM
-        int "number for external irq region desc request"
-        range 0 1024
+	int "number for external irq region desc request"
+	range 0 1024
 	default 0
 
 comment "SC8830 ADIE type"
@@ -412,8 +408,8 @@ config SC_INTERNAL_WATCHDOG
 	depends on ARCH_SCX35
 
 config FIX_V7TAGRAM_BUG
-        bool "fix arm-v7 scu tag ram bug"
-        default n
+	bool "fix arm-v7 scu tag ram bug"
+	default n
 	depends on ARCH_SCX35
 	depends on SMP
 
@@ -447,16 +443,17 @@ config SPRD_AVS_DEBUG
 	  This option select avs debug module.
 
 config SPRD_AUX_DEBUG
-       tristate "Enable aux debug moduel"
-       default y
-       help
-         This option select aux debug module.
+	tristate "Enable aux debug moduel"
+	default y
+	help
+	  This option select aux debug module.
 
 config SPRD_SIMCTRL
 	bool "Enable simctrl module"
 	default n
 	help
 	  This option select simctrl module.
+
 config SPRD_MODEM_TD
 	bool "SPRD TD modem"
 	default n
@@ -496,48 +493,51 @@ config CP_SWITCH
 	  This option select cp switch
 
 config BUS_MONITOR
-        bool "scxx35 AHB and DMC bus monitors"
-        default n
+	bool "scxx35 AHB and DMC bus monitors"
+	default n
 	depends on ARCH_SCX35
 
 config BUS_MONITOR_DEBUG
-        bool "debug scxx35 AHB and DMC bus monitors"
-        default n
+	bool "debug scxx35 AHB and DMC bus monitors"
+	default n
 	depends on BUS_MONITOR
 
 config MACH_SHARK
 	bool "For Shark Rev0.2 Hardware"
 	default n
-	
+
 config EAR_LOW_LEVEL_DETECT
-        bool "ear detecting trigger is low level"
-        default n
+	bool "Ear detecting trigger is low level"
+	default n
+
 config SS_FUNCTION
-        bool "only for samsung function"
-        default n
+	bool "Only for Samsung function"
+	default n
+
 config TSP_0_1_A
-        bool "For corsica_ve 3131 0.1A board"
-        default n
-		
+	bool "For corsica_ve 3131 0.1A board"
+	default n
+
 config CONFIG_CPU_FREQ
-		bool "cpu frequency"
-		default y
+	bool "cpu frequency"
+	default y
+
 config SEC_THERMISTOR
-		bool "Sec thermister for SIOP implementation"
-		default y
-		
+	bool "Sec thermister for SIOP implementation"
+	default y
+
 config MACH_KANAS
-		bool "Kanas related changes"
-		default n
+	bool "Kanas related changes"
+	default n
 
 config KANAS_GPS_AVDD18
-       bool "Kanas related regulator setting"
+	bool "Kanas related regulator setting"
 	default n
 
 config WLAN_SDIO
-    bool "WIFI SDIO"
-    default y
-    depends on WLAN
+	bool "WIFI SDIO"
+	default y
+	depends on WLAN
 
 config SAMSUNG_PRODUCT_SHIP
 	bool "set up for product shipping"
