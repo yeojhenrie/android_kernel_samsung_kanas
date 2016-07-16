@@ -146,7 +146,7 @@ static const struct attribute_group sec_therm_group = {
 	.attrs = sec_therm_attributes,
 };
 
-static int __init sec_therm_probe(struct platform_device *pdev)
+static __init int sec_therm_probe(struct platform_device *pdev)
 {
 	struct sec_therm_platform_data *pdata = dev_get_platdata(&pdev->dev);
 	struct sec_therm_info *info;
@@ -198,7 +198,7 @@ static struct platform_driver sec_thermistor_driver = {
 
 static int __init sec_therm_init(void)
 {
-	return platform_driver_register(&sec_thermistor_driver);
+		return platform_driver_register(&sec_thermistor_driver);
 }
 module_init(sec_therm_init);
 

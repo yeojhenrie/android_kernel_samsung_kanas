@@ -37,19 +37,19 @@
 #include <mach/arch_misc.h>
 
 #if defined(CONFIG_ARCH_SC8825)
-#define MHz			(1000000)
-#define GR_MPLL_REFIN_2M	(2 * MHz)
-#define GR_MPLL_REFIN_4M	(4 * MHz)
-#define GR_MPLL_REFIN_13M	(13 * MHz)
-#define GR_MPLL_REFIN_SHIFT	16
-#define GR_MPLL_REFIN_MASK	(0x3)
-#define GR_MPLL_N_MASK		(0x7ff)
+#define MHz                     (1000000)
+#define GR_MPLL_REFIN_2M        (2 * MHz)
+#define GR_MPLL_REFIN_4M        (4 * MHz)
+#define GR_MPLL_REFIN_13M       (13 * MHz)
+#define GR_MPLL_REFIN_SHIFT     16
+#define GR_MPLL_REFIN_MASK      (0x3)
+#define GR_MPLL_N_MASK          (0x7ff)
 #define GR_MPLL_MN		(REG_GLB_M_PLL_CTL0)
 #define GR_GEN1			(REG_GLB_GEN1)
 #endif
 
-#define FREQ_TABLE_SIZE		10
-#define DVFS_BOOT_TIME		(30 * HZ)
+#define FREQ_TABLE_SIZE 	10
+#define DVFS_BOOT_TIME	(30 * HZ)
 #define SHARK_TDPLL_FREQUENCY	(768000)
 #define TRANSITION_LATENCY	(100 * 1000) /* ns */
 
@@ -99,7 +99,8 @@ static void set_mcu_clk_freq(u32 mcu_freq)
 	u32 val, rate, arm_clk_div, gr_gen1;
 
 	rate = mcu_freq / MHz;
-	switch(1000 / rate) {
+	switch(1000 / rate)
+	{
 		case 1:
 			arm_clk_div = 0;
 			break;
@@ -113,7 +114,7 @@ static void set_mcu_clk_freq(u32 mcu_freq)
 	pr_debug("%s --- before, AHB_ARM_CLK: %08x, rate = %d, div = %d\n",
 		__func__, __raw_readl(REG_AHB_ARM_CLK), rate, arm_clk_div);
 
-	gr_gen1 = __raw_readl(GR_GEN1);
+	gr_gen1 =  __raw_readl(GR_GEN1);
 	gr_gen1 |= BIT(9);
 	__raw_writel(gr_gen1, GR_GEN1);
 
@@ -155,7 +156,7 @@ static unsigned int get_mcu_clk_freq(void)
 	mpll_n = mpll_cfg & GR_MPLL_N_MASK;
 	rate = mpll_refin * mpll_n;
 
-	/* find div */
+	/*find div */
 	val = __raw_readl(REG_AHB_ARM_CLK) & 0x7;
 	val += 1;
 	return rate / val;
@@ -189,7 +190,9 @@ static struct cpufreq_table_data sc8830_cpufreq_table_data_cs = {
 	},
 };
 
-/* for 7715 test */
+/*
+for 7715 test
+*/
 #if 0
 static struct cpufreq_table_data sc7715_cpufreq_table_data = {
 	.freq_tbl = {
@@ -280,13 +283,13 @@ static void cpufreq_set_clock(unsigned int freq)
 	} else if (freq == SHARK_TDPLL_FREQUENCY) {
 		sci_glb_clr(REG_AP_AHB_CA7_CKG_CFG, BITS_CA7_MCU_CKG_DIV(1));
 	} else {
-#if 0
+	/*
 		if (clk_get_parent(sprd_cpufreq_conf->clk) != sprd_cpufreq_conf->tdpllclk) {
 			ret = clk_set_parent(sprd_cpufreq_conf->clk, sprd_cpufreq_conf->tdpllclk);
 			if (ret)
 				pr_err("Failed to set cpu parent to tdpll\n");
 		}
-#endif
+		*/
 		if (!(sci_glb_read(REG_PMU_APB_MPLL_REL_CFG, -1) & BIT_MPLL_AP_SEL)) {
 			sci_glb_set(REG_PMU_APB_MPLL_REL_CFG, BIT_MPLL_AP_SEL);
 			udelay(500);
@@ -307,18 +310,17 @@ static void sprd_raw_set_cpufreq(int cpu, struct cpufreq_freqs *freq, int index)
 
 #define CPUFREQ_SET_VOLTAGE() \
 	do { \
-		ret = regulator_set_voltage(sprd_cpufreq_conf->regulator, \
-				sprd_cpufreq_conf->vddarm_mv[index], \
-				sprd_cpufreq_conf->vddarm_mv[index]); \
+	    ret = regulator_set_voltage(sprd_cpufreq_conf->regulator, \
+			sprd_cpufreq_conf->vddarm_mv[index], \
+			sprd_cpufreq_conf->vddarm_mv[index]); \
 		if (ret) \
 			pr_err("Failed to set vdd to %d mv\n", \
-					sprd_cpufreq_conf->vddarm_mv[index]); \
+				sprd_cpufreq_conf->vddarm_mv[index]); \
 	} while (0)
 #define CPUFREQ_SET_CLOCK() \
 	do { \
 		if (freq->new == SHARK_TDPLL_FREQUENCY) { \
-			ret = clk_set_parent(sprd_cpufreq_conf->clk, \
-					sprd_cpufreq_conf->tdpllclk); \
+			ret = clk_set_parent(sprd_cpufreq_conf->clk, sprd_cpufreq_conf->tdpllclk); \
 			if (ret) \
 				pr_err("Failed to set cpu parent to tdpll\n"); \
 		} else { \
@@ -453,8 +455,8 @@ extern unsigned int ga_percpu_total_load[4][8];
 static DEFINE_SPINLOCK(cpufreq_state_lock);
 
 static int sprd_cpufreq_target(struct cpufreq_policy *policy,
-		unsigned int target_freq,
-		unsigned int relation)
+		       unsigned int target_freq,
+		       unsigned int relation)
 {
 	int ret = -EFAULT;
 	int index;
@@ -462,20 +464,23 @@ static int sprd_cpufreq_target(struct cpufreq_policy *policy,
 	struct cpufreq_frequency_table *table;
 	int max_freq = cpufreq_max_limit;
 	int min_freq = cpufreq_min_limit;
+	int cur_freq = 0;
+	unsigned long irq_flags;
 
 	/* delay 30s to enable dvfs&dynamic-hotplug,
-	 * except requirment from termal-cooling device
-	 */
+         * except requirment from termal-cooling device
+         */
 
-	if (time_before(jiffies, boot_done))
+	if(time_before(jiffies, boot_done)){
 		return 0;
-
-	if ((target_freq < min_freq) || (target_freq > max_freq)) {
-		pr_err("invalid target_freq: %d min_freq %d max_freq %d\n",
-				target_freq,min_freq,max_freq);
-		return -EINVAL;
 	}
 
+	if((target_freq < min_freq) || (target_freq > max_freq))
+	{
+		pr_err("invalid target_freq: %d min_freq %d max_freq %d\n", target_freq,min_freq,max_freq);
+		return -EINVAL;
+	}
+  
 	table = cpufreq_frequency_get_table(policy->cpu);
 
 	if (cpufreq_frequency_table_target(policy, table,
@@ -532,9 +537,9 @@ static int sprd_freq_table_init(void)
 		pr_info("%s cs_chip\n", __func__);
 		sprd_cpufreq_conf->freq_tbl = sc8830_cpufreq_table_data_cs.freq_tbl;
 		sprd_cpufreq_conf->vddarm_mv = sc8830_cpufreq_table_data_cs.vddarm_mv;
-	} else if (soc_is_scx35g_v0()){
-		sprd_cpufreq_conf->freq_tbl = sc8830t_cpufreq_table_data_es.freq_tbl;
-		sprd_cpufreq_conf->vddarm_mv = sc8830t_cpufreq_table_data_es.vddarm_mv;
+	} else if(soc_is_scx35g_v0()){
+	        sprd_cpufreq_conf->freq_tbl = sc8830t_cpufreq_table_data_es.freq_tbl;
+	        sprd_cpufreq_conf->vddarm_mv = sc8830t_cpufreq_table_data_es.vddarm_mv;
 	} else {
 		pr_err("%s error chip id\n", __func__);
 		return -EINVAL;
@@ -563,10 +568,10 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 
 	ret = cpufreq_frequency_table_cpuinfo(policy, sprd_cpufreq_conf->freq_tbl);
 	if (ret != 0)
-		pr_err("%s: Failed to config freq table: %d\n", __func__, ret);
+		pr_err("%s Failed to config freq table: %d\n", __func__, ret);
 
 
-	pr_debug("%s: policy->cpu=%d, policy->cur=%u, ret=%d\n",
+	pr_debug("%s policy->cpu=%d, policy->cur=%u, ret=%d\n",
 		__func__, policy->cpu, policy->cur, ret);
 
 	return ret;
@@ -625,18 +630,23 @@ static ssize_t cpufreq_min_limit_store(struct device *dev, struct device_attribu
 	int value;
 	unsigned long irq_flags;
 
-	ret = strict_strtoul(buf, 16, (long unsigned int *)&value);
+	ret = strict_strtoul(buf,16,(long unsigned int *)&value);
 
 	spin_lock_irqsave(&cpufreq_state_lock, irq_flags);
-	/* for debug use
-	 * echo 0xabcde258 > /sys/power/cpufreq_min_limit means set the minimum limit to 600Mhz
+	/*
+	   for debug use
+	   echo 0xabcde258 > /sys/power/cpufreq_min_limit means set the minimum limit to 600Mhz
 	 */
-	if ((value & 0xfffff000) == 0xabcde000) {
+	if((value & 0xfffff000) == 0xabcde000)
+	{
 		cpufreq_min_limit = value & 0x00000fff;
 		cpufreq_min_limit *= 1000;
-		pr_err("cpufreq_min_limit value %s %d\n",buf,cpufreq_min_limit);
-	} else
+		printk(KERN_ERR"cpufreq_min_limit value %s %d\n",buf,cpufreq_min_limit);
+	}
+	else
+	{
 		cpufreq_min_limit = *(int *)buf;
+	}
 	spin_unlock_irqrestore(&cpufreq_state_lock, irq_flags);
 	return count;
 }
@@ -651,61 +661,62 @@ static ssize_t cpufreq_max_limit_store(struct device *dev, struct device_attribu
 
 	spin_lock_irqsave(&cpufreq_state_lock, irq_flags);
 
-	/* for debug use
-	 * echo 0xabcde4b0 > /sys/power/cpufreq_max_limit means set the maximum limit to 1200Mhz
+	/*
+	   for debug use
+	   echo 0xabcde4b0 > /sys/power/cpufreq_max_limit means set the maximum limit to 1200Mhz
 	 */
-	if ((value & 0xfffff000) == 0xabcde000) {
+	if((value & 0xfffff000) == 0xabcde000)
+	{
 		cpufreq_max_limit = value & 0x00000fff;
 		cpufreq_max_limit *= 1000;
-		pr_err("cpufreq_max_limit value %s %d\n",buf,cpufreq_max_limit);
-	} else
+		printk(KERN_ERR"cpufreq_max_limit value %s %d\n",buf,cpufreq_max_limit);
+	}
+	else
+	{
 		cpufreq_max_limit = *(int *)buf;
+	}
 	spin_unlock_irqrestore(&cpufreq_state_lock, irq_flags);
 
 	return count;
 }
 
-static ssize_t cpufreq_voltage_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
+static ssize_t cpufreq_voltage_store(struct device *dev, struct device_attribute *attr,const char *buf, size_t count)
 {
 	int err;
 	unsigned long value;
-
 	err = strict_strtoul(buf, 10, &value);
 	if (err)
 		return err;
-	pr_info("%s: value (%lu)\n", __func__, value);
-	regulator_set_voltage(sprd_cpufreq_conf->regulator, (value * 1000),
-			(value * 1000));
+	printk("%s value=%u\n", __func__, value);
+	regulator_set_voltage(sprd_cpufreq_conf->regulator, (value * 1000), (value * 1000));
 	return count;
 }
 
-static ssize_t cpufreq_frequency_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
+static ssize_t cpufreq_frequency_store(struct device *dev, struct device_attribute *attr,const char *buf, size_t count)
 {
 	int err;
 	unsigned long value;
-
 	err = strict_strtoul(buf, 10, &value);
 	if (err)
 		return err;
-	pr_info("%s: value (%lu)\n", __func__, value);
+	printk("%s value=%u\n", __func__, value);
 	cpufreq_set_clock(value);
 	return count;
 }
 
-static ssize_t dvfs_score_store(struct device *dev,
-		struct device_attribute *attr,const char *buf, size_t count)
+static ssize_t dvfs_score_store(struct device *dev, struct device_attribute *attr,const char *buf, size_t count)
 {
 	int ret;
 	int value;
+	unsigned long irq_flags;
 
 	ret = strict_strtoul(buf,16,(long unsigned int *)&value);
 
-	pr_err("dvfs_score_input %x\n",value);
+	printk(KERN_ERR"dvfs_score_input %x\n",value);
 
 	dvfs_score_select = (value >> 24) & 0x0f;
-	if (dvfs_score_select < 4) {
+	if(dvfs_score_select < 4)
+	{
 		dvfs_score_critical[dvfs_score_select] = (value >> 16) & 0xff;
 		dvfs_score_hi[dvfs_score_select] = (value >> 8) & 0xff;
 		dvfs_score_mid[dvfs_score_select] = value & 0xff;
@@ -736,18 +747,19 @@ static ssize_t dvfs_score_show(struct device *dev, struct device_attribute *attr
 	return strlen(buf) + 1;
 }
 
-static ssize_t dvfs_unplug_store(struct device *dev,
-		struct device_attribute *attr,const char *buf, size_t count)
+static ssize_t dvfs_unplug_store(struct device *dev, struct device_attribute *attr,const char *buf, size_t count)
 {
 	int ret;
 	int value;
+	unsigned long irq_flags;
 
 	ret = strict_strtoul(buf,16,(long unsigned int *)&value);
 
-	pr_err("dvfs_score_input %x\n",value);
+	printk(KERN_ERR"dvfs_score_input %x\n",value);
 
 	dvfs_unplug_select = (value >> 24) & 0x0f;
-	if (dvfs_unplug_select > 7) {
+	if(dvfs_unplug_select > 7)
+	{
 		cur_window_size[0]= (value >> 8) & 0xff;
 		cur_window_size[1]= (value >> 8) & 0xff;
 		cur_window_size[2]= (value >> 8) & 0xff;
@@ -769,14 +781,16 @@ static ssize_t dvfs_unplug_show(struct device *dev, struct device_attribute *att
 	return strlen(buf) + 1;
 }
 
+
 static ssize_t dvfs_plug_store(struct device *dev, struct device_attribute *attr,const char *buf, size_t count)
 {
 	int ret;
 	int value;
+	unsigned long irq_flags;
 
 	ret = strict_strtoul(buf,16,(long unsigned int *)&value);
 
-	pr_err("dvfs_plug_select %x\n",value);
+	printk(KERN_ERR"dvfs_plug_select %x\n",value);
 
 	dvfs_plug_select = (value ) & 0x0f;
 	return count;
@@ -790,11 +804,9 @@ static ssize_t dvfs_plug_show(struct device *dev, struct device_attribute *attr,
 
 	return strlen(buf) + 1;
 }
-static ssize_t cpufreq_table_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
+static ssize_t cpufreq_table_show(struct device *dev, struct device_attribute *attr,char *buf)
 {
-
-	memcpy(buf, sprd_cpufreq_conf->freq_tbl, sizeof(* sprd_cpufreq_conf->freq_tbl));
+	memcpy(buf,sprd_cpufreq_conf->freq_tbl,sizeof(* sprd_cpufreq_conf->freq_tbl));
 	return sizeof(* sprd_cpufreq_conf->freq_tbl);
 }
 
@@ -857,7 +869,7 @@ static int __init sprd_cpufreq_modinit(void)
 		return ret;
 
 	sprd_top_frequency = sprd_cpufreq_conf->freq_tbl[0].frequency;
-	/* TODO: need verify for the initialization of limited max freq */
+	/* TODO:need verify for the initialization of limited max freq */
 
 	sprd_cpufreq_conf->clk = clk_get_sys(NULL, "clk_mcu");
 	if (IS_ERR(sprd_cpufreq_conf->clk))
@@ -883,6 +895,7 @@ static int __init sprd_cpufreq_modinit(void)
 	clk_set_rate(sprd_cpufreq_conf->mpllclk, (sprd_top_frequency * 1000));
 	clk_set_parent(sprd_cpufreq_conf->clk, sprd_cpufreq_conf->mpllclk);
 	global_freqs.old = sprd_raw_get_cpufreq();
+
 #endif
 
 	boot_done = jiffies + DVFS_BOOT_TIME;

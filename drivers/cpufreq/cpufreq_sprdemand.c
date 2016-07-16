@@ -1889,15 +1889,18 @@ int _store_cpu_num_min_limit(unsigned int input)
 {
 	struct sd_dbs_tuners *sd_tuners = g_sd_tuners;
 
-	printk("%s: input = %d\n", __func__, input);
+    printk("%s: input = %d\n", __func__, input);
 
-	if (sd_tuners) {
-		sd_tuners->cpu_num_min_limit = input;
-#if 0
+	if(sd_tuners)
+	{
 		int cpu = smp_processor_id();
-		sd_check_cpu(cpu, 50);
-#endif
-	} else {
+
+		sd_tuners->cpu_num_min_limit = input;
+		/*sd_check_cpu(cpu, 50);*/
+
+	}
+	else
+	{
 		pr_info("[store_cpu_num_min_limit] current governor is not sprdemand\n");
 		return -EINVAL;
 	}
@@ -1909,7 +1912,7 @@ int _store_cpu_num_min_limit(unsigned int input)
 /*
  * dbs_mutex protects dbs_enable in governor start/stop.
  */
-#if 0
+ /*
 static DEFINE_MUTEX(dbs_mutex);
 
 static struct workqueue_struct *input_wq;
@@ -2017,8 +2020,7 @@ struct input_handler dbs_input_handler = {
 	.name		= "cpufreq_ond",
 	.id_table	= dbs_ids,
 };
-#endif
-
+*/
 static int __init cpufreq_gov_dbs_init(void)
 {
 	/*int i = 0;*/
