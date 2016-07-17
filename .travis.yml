@@ -28,7 +28,7 @@ script:
 # ${ndevice}
 # "2" is "Clean Kernel"
 # "3" is "Device Choice"
-- ndevice="23"
+- ndevice="3"
 
 # ${ndevicechoice} is "Number of Choice under Device Choice"
 # - export ndevicechoice="#"
