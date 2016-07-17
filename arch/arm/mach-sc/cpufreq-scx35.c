@@ -464,7 +464,6 @@ static int sprd_cpufreq_target(struct cpufreq_policy *policy,
 	struct cpufreq_frequency_table *table;
 	int max_freq = cpufreq_max_limit;
 	int min_freq = cpufreq_min_limit;
-	int cur_freq = 0;
 
 	/* delay 30s to enable dvfs&dynamic-hotplug,
          * except requirment from termal-cooling device
