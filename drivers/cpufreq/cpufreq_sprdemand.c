@@ -1889,18 +1889,15 @@ int _store_cpu_num_min_limit(unsigned int input)
 {
 	struct sd_dbs_tuners *sd_tuners = g_sd_tuners;
 
-    printk("%s: input = %d\n", __func__, input);
+	printk("%s: input = %d\n", __func__, input);
 
-	if(sd_tuners)
-	{
-		int cpu = smp_processor_id();
-
+	if (sd_tuners) {
 		sd_tuners->cpu_num_min_limit = input;
-		/*sd_check_cpu(cpu, 50);*/
-
-	}
-	else
-	{
+#if 0
+		int cpu = smp_processor_id();
+		sd_check_cpu(cpu, 50);
+#endif
+	} else {
 		pr_info("[store_cpu_num_min_limit] current governor is not sprdemand\n");
 		return -EINVAL;
 	}

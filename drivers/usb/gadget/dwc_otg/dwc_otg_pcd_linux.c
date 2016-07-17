@@ -1050,7 +1050,6 @@ static struct gadget_wrapper *alloc_wrapper(
 	static char pcd_name[] = "dwc_otg";
 	dwc_otg_device_t *otg_dev = platform_get_drvdata(_dev);
 	struct gadget_wrapper *d;
-	int retval;
 
 	d = dwc_alloc(sizeof(*d));
 	if (d == NULL) {
@@ -1075,6 +1074,8 @@ static struct gadget_wrapper *alloc_wrapper(
 	d->driver = 0;
 	/* Register the gadget device */
 #if 0
+	int retval;
+
 	retval = device_register(&d->gadget.dev);
 	if (retval != 0) {
 		DWC_ERROR("device_register failed\n");
@@ -1517,8 +1518,6 @@ struct platform_device *_dev
  */
 static int dwc_usb_gadget_start(struct usb_gadget *gadget, struct usb_gadget_driver *driver)
 {
-	int retval;
-
 	DWC_DEBUGPL(DBG_PCD, "registering gadget driver '%s'\n",
 			driver->driver.name);
 	pr_info("%s\n", __func__);

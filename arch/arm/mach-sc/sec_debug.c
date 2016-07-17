@@ -971,9 +971,8 @@ static void sec_debug_set_build_info(void)
 	strncat(p, gkernel_sec_build_info_date_time[1], 9);
 }
 
-__init int sec_debug_init(void)
+int __init sec_debug_init(void)
 {
-	unsigned int addr;
 	if (!sec_debug_level.en.kernel_fault)
 		return -1;
 

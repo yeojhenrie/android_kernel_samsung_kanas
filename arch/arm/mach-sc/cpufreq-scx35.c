@@ -465,7 +465,6 @@ static int sprd_cpufreq_target(struct cpufreq_policy *policy,
 	int max_freq = cpufreq_max_limit;
 	int min_freq = cpufreq_min_limit;
 	int cur_freq = 0;
-	unsigned long irq_flags;
 
 	/* delay 30s to enable dvfs&dynamic-hotplug,
          * except requirment from termal-cooling device
@@ -708,7 +707,6 @@ static ssize_t dvfs_score_store(struct device *dev, struct device_attribute *att
 {
 	int ret;
 	int value;
-	unsigned long irq_flags;
 
 	ret = strict_strtoul(buf,16,(long unsigned int *)&value);
 
@@ -751,7 +749,6 @@ static ssize_t dvfs_unplug_store(struct device *dev, struct device_attribute *at
 {
 	int ret;
 	int value;
-	unsigned long irq_flags;
 
 	ret = strict_strtoul(buf,16,(long unsigned int *)&value);
 
@@ -786,7 +783,6 @@ static ssize_t dvfs_plug_store(struct device *dev, struct device_attribute *attr
 {
 	int ret;
 	int value;
-	unsigned long irq_flags;
 
 	ret = strict_strtoul(buf,16,(long unsigned int *)&value);
 
