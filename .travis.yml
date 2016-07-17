@@ -69,6 +69,4 @@ deploy:
     - "zip-creator/${zipfile1}"
     - "zip-creator/${zipfile2}"
   on:
-    repo: TeamVee-Kanas/android_kernel_samsung_kanas
-  branch:
-    all_branches: true
+    tags: true
