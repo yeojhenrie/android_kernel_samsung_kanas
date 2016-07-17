@@ -107,7 +107,7 @@ else
 
 	if [ $(which ccache) ]
 	then
-		kernel_build_ccache="ccache "
+		export kernel_build_ccache="ccache "
 		echo "  | ${color_blue}Using CCache to build${color_stock}"
 	else
 		echo "  | ${color_blue}CCache not enabled${color_stock}"
@@ -229,14 +229,14 @@ then
 	custom_kernel=OMKernel
 	builder=TeamVee-Kanas
 	custom_kernel_branch=KK
-	ARCH=arm
+	export ARCH=arm
 
 	while true
 	do
 		# Kernel OutPut
 		if [ "${kernel_build_output}" == "(OFF)" ]
 		then
-			kernel_build_output_enable=" -s"
+			export kernel_build_output_enable=" -s"
 		else
 			kernel_build_output="(${color_green}ON${color_stock})"
 			unset kernel_build_output_enable
@@ -251,7 +251,7 @@ then
 				menu_build_time="(${color_green}${build_time_minutes}m$((${build_time} % 60))s${color_stock})"
 			fi
 		fi
-		build_cpu_usage=$(($(grep -c ^processor /proc/cpuinfo) + 1))
+		export build_cpu_usage=$(($(grep -c ^processor /proc/cpuinfo) + 1))
 		# Variable's
 		k_version=$(cat Makefile | grep VERSION | cut -c 11- | head -1)
 		k_patch_level=$(cat Makefile | grep PATCHLEVEL | cut -c 14- | head -1)
