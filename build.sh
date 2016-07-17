@@ -16,11 +16,16 @@ clear
 # Devices available
 #
 # Samsung Core 2
-device_variants_1="SM-G355H SM-G355HN SM-G355M" device_defconfig_1="cyanogenmod_kanas_defconfig" device_name_1="Samsung-Core2-KANAS"
+device_variants_1="SM-G355H SM-G355HN SM-G355M"
+device_defconfig_1="cyanogenmod_kanas_defconfig" device_name_1="Samsung-Core2-KANAS"
+device_defconfig_2="cyanogenmod_sa_defconfig" device_name_2="Samsung-Core2-SA"
 # Menu
 echo "${x} | ${color_green}Device choice${color_stock}"
 echo
-echo "1 | ${device_variants_1} | ${device_name_1}"
+echo "  | ${device_variants_1}"
+echo "1 | ${device_name_1} | ${device_defconfig_1}"
+defconfig_updater ${device_name_2}
+echo "2 | ${device_name_2}    | ${device_defconfig_2}"
 defconfig_updater ${device_name_1}
 echo
 echo "* | Any other key to Exit"
@@ -28,6 +33,7 @@ echo
 read -p "  | Choice | " -n 1 -s x
 case "${x}" in
 	1) device_defconfig=${device_defconfig_1} device_name=${device_name_1};;
+	2) device_defconfig=${device_defconfig_2} device_name=${device_name_2};;
 	a)
 		if [ -f .config ]
 		then
