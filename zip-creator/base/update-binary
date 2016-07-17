@@ -41,7 +41,7 @@ ui_print "${custom_kernel} for ${device_name}"
 ui_print "${release}"
 
 # Set original boot
-boot_partition="/dev/block/platform/msm_sdcc.1/by-name/boot"
+boot_partition="/dev/block/platform/sprd-sdhci.3/by-name/KERNEL"
 original_boot_image="${working_dir}/boot.img"
 
 # Pickup original boot.img to use only current ramdisk
@@ -63,13 +63,10 @@ new_boot_image="${working_dir}/newboot.img"
 # Make a new boot.img with current ramdisk
 ${working_dir}/mkbootimg \
 --base 0x00000000 \
---ramdisk_offset 0x02000000 \
---tags_offset 0x01E00000 \
 --pagesize 2048 \
 --ramdisk "${original_boot_ramdisk}" \
 --cmdline "${original_boot_cmdline}" \
 --kernel "${new_boot_zImage}" \
---dt "${new_boot_dt}" \
 -o "${new_boot_image}"
 
 # Flash new boot.img

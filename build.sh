@@ -15,8 +15,8 @@ device_choice() {
 clear
 # Devices available
 #
-# Xperia E1
-device_variants_1="D2004 D2005 D2104 D2015 D2114" device_defconfig_1="cyanogenmod_falconss_defconfig" device_name_1="Sony-XperiaE1"
+# Samsung Core 2
+device_variants_1="SM-G355H SM-G355HN SM-G355M" device_defconfig_1="cyanogenmod_kanas_defconfig" device_name_1="Samsung-Core2-KANAS"
 # Menu
 echo "${x} | ${color_green}Device choice${color_stock}"
 echo
@@ -142,10 +142,6 @@ then
 		rm -rf ${zip_out}
 		mkdir -p ${zip_out}/META-INF/com/google/android/
 
-		# Making DT Image to Live Ramdisk
-		chmod a+x zip-creator/base/dtbToolCM
-		./zip-creator/base/dtbToolCM -2 -s 2048 -p scripts/dtc/ arch/${ARCH}/boot/ -o ${zip_out}/dt.img &> /dev/null
-
 		# Copy core files
 		cp zip-creator/base/update-binary ${zip_out}/META-INF/com/google/android/
 		cp zip-creator/base/mkbootimg ${zip_out}/
@@ -230,8 +226,8 @@ then
 	color_yellow=$(tput bold)$(tput setaf 3)
 	color_blue=$(tput bold)$(tput setaf 4)
 	# Main Variables
-	custom_kernel=SSProj-CAFKernel
-	builder=TeamVee-SS
+	custom_kernel=OMKernel
+	builder=TeamVee-Kanas
 	custom_kernel_branch=KK
 	ARCH=arm
 
