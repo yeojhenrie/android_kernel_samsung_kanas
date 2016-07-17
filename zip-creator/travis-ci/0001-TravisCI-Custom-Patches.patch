@@ -1,37 +1,8 @@
-From 3ff0fa2ffee633a6b5e9e1297414daf2ceeca95c Mon Sep 17 00:00:00 2001
+From 90c15ceec336976b4a4ec9a118eb317d1438aa52 Mon Sep 17 00:00:00 2001
 From: Caio Oliveira <caiooliveirafarias0@gmail.com>
-Date: Sun, 10 Jul 2016 17:52:52 -0300
-Subject: [PATCH 1/2] build.sh: Add exit_code because TravisCI
-
-Signed-off-by: Caio Oliveira <caiooliveirafarias0@gmail.com>
----
- build.sh | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
-
-diff --git a/build.sh b/build.sh
-index 3acb77d..72f5bac 100644
---- a/build.sh
-+++ b/build.sh
-@@ -119,8 +119,9 @@ else
- 	make -j${build_cpu_usage}${kernel_build_output_enable} ARCH="${ARCH}" CROSS_COMPILE="${kernel_build_ccache}${CROSS_COMPILE}"
- 	if ! [ "$?" == "0" ]
- 	then
-+		exit_code=$?
- 		echo "  | ${color_red}Build Failed! Exiting...${color_stock}"
--		break
-+		exit ${exit_code}
- 	fi
- 	sleep 2
- 	build_time=$(($(date +"%s") - ${start_build_time}))
--- 
-1.9.1
-
-
-From 2e0a2dee7c23e1848a42e7b1b3adbabbd52958a0 Mon Sep 17 00:00:00 2001
-From: Caio Oliveira <caiooliveirafarias0@gmail.com>
-Date: Mon, 11 Jul 2016 19:41:32 -0300
-Subject: [PATCH 2/2] mkcompile_h: Add name of idealizer to Kernel Version [D
- O NOT MERGE]
+Date: Sun, 17 Jul 2016 00:03:04 -0300
+Subject: [PATCH] mkcompile_h: Add name of idealizer to Kernel Version [DO NOT
+ MERGE]
 
 Signed-off-by: Caio Oliveira <caiooliveirafarias0@gmail.com>
 ---
@@ -39,7 +10,7 @@ Signed-off-by: Caio Oliveira <caiooliveirafarias0@gmail.com>
  1 file changed, 2 insertions(+), 2 deletions(-)
 
 diff --git a/scripts/mkcompile_h b/scripts/mkcompile_h
-index f221ddf..2bb7309 100755
+index f221ddf..7f5fc95 100755
 --- a/scripts/mkcompile_h
 +++ b/scripts/mkcompile_h
 @@ -73,8 +73,8 @@ UTS_TRUNCATE="cut -b -$UTS_LEN"
@@ -48,8 +19,8 @@ index f221ddf..2bb7309 100755
  
 -  echo \#define LINUX_COMPILE_BY \"`echo $LINUX_COMPILE_BY | $UTS_TRUNCATE`\"
 -  echo \#define LINUX_COMPILE_HOST \"`echo $LINUX_COMPILE_HOST | $UTS_TRUNCATE`\"
-+  echo \#define LINUX_COMPILE_BY \"fromECr34T1v3_byCaio99BR\"
-+  echo \#define LINUX_COMPILE_HOST \"TravisCI\"
++  echo \#define LINUX_COMPILE_BY \"Caio99BR_ECr34T1v3\"
++  echo \#define LINUX_COMPILE_HOST \"TeamVee-Kanas_TravisCI\"
  
    echo \#define LINUX_COMPILER \"`$CC -v 2>&1 | tail -n 1`\"
  ) > .tmpcompile

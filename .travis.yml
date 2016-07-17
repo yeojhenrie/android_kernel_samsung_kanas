@@ -37,7 +37,7 @@ script:
 # "6" is "Build Kernel"
 # "7" is "Zip the kernel and Modules"
 # "q" is to Exit of Script
-- nbuild="67q"
+- nbuild="7"
 
 # Main variables
 # Call of 'build.sh'
@@ -51,7 +51,9 @@ script:
 
 # Build for Samsung Core 2 | SM-G355H SM-G355HN SM-G355M
 - export ndevicechoice="1"
-- source build.sh <<< "${ndevice}${ndevicechoice}${ntoolchain}${nbuild}"
+- source build.sh <<< "${ndevice}${ndevicechoice}${ntoolchain}q"
+- make -j${build_cpu_usage}${kernel_build_output_enable} ARCH="${ARCH}" CROSS_COMPILE="${kernel_build_ccache}${CROSS_COMPILE}"
+- source build.sh <<< "${nbuild}q"
 - export zipfile1="${zipfile}"
 deploy:
   provider: releases
