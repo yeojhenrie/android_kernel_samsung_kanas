@@ -724,6 +724,7 @@ config SEC_DEBUG
         bool "Enable SEC DEBUG"
         default n
 
+
 if SEC_DEBUG
 config SEC_DEBUG_SCHED_LOG
         bool "Samsung Scheduler Logging Feature"
@@ -747,14 +748,28 @@ config SEC_DEBUG_TIMER_LOG
         help
           Samsung Timer Logging Feature for Debug use.
 
+config SEC_LOG
+        bool "Samsung log buffer"
+        default n
+
+config SEC_LOG_LAST_KMSG
+        bool "Samsung Use Sec Log Last Kmsg"
+        depends on SEC_LOG
+        default n
+        help
+           This feature creats a node to read contents of sec_log_buf
+           area just before booting into kernel from bootloader.
+           This is very helpful to read sec_log_buf area without reset
+           or entering upload mode.
+
 config SEC_DEBUG_USER
         bool "Enable user options"
         default n
 
 endif
 
-comment "Samsung Rooting Restriction Feature"
 
+comment "Samsung Rooting Restriction Feature"
 config SEC_RESTRICT_ROOTING
 	bool "Samsung Rooting Restriction Feature"
 	default n
@@ -786,5 +801,6 @@ config SEC_RESTRICT_ROOTING_LOG
 	help
 	   Say Y here if you want to see result of restricting SETUID or FORK. It will
 	   be displayed by kernel error log. Saying N will not be displayed anything.
+
 
 endmenu

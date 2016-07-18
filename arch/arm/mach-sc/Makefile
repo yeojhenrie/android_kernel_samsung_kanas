@@ -16,6 +16,7 @@ obj-$(CONFIG_FIX_V7TAGRAM_BUG) += fix_v7_tag_ram_bug.o
 obj-$(CONFIG_CPU_FREQ) += cpufreq-scx35.o
 
 obj-$(CONFIG_SEC_DEBUG) += sec_debug.o sec_gaf.o sec_getlog.o sec-reboot.o
+obj-$(CONFIG_SEC_LOG) += sec_log.o
 
 ifeq ($(CONFIG_BUS_MONITOR),y)
 obj-$(CONFIG_ARCH_SCX35) += bm_sc8830.o

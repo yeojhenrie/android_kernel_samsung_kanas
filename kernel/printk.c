@@ -48,8 +48,16 @@
 
 #include <asm/uaccess.h>
 
+#if defined(CONFIG_SEC_DEBUG)
+#include <mach/sec_debug.h>
+#endif
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/printk.h>
+
+#ifdef	CONFIG_DEBUG_LL
+extern void printascii(char *);
+#endif
 
 /* printk's without a loglevel use this.. */
 #define DEFAULT_MESSAGE_LOGLEVEL CONFIG_DEFAULT_MESSAGE_LOGLEVEL
@@ -208,6 +216,10 @@ struct log {
 	u8 facility;		/* syslog facility */
 	u8 flags:5;		/* internal record flags */
 	u8 level:3;		/* syslog level */
+	char process[16];	/* process Name CONFIG_PRINTK_PROCESS */
+	u16 pid;			/* process id CONFIG_PRINTK_PROCESS */
+	u16 cpu;			/* cpu core number CONFIG_PRINTK_PROCESS */
+	u8 in_interrupt;		/* in interrupt CONFIG_PRINTK_PROCESS */
 };
 
 /*
@@ -241,7 +253,7 @@ static enum log_flags console_prev;
 static u64 clear_seq;
 static u32 clear_idx;
 
-#define PREFIX_MAX		32
+#define PREFIX_MAX		48 // 32->48 CONFIG_PRINTK_PROCESS
 #define LOG_LINE_MAX		1024 - PREFIX_MAX
 
 /* record buffer */
@@ -302,6 +314,45 @@ static u32 log_next(u32 idx)
 	return idx + msg->len;
 }
 
+#if defined(CONFIG_PRINTK_PROCESS)
+static bool printk_process = 1;
+#else
+static bool printk_process = 0;
+#endif
+module_param_named(process, printk_process, bool, S_IRUGO | S_IWUSR);
+
+#if defined(CONFIG_SEC_DEBUG)
+void disable_printk_process(void)
+{
+	printk_process = 0;
+}
+#endif
+
+#ifdef CONFIG_SEC_LOG
+static void (*log_text_hook)(char *text, size_t size);
+static char *seclog_buf;
+static unsigned *seclog_ptr;
+static size_t seclog_size;
+static char sec_text[1024]; /* buffer size: LOG_LINE_MAX + PREFIX_MAX */
+void register_log_text_hook(void (*f)(char *text, size_t size), char * buf,
+	unsigned *position, size_t bufsize)
+{
+	unsigned long flags;
+	raw_spin_lock_irqsave(&logbuf_lock, flags);
+	if (buf && bufsize) {
+		seclog_buf = buf;
+		seclog_ptr = position;
+		seclog_size = bufsize;
+		log_text_hook = f;
+	}
+	raw_spin_unlock_irqrestore(&logbuf_lock, flags);
+}
+EXPORT_SYMBOL(register_log_text_hook);
+static size_t msg_print_text(const struct log *msg, enum log_flags prev,
+			     bool syslog, char *buf, size_t size);
+
+#endif
+
 /* insert record into the buffer, discard old ones, update heads */
 static void log_store(int facility, int level,
 		      enum log_flags flags, u64 ts_nsec,
@@ -358,6 +409,20 @@ static void log_store(int facility, int level,
 	memset(log_dict(msg) + dict_len, 0, pad_len);
 	msg->len = sizeof(struct log) + text_len + dict_len + pad_len;
 
+	if (printk_process) {
+		strncpy(msg->process, current->comm, sizeof(msg->process));
+		msg->pid = task_pid_nr(current);
+		msg->cpu = smp_processor_id();
+		msg->in_interrupt = in_interrupt()? 1 : 0;
+	}
+#ifdef CONFIG_SEC_LOG
+	if (log_text_hook) {
+		size = msg_print_text(msg, msg->flags, true,
+			sec_text, 1024);
+
+		log_text_hook(sec_text, size);
+	}
+#endif
 	/* insert message */
 	log_next_idx += msg->len;
 	log_next_seq++;
@@ -425,7 +490,7 @@ static ssize_t devkmsg_writev(struct kiocb *iocb, const struct iovec *iv,
 	char *buf, *line;
 	int i;
 	int level = default_message_loglevel;
-	int facility = 1;	/* LOG_USER */
+	int facility = 0;	/* SEC_DEBUG LOG_USER */
 	size_t len = iov_length(iv, count);
 	ssize_t ret = len;
 
@@ -861,6 +926,13 @@ static inline void boot_delay_msec(int level)
 }
 #endif
 
+#if defined(CONFIG_PRINTK_CORE_NUM)
+static bool printk_core_num = 1;
+#else
+static bool printk_core_num = 0;
+#endif
+module_param_named(core_num, printk_core_num, bool, S_IRUGO | S_IWUSR);
+
 #if defined(CONFIG_PRINTK_TIME)
 static bool printk_time = 1;
 #else
@@ -884,6 +956,21 @@ static size_t print_time(u64 ts, char *buf)
 		       (unsigned long)ts, rem_nsec / 1000);
 }
 
+static size_t print_process(const struct log *msg, char *buf)
+{
+	if (!printk_process)
+		return 0;
+
+	if (!buf)
+		return snprintf(NULL, 0, "%c[%1d:%15s:%5d] ", ' ', 0, " ", 0);
+
+	return sprintf(buf, "%c[%1d:%15s:%5d] ",
+					msg->in_interrupt ? 'I' : ' ',
+					msg->cpu,
+					msg->process,
+					msg->pid);
+}
+
 static size_t print_prefix(const struct log *msg, bool syslog, char *buf)
 {
 	size_t len = 0;
@@ -904,6 +991,7 @@ static size_t print_prefix(const struct log *msg, bool syslog, char *buf)
 	}
 
 	len += print_time(msg->ts_nsec, buf ? buf + len : NULL);
+	len += print_process(msg, buf ? buf + len : NULL);
 	return len;
 }
 
@@ -1004,7 +1092,7 @@ static int syslog_print(char __user *buf, int size)
 			syslog_prev = msg->flags;
 			n -= syslog_partial;
 			syslog_partial = 0;
-		} else if (!len){
+		} else if (!len) {
 			/* partial read(), remember position */
 			n = size;
 			syslog_partial += n;
@@ -1068,7 +1156,8 @@ static int syslog_print_all(char __user *buf, int size, bool clear)
 			seq++;
 		}
 
-		/* move first record forward until length fits into the buffer */
+		/* move first record forward until
+			length fits into the buffer */
 		seq = clear_seq;
 		idx = clear_idx;
 		prev = 0;
@@ -1235,7 +1324,8 @@ int do_syslog(int type, char __user *buf, int len, bool from_file)
 			while (seq < log_next_seq) {
 				struct log *msg = log_from_idx(idx);
 
-				error += msg_print_text(msg, prev, true, NULL, 0);
+				error += msg_print_text(msg, prev,
+							true, NULL, 0);
 				idx = log_next(idx);
 				seq++;
 				prev = msg->flags;
@@ -1472,6 +1562,8 @@ static size_t cont_print_text(char *text, size_t size)
 
 	if (cont.cons == 0 && (console_prev & LOG_NEWLINE)) {
 		textlen += print_time(cont.ts_nsec, text);
+		*(text+textlen) = ' ';
+		textlen += print_process(NULL, NULL);
 		size -= textlen;
 	}
 
@@ -1490,6 +1582,7 @@ static size_t cont_print_text(char *text, size_t size)
 		/* got everything, release buffer */
 		cont.len = 0;
 	}
+
 	return textlen;
 }
 
@@ -1505,6 +1598,7 @@ asmlinkage int vprintk_emit(int facility, int level,
 	unsigned long flags;
 	int this_cpu;
 	int printed_len = 0;
+	static bool prev_new_line = true;
 
 	boot_delay_msec(level);
 	printk_delay();
@@ -1550,12 +1644,29 @@ asmlinkage int vprintk_emit(int facility, int level,
 	 * The printf needs to come first; we need the syslog
 	 * prefix which might be passed-in as a parameter.
 	 */
-	text_len = vscnprintf(text, sizeof(textbuf), fmt, args);
+	if (printk_core_num && prev_new_line) {
+		static char tempbuf[LOG_LINE_MAX];
+		char *temp = tempbuf;
+
+		vscnprintf(temp, sizeof(tempbuf), fmt, args);
+		if (printk_get_level(tempbuf))
+			text_len = snprintf(text, sizeof(textbuf),
+					    "%c%c[c%d] %s", tempbuf[0],
+					    tempbuf[1], this_cpu, &tempbuf[2]);
+		else
+			text_len = snprintf(text, sizeof(textbuf), "[c%d] %s",
+					    this_cpu, &tempbuf[0]);
+	} else {
+		text_len = vscnprintf(text, sizeof(textbuf), fmt, args);
+	}
 
 	/* mark and strip a trailing newline */
 	if (text_len && text[text_len-1] == '\n') {
 		text_len--;
 		lflags |= LOG_NEWLINE;
+		prev_new_line = true;
+	} else {
+		prev_new_line = false;
 	}
 
 	/* strip kernel syslog prefix and extract log level or control flags */
@@ -1853,7 +1964,8 @@ int add_preferred_console(char *name, int idx, char *options)
 	return __add_preferred_console(name, idx, options, NULL);
 }
 
-int update_console_cmdline(char *name, int idx, char *name_new, int idx_new, char *options)
+int update_console_cmdline(char *name, int idx, char *name_new,
+						int idx_new, char *options)
 {
 	struct console_cmdline *c;
 	int i;
@@ -1910,14 +2022,6 @@ void resume_console(void)
 	console_unlock();
 }
 
-static void __cpuinit console_flush(struct work_struct *work)
-{
-	console_lock();
-	console_unlock();
-}
-
-static __cpuinitdata DECLARE_WORK(console_cpu_notify_work, console_flush);
-
 /**
  * console_cpu_notify - print deferred console messages after CPU hotplug
  * @self: notifier struct
@@ -1928,27 +2032,17 @@ static __cpuinitdata DECLARE_WORK(console_cpu_notify_work, console_flush);
  * will be spooled but will not show up on the console.  This function is
  * called when a new CPU comes online (or fails to come up), and ensures
  * that any such output gets printed.
- *
- * Special handling must be done for cases invoked from an atomic context,
- * as we can't be taking the console semaphore here.
  */
 static int __cpuinit console_cpu_notify(struct notifier_block *self,
 	unsigned long action, void *hcpu)
 {
 	switch (action) {
+	case CPU_ONLINE:
 	case CPU_DEAD:
 	case CPU_DOWN_FAILED:
 	case CPU_UP_CANCELED:
 		console_lock();
 		console_unlock();
-		break;
-	case CPU_ONLINE:
-	case CPU_DYING:
-		/* invoked with preemption disabled, so defer */
-		if (!console_trylock())
-			schedule_work(&console_cpu_notify_work);
-		else
-			console_unlock();
 	}
 	return NOTIFY_OK;
 }
@@ -2411,7 +2505,7 @@ EXPORT_SYMBOL(register_console);
 
 int unregister_console(struct console *console)
 {
-        struct console *a, *b;
+	struct console *a, *b;
 	int res = 1;
 
 #ifdef CONFIG_A11Y_BRAILLE_CONSOLE
@@ -2421,11 +2515,11 @@ int unregister_console(struct console *console)
 
 	console_lock();
 	if (console_drivers == console) {
-		console_drivers=console->next;
+		console_drivers = console->next;
 		res = 0;
 	} else if (console_drivers) {
-		for (a=console_drivers->next, b=console_drivers ;
-		     a; b=a, a=b->next) {
+		for (a = console_drivers->next, b = console_drivers;
+		     a; b = a, a = b->next) {
 			if (a == console) {
 				b->next = a->next;
 				res = 0;
