@@ -567,6 +567,7 @@ err_usb_add_function:
 	return ret;
 }
 
+#if 0
 static void acm_function_unbind_config(struct android_usb_function *f,
 				       struct usb_configuration *c)
 {
@@ -576,6 +577,7 @@ static void acm_function_unbind_config(struct android_usb_function *f,
 	for (i = 0; i < config->instances_on; i++)
 		usb_remove_function(c, config->f_acm[i]);
 }
+#endif
 
 static ssize_t acm_instances_show(struct device *dev,
 		struct device_attribute *attr, char *buf)

@@ -2229,7 +2229,6 @@ static void sprdfb_dispc_logo_config(struct sprdfb_device *dev,uint32_t logo_dst
 void sprdfb_dispc_logo_proc(struct sprdfb_device *dev)
 {
 	//inline size_t roundUpToPageSize(size_t x) {    return (x + (PAGE_SIZE-1)) & ~(PAGE_SIZE-1);}
-	uint32_t kernel_fb_size = 0;
 	uint32_t logo_src_v = 0;
 	uint32_t logo_dst_v = 0;//use the second frame buffer	,virtual
 	uint32_t logo_dst_p = 0;//use the second frame buffer ,physical
@@ -2256,6 +2255,8 @@ void sprdfb_dispc_logo_proc(struct sprdfb_device *dev)
 	logo_size = dev->panel->width * dev->panel->height * 2;// should be rgb565
 #if 0
 #ifndef USE_OVERLAY_BUFF
+	uint32_t kernel_fb_size = 0;
+
 	kernel_fb_size = dev->panel->width * dev->panel->height * (dev->bpp / 8);
 	kernel_fb_size = 0;
 	logo_dst_v = dev->fb->screen_base + kernel_fb_size;//use the second frame buffer
