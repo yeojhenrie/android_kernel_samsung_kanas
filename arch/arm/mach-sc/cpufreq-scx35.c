@@ -163,19 +163,21 @@ static unsigned int get_mcu_clk_freq(void)
 }
 #endif
 
+// Caio99BR Note
+// Proportion 0.100.000 Hz for each 0.025.000 mV
 static struct cpufreq_table_data sc8830_cpufreq_table_data_cs = {
 	.freq_tbl = {
 		{0, 1200000},
-		{1, 1000000},
-		{2, SHARK_TDPLL_FREQUENCY},
-		{3, 600000},
+		{1, 900000},
+		{2, 600000},
+		{3, 300000},
 		{4, CPUFREQ_TABLE_END},
 	},
 	.vddarm_mv = {
 		1300000,
-		1200000,
+		1225000,
 		1150000,
-		1100000,
+		1075000,
 		1000000,
 	},
 };
