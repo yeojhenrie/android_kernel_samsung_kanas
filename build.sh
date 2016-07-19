@@ -16,7 +16,7 @@ clear
 # Devices available
 #
 # Samsung Core 2
-device_variants_1="SM-G355H SM-G355HN SM-G355M" device_defconfig_1="cyanogenmod_kanas_defconfig" device_name_1="Samsung-Core2-KANAS"
+device_variants_1="SM-G355H SM-G355HN SM-G355M" device_defconfig_1="cyanogenmod_kanas_defconfig" device_name_1="Samsung-Core2"
 # Menu
 echo "${x} | ${color_green}Device choice${color_stock}"
 echo
