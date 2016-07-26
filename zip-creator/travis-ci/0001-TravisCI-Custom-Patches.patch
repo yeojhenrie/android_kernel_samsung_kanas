@@ -1,29 +1,26 @@
-From 90c15ceec336976b4a4ec9a118eb317d1438aa52 Mon Sep 17 00:00:00 2001
+From 351876934e4b22f4a3a71936b01f2513e5bc50d7 Mon Sep 17 00:00:00 2001
 From: Caio Oliveira <caiooliveirafarias0@gmail.com>
-Date: Sun, 17 Jul 2016 00:03:04 -0300
-Subject: [PATCH] mkcompile_h: Add name of idealizer to Kernel Version [DO NOT
- MERGE]
+Date: Tue, 26 Jul 2016 12:50:54 -0300
+Subject: [PATCH] mkcompile_h: It's builded under TravisCI [DO NOT MERGE]
 
 Signed-off-by: Caio Oliveira <caiooliveirafarias0@gmail.com>
 ---
- scripts/mkcompile_h | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ scripts/mkcompile_h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/scripts/mkcompile_h b/scripts/mkcompile_h
-index f221ddf..7f5fc95 100755
+index eb6b77f..913dc23 100755
 --- a/scripts/mkcompile_h
 +++ b/scripts/mkcompile_h
-@@ -73,8 +73,8 @@ UTS_TRUNCATE="cut -b -$UTS_LEN"
+@@ -73,7 +73,7 @@ UTS_TRUNCATE="cut -b -$UTS_LEN"
  
    echo \#define UTS_VERSION \"`echo $UTS_VERSION | $UTS_TRUNCATE`\"
  
 -  echo \#define LINUX_COMPILE_BY \"`echo $LINUX_COMPILE_BY | $UTS_TRUNCATE`\"
--  echo \#define LINUX_COMPILE_HOST \"`echo $LINUX_COMPILE_HOST | $UTS_TRUNCATE`\"
-+  echo \#define LINUX_COMPILE_BY \"Caio99BR_ECr34T1v3\"
-+  echo \#define LINUX_COMPILE_HOST \"TeamVee-Kanas_TravisCI\"
++  echo \#define LINUX_COMPILE_BY \"TravisCI\"
+   echo \#define LINUX_COMPILE_HOST \"TeamVee-Kanas\"
  
    echo \#define LINUX_COMPILER \"`$CC -v 2>&1 | tail -n 1`\"
- ) > .tmpcompile
 -- 
 1.9.1
 
