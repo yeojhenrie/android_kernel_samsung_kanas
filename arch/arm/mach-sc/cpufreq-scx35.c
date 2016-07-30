@@ -163,8 +163,8 @@ static unsigned int get_mcu_clk_freq(void)
 }
 #endif
 
-// Caio99BR Note
-// Proportion 0.100.000 Hz for each 0.025.000 mV
+// Caio99BR: Proportion: 100.000 Hz / 25.000 V | Min Voltage: 1.000.000 V
+
 static struct cpufreq_table_data sc8830_cpufreq_table_data_cs = {
 	.freq_tbl = {
 		{0, 1200000},
