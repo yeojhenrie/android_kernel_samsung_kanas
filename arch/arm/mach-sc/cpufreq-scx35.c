@@ -164,8 +164,47 @@ static unsigned int get_mcu_clk_freq(void)
 #endif
 
 // Caio99BR: Proportion: 100.000 Hz / 25.000 V | Min Voltage: 1.000.000 V
+//
+// Proportion Power Saves
+// before 1.200.000Hz: 300.000 Hz / 25.000 V
+// after 1.200.000Hz: 100.000 Hz / 25.000 V | Min Voltage: 900.000 V
+// #define PROPORTIONAL_POWERSAVE_VALUES
+//
+// only after 1.200.000Hz: 100.000 Hz / 25.000 V | Min Voltage: 900.000 V
+// #define PROPORTIONAL_ULTRAPOWERSAVE_VALUES
 
 static struct cpufreq_table_data sc8830_cpufreq_table_data_cs = {
+#if defined(PROPORTIONAL_POWERSAVE_VALUES)
+	.freq_tbl = {
+		{0, 1200000},
+		{1, 900000},
+		{2, 600000},
+		{3, 300000},
+		{4, CPUFREQ_TABLE_END},
+	},
+	.vddarm_mv = {
+		1000000,
+		975000,
+		950000,
+		925000,
+		900000,
+	},
+#elif defined(PROPORTIONAL_ULTRAPOWERSAVE_VALUES)
+	.freq_tbl = {
+		{0, 1200000},
+		{1, 900000},
+		{2, 600000},
+		{3, 300000},
+		{4, CPUFREQ_TABLE_END},
+	},
+	.vddarm_mv = {
+		1000000,
+		900000,
+		900000,
+		900000,
+		900000,
+	},
+#else
 	.freq_tbl = {
 		{0, 1200000},
 		{1, 900000},
@@ -180,6 +219,7 @@ static struct cpufreq_table_data sc8830_cpufreq_table_data_cs = {
 		1075000,
 		1000000,
 	},
+#endif
 };
 
 /*
