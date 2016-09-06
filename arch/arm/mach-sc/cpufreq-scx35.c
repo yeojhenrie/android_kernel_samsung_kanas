@@ -112,22 +112,22 @@ static void set_mcu_clk_freq(u32 mcu_freq)
 			break;
 	}
 	pr_debug("%s --- before, AHB_ARM_CLK: %08x, rate = %d, div = %d\n",
-		__func__, __raw_readl(REG_AHB_ARM_CLK), rate, arm_clk_div);
+		__func__, __raw_readl((void __iomem *)REG_AHB_ARM_CLK), rate, arm_clk_div);
 
-	gr_gen1 =  __raw_readl(GR_GEN1);
+	gr_gen1 =  __raw_readl((void __iomem *)GR_GEN1);
 	gr_gen1 |= BIT(9);
-	__raw_writel(gr_gen1, GR_GEN1);
+	__raw_writel(gr_gen1, (void __iomem *)GR_GEN1);
 
-	val = __raw_readl(REG_AHB_ARM_CLK);
+	val = __raw_readl((void __iomem *)REG_AHB_ARM_CLK);
 	val &= 0xfffffff8;
 	val |= arm_clk_div;
-	__raw_writel(val, REG_AHB_ARM_CLK);
+	__raw_writel(val, (void __iomem *)REG_AHB_ARM_CLK);
 
 	gr_gen1 &= ~BIT(9);
-	__raw_writel(gr_gen1, GR_GEN1);
+	__raw_writel(gr_gen1, (void __iomem *)GR_GEN1);
 
 	pr_debug("%s --- after, AHB_ARM_CLK: %08x, rate = %d, div = %d\n",
-		__func__, __raw_readl(REG_AHB_ARM_CLK), rate, arm_clk_div);
+		__func__, __raw_readl((void __iomem *)REG_AHB_ARM_CLK), rate, arm_clk_div);
 
 	return;
 }
@@ -136,7 +136,7 @@ static unsigned int get_mcu_clk_freq(void)
 {
 	u32 mpll_refin, mpll_n, mpll_cfg = 0, rate, val;
 
-	mpll_cfg = __raw_readl(GR_MPLL_MN);
+	mpll_cfg = __raw_readl((void __iomem *)GR_MPLL_MN);
 
 	mpll_refin = (mpll_cfg >> GR_MPLL_REFIN_SHIFT) & GR_MPLL_REFIN_MASK;
 	switch(mpll_refin){
@@ -157,69 +157,35 @@ static unsigned int get_mcu_clk_freq(void)
 	rate = mpll_refin * mpll_n;
 
 	/*find div */
-	val = __raw_readl(REG_AHB_ARM_CLK) & 0x7;
+	val = __raw_readl((void __iomem *)REG_AHB_ARM_CLK) & 0x7;
 	val += 1;
 	return rate / val;
 }
 #endif
 
-// Caio99BR: Proportion: 100.000 Hz / 25.000 V | Min Voltage: 1.000.000 V
-//
-// Proportion Power Saves
-// before 1.200.000Hz: 300.000 Hz / 25.000 V
-// after 1.200.000Hz: 100.000 Hz / 25.000 V | Min Voltage: 900.000 V
-// #define PROPORTIONAL_POWERSAVE_VALUES
-//
-// only after 1.200.000Hz: 100.000 Hz / 25.000 V | Min Voltage: 900.000 V
-// #define PROPORTIONAL_ULTRAPOWERSAVE_VALUES
-
 static struct cpufreq_table_data sc8830_cpufreq_table_data_cs = {
-#if defined(PROPORTIONAL_POWERSAVE_VALUES)
 	.freq_tbl = {
 		{0, 1200000},
-		{1, 900000},
-		{2, 600000},
-		{3, 300000},
-		{4, CPUFREQ_TABLE_END},
-	},
-	.vddarm_mv = {
-		1000000,
-		975000,
-		950000,
-		925000,
-		900000,
-	},
-#elif defined(PROPORTIONAL_ULTRAPOWERSAVE_VALUES)
-	.freq_tbl = {
-		{0, 1200000},
-		{1, 900000},
-		{2, 600000},
-		{3, 300000},
-		{4, CPUFREQ_TABLE_END},
-	},
-	.vddarm_mv = {
-		1000000,
-		900000,
-		900000,
-		900000,
-		900000,
-	},
-#else
-	.freq_tbl = {
-		{0, 1200000},
-		{1, 900000},
-		{2, 600000},
-		{3, 300000},
-		{4, CPUFREQ_TABLE_END},
+		{1, 1100000},
+		{2, 1000000},
+		{3, SHARK_TDPLL_FREQUENCY},
+		{4, 600000},
+		{5, 500000},
+		{6, 400000},
+		{7, 200000},
+		{8, CPUFREQ_TABLE_END},
 	},
 	.vddarm_mv = {
 		1300000,
-		1225000,
+		1250000,
+		1200000,
 		1150000,
-		1075000,
+		1100000,
+		1125000,
+		1050000,
+		1025000,
 		1000000,
 	},
-#endif
 };
 
 /*
@@ -703,7 +669,7 @@ static ssize_t cpufreq_voltage_store(struct device *dev, struct device_attribute
 	err = strict_strtoul(buf, 10, &value);
 	if (err)
 		return err;
-	printk("%s value=%u\n", __func__, value);
+	printk("%s value=%lu\n", __func__, value);
 	regulator_set_voltage(sprd_cpufreq_conf->regulator, (value * 1000), (value * 1000));
 	return count;
 }
@@ -715,7 +681,7 @@ static ssize_t cpufreq_frequency_store(struct device *dev, struct device_attribu
 	err = strict_strtoul(buf, 10, &value);
 	if (err)
 		return err;
-	printk("%s value=%u\n", __func__, value);
+	printk("%s value=%lu\n", __func__, value);
 	cpufreq_set_clock(value);
 	return count;
 }

@@ -50,7 +50,7 @@
 #define OOM_COUNT_READ
 #endif
 #ifdef LMK_COUNT_READ
-static uint32_t lmkcount = 0;
+static uint32_t lmkcount = 1;
 #endif
 
 #ifdef CONFIG_SEC_OOM_KILLER

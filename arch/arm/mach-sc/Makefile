@@ -76,3 +76,4 @@ obj-$(CONFIG_SPRD_MEM_POOL) += sprd_mem_pool.o
 obj-$(CONFIG_SPRD_AVS_DEBUG) += avs_debug.o
 obj-$(CONFIG_SPRD_AUX_DEBUG) += aux_debug.o
 obj-$(CONFIG_SEC_THERMISTOR) += sec_thermistor.o
+obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
