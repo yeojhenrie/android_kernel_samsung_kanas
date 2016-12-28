@@ -46,9 +46,6 @@ script:
 # Export of zipfile to deploy
 # - export zipfile#="${zipfile}"
 
-# TravisCI Custom Patches
-- patch -p1 < zip-creator/travis-ci/0001-TravisCI-Custom-Patches.patch
-
 # Build for Samsung Core 2 | SM-G355H SM-G355HN SM-G355M
 - export ndevicechoice="1"
 - source build.sh <<< "${ndevice}${ndevicechoice}${ntoolchain}q"
