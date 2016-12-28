@@ -69,4 +69,4 @@ deploy:
   file:
     - "zip-creator/${zipfile1}"
   on:
-    tags: true
+    branch: cm-11.0
