@@ -1,11 +1,20 @@
-sudo: required
+sudo: false
 language: c
 cache: ccache
-script:
 #
 # Travis CI Script by Caio Oliveira aka Caio99BR <caiooliveirafarias0@gmail.com>
 #
+install:
+# Building bc (HACK FOR CONTAINER BASED BUILD)
+- curl http://gnu.c3sl.ufpr.br/ftp/bc/bc-1.06.tar.gz -o bc-1.06.tar.gz
+- tar -zxvf bc-1.06.tar.gz
+- cd bc-1.06/
+- ./configure
+- make
+- export PATH=$PATH:$(pwd)/bc
+- cd ../
 
+script:
 #
 # Toolchain Choice
 # This will clone TeamVee Prebuilt Toolchains in directory described in build.sh
