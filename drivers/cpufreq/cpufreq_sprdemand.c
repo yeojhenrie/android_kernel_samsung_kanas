@@ -1893,10 +1893,7 @@ int _store_cpu_num_min_limit(unsigned int input)
 
 	if (sd_tuners) {
 		sd_tuners->cpu_num_min_limit = input;
-#if 0
 		int cpu = smp_processor_id();
-		sd_check_cpu(cpu, 50);
-#endif
 	} else {
 		pr_info("[store_cpu_num_min_limit] current governor is not sprdemand\n");
 		return -EINVAL;
