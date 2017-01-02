@@ -112,6 +112,18 @@ void SPI_SetCd( uint32_t cd)
 	}
 }
 
+
+static void SPI_SetSpiMode(uint32_t spi_mode)
+{
+	volatile SPI_CTL_REG_T *spi_ctr_ptr = (volatile SPI_CTL_REG_T *)(used_spi_reg_base);
+	uint32_t temp = spi_ctr_ptr->ctl7;
+
+	temp &= ~SPI_MODE_MASK;
+	temp |= (spi_mode<<SPI_MODE_SHIFT);
+
+	spi_ctr_ptr->ctl7 = temp;
+}
+
 void  SPI_SetDatawidth(uint32_t datawidth)
 {
 	volatile SPI_CTL_REG_T *spi_ctr_ptr = (volatile SPI_CTL_REG_T *)(used_spi_reg_base);
@@ -177,6 +189,7 @@ void SPI_Init(u32 spi_id, SPI_INIT_PARM *spi_parm)
 {
 	volatile SPI_CTL_REG_T *spi_ctr_ptr;
 	u32 temp;
+	u32 ctl0, ctl1, ctl3;
 
 	SPI_ClkSetting(spi_id);
 

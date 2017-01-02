@@ -349,33 +349,32 @@ static void dsi_log_error(const char * string)
 {
 	printk(string);
 }
-
-int32_t sprdfb_dsi_mipi_fh(struct sprdfb_device *dev, uint phy_feq,
-		bool need_fh)//LiWei add
+int32_t sprdfb_dsi_mipi_fh(struct sprdfb_device *dev, uint phy_feq, bool need_fh)//LiWei add
 {
-	struct info_mipi *mipi = dev->panel->info.mipi;
-	dsih_ctrl_t *dsi_instance = &(dsi_ctx.dsi_inst);
-	dphy_t *phy = &(dsi_instance->phy_instance);
-	dsih_error_t result = OK;
-	dsi_ctx.is_fh = need_fh;
-	if (0 == need_fh) {
-		dsi_ctx.dphy_feq = phy_feq;
-		dsi_ctx.feq_change ++;
-	} else
-		dsi_ctx.dphy_feq = dev->panel->info.mipi->phy_feq;
+    struct timespec now = current_kernel_time();
+    struct info_mipi * mipi = dev->panel->info.mipi;
+    dsih_ctrl_t* dsi_instance = &(dsi_ctx.dsi_inst);
+    dphy_t *phy = &(dsi_instance->phy_instance);
+    dsih_error_t result = OK;
+    dsi_ctx.is_fh = need_fh;
+    if (0==need_fh){
+        dsi_ctx.dphy_feq = phy_feq;
+        dsi_ctx.feq_change ++;
+    } else {
+        dsi_ctx.dphy_feq = dev->panel->info.mipi->phy_feq;
+    }
 
-	down(&dsi_ctx.sem_dsi_init);
-	printk("sprdfb: [%s] dphy_feq = (%d)!\n", __func__, dsi_ctx.dphy_feq);
-	printk("sprdfb: [%s] feq_change_time = (%d)!\n", __func__,
-			dsi_ctx.feq_change);
-	if (INITIALIZED == dsi_instance->status) {
-		result = mipi_dsih_dphy_fh(phy,mipi->lan_number,
-				dsi_ctx.dphy_feq);
-		dev->curr_mipi_clk = phy_feq;
-	}
-	printk("sprdfb: [%s] nanji_mipi_fh result = (%d)!\n", __func__, result);
-	up(&dsi_ctx.sem_dsi_init);
-	return 0;
+    down(&dsi_ctx.sem_dsi_init);
+    printk("sprdfb: [%s] dphy_feq = (%d)!\n", __FUNCTION__, dsi_ctx.dphy_feq);
+    printk("sprdfb: [%s] feq_change_time = (%d)!\n", __FUNCTION__, dsi_ctx.feq_change);
+    if(INITIALIZED == dsi_instance->status)
+    {
+        result = mipi_dsih_dphy_fh(phy,mipi->lan_number, dsi_ctx.dphy_feq);
+	dev->curr_mipi_clk = phy_feq;
+    }
+    printk("sprdfb: [%s] nanji_mipi_fh result = (%d)!\n", __FUNCTION__, result);
+    up(&dsi_ctx.sem_dsi_init);
+    return 0;
 }
 
 void sprdfb_dsi_sema_init(void)

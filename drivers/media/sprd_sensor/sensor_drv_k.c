@@ -358,7 +358,6 @@ LOCAL void* _sensor_k_kmalloc(size_t size, unsigned flags)
 	}
 }
 
-#ifndef CONFIG_ARCH_SCX35
 LOCAL void* _sensor_k_kzalloc(size_t size, unsigned flags)
 {
 	void *ptr = _sensor_k_kmalloc(size, flags);
@@ -367,7 +366,6 @@ LOCAL void* _sensor_k_kzalloc(size_t size, unsigned flags)
 	}
 	return ptr;
 }
-#endif
 
 LOCAL void _sensor_k_kfree(void *p)
 {

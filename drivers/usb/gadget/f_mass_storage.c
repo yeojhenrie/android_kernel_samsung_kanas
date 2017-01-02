@@ -1211,11 +1211,9 @@ static int do_read_header(struct fsg_common *common, struct fsg_buffhd *bh)
 
 static int do_read_toc(struct fsg_common *common, struct fsg_buffhd *bh)
 {
-#ifndef CONFIG_USB_SPRD_DWC
 	struct fsg_lun	*curlun = common->curlun;
-	int		start_track = common->cmnd[6];
-#endif
 	int		msf = common->cmnd[1] & 0x02;
+	int		start_track = common->cmnd[6];
 	u8		*buf = (u8 *)bh->buf;
 #ifdef CONFIG_USB_SPRD_DWC
 	// Seen in MMC5RC01 6.32 READ TOC/PMA/ATIP Command

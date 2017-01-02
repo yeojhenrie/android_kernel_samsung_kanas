@@ -40,6 +40,7 @@ static void esd_work_func(struct work_struct *work)
 	struct esd_det_info *info = 
 		container_of(work, struct esd_det_info, work);
 	int esd_irq = gpio_to_irq(info->gpio);
+	int retry = 3;
 
 	printk("%s, gpio[%d] = %s\n", __func__,
 			info->gpio, gpio_get_value(info->gpio) ? "high" : "low");

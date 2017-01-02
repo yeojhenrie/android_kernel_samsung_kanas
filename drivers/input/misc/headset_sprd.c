@@ -617,6 +617,7 @@ static void headmic_sleep_disable(struct device *dev, int on)
 {
 	unsigned long spin_lock_flags;
 	static int current_power_state = 0;
+	struct sprd_headset *ht = &headset;
 
 	spin_lock_irqsave(&headmic_sleep_disable_lock, spin_lock_flags);
 	if (1 == on) {

@@ -381,6 +381,11 @@ static int __init_trimming(struct regulator_dev *rdev)
 	return 0;
 }
 
+static int ldo_get_trimming_step(struct regulator_dev *rdev, int to_vol)
+{
+	return 1000 * to_vol * 20 / 32;	/*uV */
+}
+
 static int dcdc_get_trimming_step(struct regulator_dev *rdev, int to_vol)
 {
 	struct sci_regulator_desc *desc = __get_desc(rdev);

@@ -111,7 +111,10 @@ static LCM_Init_Code dtc_init_data[] = {
 	{LCM_SLEEP(180)},
 */
 };
-
+static LCM_Init_Code dtc_disp_on[] =  {  
+	{LCM_SEND(1),{0x29}},
+	{LCM_SLEEP(10)},
+};
 static LCM_Init_Code dtc_sleep_in[] =  {
 	{LCM_SEND(1), {0x28}},
 	{LCM_SLEEP(50)},

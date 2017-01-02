@@ -166,6 +166,7 @@ static ssize_t sprd_dispc_read(struct file* filp, char __user *buf, size_t count
 
 static ssize_t sprd_dispc_write(struct file* filp, const char __user *buf, size_t count, loff_t* f_pos)
 {
+	struct sprd_notifier* dev = filp->private_data;
 	ssize_t err = 0;
 	return err;
 }

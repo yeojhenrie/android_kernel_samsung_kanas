@@ -33,12 +33,12 @@ static void gpu_ddr_dfs_func(struct work_struct *work)
 {
 	dfs_freq_raise_quirk(400000);
 }
-
-static u32 num_active_gps = 0;
-static u32 num_active_pps = 0;
 #endif
 
 static mali_bool mali_power_on = MALI_FALSE;
+
+static u32 num_active_gps = 0;
+static u32 num_active_pps = 0;
 
 _mali_osk_errcode_t mali_pm_initialize(void)
 {
