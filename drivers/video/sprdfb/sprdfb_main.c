@@ -458,7 +458,7 @@ static void ESD_work_func(struct work_struct *work)
 
 	if (0 != dev->enable) {
 		pr_debug("sprdfb: reschedule ESD workqueue!\n");
-		schedule_delayed_work(&dev->ESD_work, \
+		queue_delayed_work(system_power_efficient_wq, &dev->ESD_work, \
 					msecs_to_jiffies(dev->ESD_timeout_val));
 		dev->ESD_work_start = true;
 	} else
@@ -641,7 +641,7 @@ static int sprdfb_probe(struct platform_device *pdev)
 		dev_global = dev;
 
 		INIT_DELAYED_WORK(&enable_esd_work, esd_enable_func);
-		schedule_delayed_work(&enable_esd_work, msecs_to_jiffies(5000));
+		queue_delayed_work(system_power_efficient_wq, &enable_esd_work, msecs_to_jiffies(5000));
 	}
 #endif
 #ifdef CONFIG_FB_LCD_HX8369B_MIPI_DTC

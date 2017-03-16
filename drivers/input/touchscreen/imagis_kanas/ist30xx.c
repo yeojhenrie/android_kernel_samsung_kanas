@@ -174,7 +174,7 @@ int ist30xx_error_cnt = 0;
 void ist30xx_scheduled_reset(void)
 {
 	if (ist30xx_initialized)
-	schedule_delayed_work(&work_reset_check, 0);
+	queue_delayed_work(system_power_efficient_wq, &work_reset_check, 0);
 }
 
 static void ist30xx_request_reset(void)
@@ -1284,17 +1284,17 @@ void timer_handler(unsigned long data)
 			if (unlikely(status->calib == 1)) {
 				if (timer_ms - event_ms >= 3000) {   // 3second
 					tsp_debug("calibration timeout over 3sec\n");
-					schedule_delayed_work(&work_reset_check, 0);
+					queue_delayed_work(system_power_efficient_wq, &work_reset_check, 0);
 					status->calib = 0;
 				}
 			} else if (likely(status->noise_mode)) {
 				if (timer_ms - event_ms > 100)     // 100ms after last interrupt
-				schedule_delayed_work(&work_noise_protect, 0);
+				queue_delayed_work(system_power_efficient_wq, &work_noise_protect, 0);
 			}
 
 			if ((ist30xx_algr_addr >= IST30XXB_ACCESS_ADDR) &&
 			    (ist30xx_algr_size > 0))
-				schedule_delayed_work(&work_debug_algorithm, 0);
+				queue_delayed_work(system_power_efficient_wq, &work_debug_algorithm, 0);
 		}
 	}
 
@@ -1455,7 +1455,7 @@ static int __init ist30xx_probe(struct i2c_client *		client,
 #if IST30XX_INTERNAL_BIN
 # if IST30XX_UPDATE_BY_WORKQUEUE
 	INIT_DELAYED_WORK(&work_fw_update, fw_update_func);
-	schedule_delayed_work(&work_fw_update, IST30XX_UPDATE_DELAY);
+	queue_delayed_work(system_power_efficient_wq, &work_fw_update, IST30XX_UPDATE_DELAY);
 # else
 	ret = ist30xx_auto_bin_update(data);
 	if (unlikely(ret != 0))

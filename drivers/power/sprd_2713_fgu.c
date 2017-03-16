@@ -629,7 +629,7 @@ static void sprdfgu_debug_works(struct work_struct *work)
 	FGU_DEBUG("sprdfgu_read_soc():%d\n", sprdfgu_read_soc());
 	FGU_DEBUG("sprdfgu_read_capacity():%d\n", sprdfgu_read_capacity());
 	FGU_DEBUG("dump fgu message@end\n");
-	schedule_delayed_work(&sprdfgu_debug_work, sprdfgu_debug_log_time * HZ);
+	queue_delayed_work(system_power_efficient_wq, &sprdfgu_debug_work, sprdfgu_debug_log_time * HZ);
 }
 
 static void sprdfgu_cal_battery_impedance(void)
@@ -760,7 +760,7 @@ static irqreturn_t _sprdfgu_interrupt(int irq, void *dev_id)
 	printk
 	    ("sprdfgu: _sprdfgu_interrupt.....raw..0x%x,sprdfgu_data.int_status0x%x\n",
 	     sci_adi_read(REG_FGU_INT_RAW), sprdfgu_data.int_status);
-	schedule_delayed_work(&sprdfgu_data.fgu_irq_work, 0);
+	queue_delayed_work(system_power_efficient_wq, &sprdfgu_data.fgu_irq_work, 0);
 	udelay(60); //fix int bug
 	return IRQ_HANDLED;
 }
@@ -1024,7 +1024,7 @@ int sprdfgu_init(struct platform_device *pdev)
 	sprdfgu_data.warning_cap =
 	    sprdfgu_vol2capacity(SPRDFGU_BATTERY_WARNING_VOL);
 	sprdfgu_int_init();
-	schedule_delayed_work(&sprdfgu_debug_work, sprdfgu_debug_log_time * HZ);
+	queue_delayed_work(system_power_efficient_wq, &sprdfgu_debug_work, sprdfgu_debug_log_time * HZ);
 	FGU_DEBUG("sprdfgu_init end\n");
 	return ret;
 }

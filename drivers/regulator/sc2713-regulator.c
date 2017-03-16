@@ -1141,7 +1141,7 @@ int __regu_calibrate(struct regulator_dev *rdev, int def_vol, int to_vol)
 		return -EACCES;
 	}
 
-	schedule_delayed_work(&desc->data.dwork, msecs_to_jiffies(10));
+	queue_delayed_work(system_power_efficient_wq, &desc->data.dwork, msecs_to_jiffies(10));
 	return 0;
 }
 

@@ -849,7 +849,7 @@ static irqreturn_t sprdbat_chg_cv_irq(int irq, void *dev_id)
 	} else {
 		sprdbat_average_cnt = 0;
 		sprdbat_adjust_cccvpoint(sprdbat_data->bat_info.vbat_vol);
-		schedule_delayed_work(&sprdbat_data->cv_irq_work, (HZ * 1));
+		queue_delayed_work(system_power_efficient_wq, &sprdbat_data->cv_irq_work, (HZ * 1));
 	}
 	return IRQ_HANDLED;
 }
@@ -1054,10 +1054,10 @@ static void sprdbat_battery_works(struct work_struct *work)
 	mutex_unlock(&sprdbat_data->lock);
 	sprdbat_print_battery_log();
 	if (sprdbat_data->bat_info.module_state == POWER_SUPPLY_STATUS_CHARGING) {
-		schedule_delayed_work(&sprdbat_data->battery_work,
+		queue_delayed_work(system_power_efficient_wq, &sprdbat_data->battery_work,
 				      SPRDBAT_CAPACITY_MONITOR_FAST);
 	} else {
-		schedule_delayed_work(&sprdbat_data->battery_work,
+		queue_delayed_work(system_power_efficient_wq, &sprdbat_data->battery_work,
 				      SPRDBAT_CAPACITY_MONITOR_NORMAL);
 	}
 }
@@ -1065,9 +1065,9 @@ static void sprdbat_battery_works(struct work_struct *work)
 static void sprdbat_battery_sleep_works(struct work_struct *work)
 {
 	SPRDBAT_DEBUG("sprdbat_battery_sleep_works\n");
-	if (schedule_delayed_work(&sprdbat_data->battery_work, 0) == 0) {
+	if (queue_delayed_work(system_power_efficient_wq, &sprdbat_data->battery_work, 0) == 0) {
 		cancel_delayed_work_sync(&sprdbat_data->battery_work);
-		schedule_delayed_work(&sprdbat_data->battery_work, 0);
+		queue_delayed_work(system_power_efficient_wq, &sprdbat_data->battery_work, 0);
 	}
 }
 
@@ -1656,7 +1656,7 @@ static int sprdbat_probe(struct platform_device *pdev)
 	sprdfgu_register_notifier(&sprdbat_notifier);
 	usb_register_hotplug_callback(&power_cb);
 
-	schedule_delayed_work(&data->battery_work,
+	queue_delayed_work(system_power_efficient_wq, &data->battery_work,
 			      SPRDBAT_CAPACITY_MONITOR_NORMAL);
 	SPRDBAT_DEBUG("sprdbat_probe----------end\n");
 	return 0;
@@ -1702,7 +1702,7 @@ static int sprdbat_remove(struct platform_device *pdev)
 
 static int sprdbat_resume(struct platform_device *pdev)
 {
-	schedule_delayed_work(&sprdbat_data->battery_sleep_work, 0);
+	queue_delayed_work(system_power_efficient_wq, &sprdbat_data->battery_sleep_work, 0);
 	sprdfgu_pm_op(0);
 	return 0;
 }

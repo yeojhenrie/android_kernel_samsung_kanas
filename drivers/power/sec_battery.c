@@ -1829,9 +1829,9 @@ static void sec_bat_set_polling(
 		cancel_delayed_work(&battery->polling_work);
 		if (battery->pdata->monitor_initial_count) {
 			battery->pdata->monitor_initial_count--;
-			schedule_delayed_work(&battery->polling_work, HZ);
+			queue_delayed_work(system_power_efficient_wq, &battery->polling_work, HZ);
 		} else
-			schedule_delayed_work(&battery->polling_work,
+			queue_delayed_work(system_power_efficient_wq, &battery->polling_work,
 				polling_time_temp * HZ);
 		break;
 	case SEC_BATTERY_MONITOR_ALARM:
@@ -3100,7 +3100,7 @@ static int sec_battery_probe(struct platform_device *pdev)
 	INIT_DELAYED_WORK(&battery->monitor_work, sec_bat_monitor_work);
 #if defined(CONFIG_SEC_GPIO_DVS)
 	INIT_DELAYED_WORK(&battery->initdvs_work, sec_init_dvs_work);
-	schedule_delayed_work(&battery->initdvs_work, msecs_to_jiffies(15000));
+	queue_delayed_work(system_power_efficient_wq, &battery->initdvs_work, msecs_to_jiffies(15000));
 #endif
 	INIT_WORK(&battery->cable_work, sec_bat_cable_work);
 

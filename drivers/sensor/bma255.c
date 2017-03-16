@@ -337,7 +337,7 @@ static void bma255_work_func(struct work_struct *work)
 	} else
 		data->time_count++;
 
-	schedule_delayed_work(&data->work, delay);
+	queue_delayed_work(system_power_efficient_wq, &data->work, delay);
 }
 
 static void bma255_set_enable(struct bma255_p *data, int enable)
@@ -348,7 +348,7 @@ static void bma255_set_enable(struct bma255_p *data, int enable)
 		if (pre_enable == OFF) {
 			bma255_open_calibration(data);
 			bma255_set_mode(data, BMA255_MODE_NORMAL);
-			schedule_delayed_work(&data->work,
+			queue_delayed_work(system_power_efficient_wq, &data->work,
 				msecs_to_jiffies(atomic_read(&data->delay)));
 			atomic_set(&data->enable, ON);
 		}
@@ -592,7 +592,7 @@ static int bma255_do_calibrate(struct bma255_p *data, int enable)
 		}
 
 		if (atomic_read(&data->enable) == ON)
-			schedule_delayed_work(&data->work,
+			queue_delayed_work(system_power_efficient_wq, &data->work,
 				msecs_to_jiffies(atomic_read(&data->delay)));
 		else
 			bma255_set_mode(data, BMA255_MODE_SUSPEND);
@@ -1216,7 +1216,7 @@ static int bma255_resume(struct device *dev)
 
 	if (atomic_read(&data->enable) == ON) {
 		bma255_set_mode(data, BMA255_MODE_NORMAL);
-		schedule_delayed_work(&data->work,
+		queue_delayed_work(system_power_efficient_wq, &data->work,
 			msecs_to_jiffies(atomic_read(&data->delay)));
 	}
 

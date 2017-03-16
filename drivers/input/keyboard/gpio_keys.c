@@ -603,7 +603,7 @@ static irqreturn_t flip_cover_detect(int irq, void *dev_id)
 {
 	struct gpio_keys_drvdata *ddata = dev_id;
 	cancel_delayed_work_sync(&ddata->flip_cover_dwork);
-	schedule_delayed_work(&ddata->flip_cover_dwork, HZ / 20);
+	queue_delayed_work(system_power_efficient_wq, &ddata->flip_cover_dwork, HZ / 20);
 	return IRQ_HANDLED;
 }
 #endif
@@ -637,11 +637,11 @@ static int gpio_keys_open(struct input_dev *input)
 		}
 	    else{
 		/* update the current status */
-		schedule_delayed_work(&ddata->flip_cover_dwork, HZ / 2);
+		queue_delayed_work(system_power_efficient_wq, &ddata->flip_cover_dwork, HZ / 2);
 		}
     	} else {
         /* update the current status */
-        schedule_delayed_work(&ddata->flip_cover_dwork, HZ / 2);
+        queue_delayed_work(system_power_efficient_wq, &ddata->flip_cover_dwork, HZ / 2);
     }
 #endif
 	/* Report current state of buttons that are connected to GPIOs */

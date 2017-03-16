@@ -29,7 +29,7 @@ static void esd_dwork_func(struct work_struct *work)
         count = 0;
     }
 
-	schedule_delayed_work(&info->dwork,
+	queue_delayed_work(system_power_efficient_wq, &info->dwork,
 			msecs_to_jiffies(ESD_INTERVAL));
 out:
 	return;
@@ -111,7 +111,7 @@ int esd_det_enable(struct esd_det_info *info)
 		info->state = ESD_DET_ON;    // Not to change for ESD_DET_POLLING (Review in Progress)
 		enable_irq(esd_irq);
 	} else if (info->mode == ESD_DET_POLLING) {
-		schedule_delayed_work(&info->dwork,
+		queue_delayed_work(system_power_efficient_wq, &info->dwork,
 				msecs_to_jiffies(ESD_INTERVAL));
 	}
 	info->state = ESD_DET_ON;
@@ -132,7 +132,7 @@ int esd_det_init(struct esd_det_info *info)
 		gpio_direction_input(info->gpio);
 
 		INIT_DELAYED_WORK(&info->dwork, esd_dwork_func); // ESD self protect
-		schedule_delayed_work(&info->dwork,
+		queue_delayed_work(system_power_efficient_wq, &info->dwork,
 				msecs_to_jiffies(ESD_BOOT_INTERVAL));
 	} else if (info->mode == ESD_DET_INTERRUPT) {
 		int esd_irq = gpio_to_irq(info->gpio);
