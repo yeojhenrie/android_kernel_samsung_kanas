@@ -265,7 +265,7 @@ struct zs_pool {
 struct zspage {
 	struct {
 		unsigned int fullness:FULLNESS_BITS;
-		unsigned int class:CLASS_BITS;
+		unsigned int class:CLASS_BITS + 1;
 	};
 	unsigned int inuse;
 	unsigned int freeobj;
