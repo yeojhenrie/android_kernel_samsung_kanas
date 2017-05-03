@@ -154,8 +154,7 @@ static inline bool valid_io_request(struct zram *zram,
 
 static void update_position(u32 *index, int *offset, struct bio_vec *bvec)
 {
-	if (*offset + bvec->bv_len >= PAGE_SIZE)
-		(*index)++;
+	*index  += (*offset + bvec->bv_len) / PAGE_SIZE;
 	*offset = (*offset + bvec->bv_len) % PAGE_SIZE;
 }
 
@@ -911,31 +910,20 @@ static void __zram_make_request(struct zram *zram, struct bio *bio)
 
 	rw = bio_data_dir(bio);
 	bio_for_each_segment(bvec, bio, i) {
-		int max_transfer_size = PAGE_SIZE - offset;
+		struct bio_vec *bv = bvec;
+		unsigned int unwritten = bvec->bv_len;
 
-		if (bvec->bv_len > max_transfer_size) {
-			/*
-			 * zram_bvec_rw() can only make operation on a single
-			 * zram page. Split the bio vector.
-			 */
-			struct bio_vec bv;
-
-			bv.bv_page = bvec->bv_page;
-			bv.bv_len = max_transfer_size;
-			bv.bv_offset = bvec->bv_offset;
-
-			if (zram_bvec_rw(zram, &bv, index, offset, rw) < 0)
+		do {
+			bv->bv_len = min_t(unsigned int, PAGE_SIZE - offset,
+							unwritten);
+			if (zram_bvec_rw(zram, bv, index, offset, rw) < 0)
 				goto out;
 
-			bv.bv_len = bvec->bv_len - max_transfer_size;
-			bv.bv_offset += max_transfer_size;
-			if (zram_bvec_rw(zram, &bv, index + 1, 0, rw) < 0)
-				goto out;
-		} else
-			if (zram_bvec_rw(zram, bvec, index, offset, rw) < 0)
-				goto out;
+			bv->bv_offset += bv->bv_len;
+			unwritten -= bv->bv_len;
 
-		update_position(&index, &offset, bvec);
+			update_position(&index, &offset, bv);
+		} while (unwritten);
 	}
 
 	set_bit(BIO_UPTODATE, &bio->bi_flags);
@@ -1265,8 +1253,6 @@ static int zram_add(void)
 	blk_queue_io_min(zram->disk->queue, PAGE_SIZE);
 	blk_queue_io_opt(zram->disk->queue, PAGE_SIZE);
 	zram->disk->queue->limits.discard_granularity = PAGE_SIZE;
-	zram->disk->queue->limits.max_sectors = SECTORS_PER_PAGE;
-	zram->disk->queue->limits.chunk_sectors = 0;
 	zram->disk->queue->limits.max_discard_sectors = UINT_MAX;
 	/*
 	 * zram_bio_discard() will clear all logical blocks if logical block
