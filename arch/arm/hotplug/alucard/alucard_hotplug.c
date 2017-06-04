@@ -706,7 +706,7 @@ int __init alucard_hotplug_init(void)
 	unsigned int cpu;
 	int ret;
 
-	ret = sysfs_create_group(cpufreq_global_kobject, &alucard_hotplug_attr_group);
+	ret = sysfs_create_group(kernel_kobj, &alucard_hotplug_attr_group);
 	if (ret) {
 		printk(KERN_ERR "failed at(%d)\n", __LINE__);
 		return ret;
