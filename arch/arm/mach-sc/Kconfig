@@ -421,6 +421,31 @@ config DDR_VALIDITY_TEST
 	bool "test ddr validity before go into ddr"
 	default n
 
+config HOTPLUGGER_INTERFACE
+	bool "Naive hotplug interface"
+	default n
+	depends on HOTPLUG_CPU
+	help
+	   Cpu hotplug modules usually have guards against
+	   running multiple instances of hotplug modules which
+	   protects against races and other serious problems.
+	   This modules attemps to create an interface to all of the
+	   hotplug modules to be able to switch quickly and
+	   control which modules are currently running.
+	   This also has a primitive black/whitelisting
+	   to prevent incompatible modules from running
+	   at the same time and causing instability and/or panics.
+
+	   You could read this for more info <file:Documentation/hotpugger.txt>
+
+config HOTPLUGGER_INTERFACE_DEBUG
+	bool "Naive hotplug interface increased verbosity"
+	depends on HOTPLUGGER_INTERFACE
+	default n
+	help
+	  Compile the handful of pr_debug code to help debug
+	  this interface
+
 config SPRD_CPU_DYNAMIC_HOTPLUG
 	bool "cpu dynamic hotplug with DVFS"
 	default n

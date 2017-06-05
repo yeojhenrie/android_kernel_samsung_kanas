@@ -108,6 +108,7 @@ obj-$(CONFIG_EISA)		+= eisa/
 obj-y				+= lguest/
 obj-$(CONFIG_CPU_FREQ)		+= cpufreq/
 obj-$(CONFIG_SPRD_CPU_DYNAMIC_HOTPLUG)	+=cpuhotplug/
+obj-$(CONFIG_HOTPLUGGER_INTERFACE)	+=hotpluger/
 obj-$(CONFIG_CPU_IDLE)		+= cpuidle/
 obj-y				+= mmc/
 obj-$(CONFIG_MEMSTICK)		+= memstick/

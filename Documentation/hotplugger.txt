@@ -1,0 +1,309 @@
+Naive cpu hotplugging modules interface
+By ME<enriquezmark36@gmail.com>
+
+Background and rationale:
+-------------------------
+I'd like to learn how to code in c.
+
+----------
+Interface:
+----------
+The implementation relies on struct hotplugger_driver which is defined by this
+
+struct hotplugger_driver {
+	char	name[DRIVER_NAME_LEN];
+	int	(*change_state)	(bool state);
+	bool	(*is_enabled)	(void);
+	char	**whitelist;
+	struct list_head	list;
+};
+
+where DRIVER_NAME_LEN is a char array with length 32.
+
+change_state is a function pointer which this interface uses to activate
+or deactivate a module. Note that it doesn't unload the modules instead
+it only disables/enables them. Usually, change_state wraps to an
+"enabled" variable plus some housekeeping if the module relies on
+threads or workqueues. This may return a non-zero value on error.
+
+is_enabled is a function pointer whose only task is to check whether the
+module is running and doing its work. It returns either true or false.
+
+From this point, I'd like to make myself clear about what "activation" means.
+It just means starting the work the modules should be doing.
+
+The whitelist is an array of c-strings or a char array, and would
+be used to determine which modules would be disabled when a module is being
+activated.
+
+By default, the hotplugger_disable_conflicts() function would disable
+every running modules. The whitelist would prevent a running module from being
+disabled.
+
+The whitelist contains the set of modules' names which will be not be disabled
+while all modules not included will be disabled upon the module activation.
+No racism intended.
+
+These lists should have NULL as its last element. This is a MUST.
+
+Should the whitelist be initialized to NULL, all running modules will be
+disabled upon that module's activation.
+
+When the whitelist is initialized to a {NULL} the list WOULD STILL BE PARSED
+but every running and registered module will be disabled just like the
+default behavior.
+
+Currently there's no easy way to whitelist a module to all other modules.
+
+--------------------
+Using the whitelist:
+--------------------
+
+TL;DR;
+Never initialize the whitelist in a stack.
+In order of the whitelist to work, the whitelisting should be mutual;
+module1 should whitelist module2 and module2 should whitelist module1.
+
+If by chance you've to initialize your list in an init function,
+the list should NOT be allocated to stack like this.
+
+.whitelist=(char*[]){"another_name", NULL},
+
+Your list would be corrupted by the time the init function returns.
+As much as possible, use a list (char*[])
+with static storage life.
+
+You could write up something like this:
+
+static char *whitelist[] = {"another_name", NULL};
+
+put it in your init function or outside the functions as a
+global variable and set the whitelist to that:
+
+.whitelist=whitelist,
+
+Also, as a safety measure for the careless and newbies, like me, you
+have to add the names of the modules in the whitelist for both of them.
+Let's say you have module1 and module2. You want to whitelist both so
+that module1 can run alongside module2. For module1 you can create your
+whitelist like this.
+
+static char *module1_WList[] = {"module2", NULL};
+
+And simillarly for module 2:
+
+static char *mod2_WList[] = {"module1", NULL};
+
+---------------------
+Creating an instance:
+---------------------
+
+TL;DR;
+Include the header, define a struct hotplugger_driver, register the
+result of previous step in an init function, unregister at the exit
+function.
+
+Remember to include the header hotplugger.h
+#include <linux/hotplugger.h>
+
+Here's an example using a whitelist, where "handler" is the name
+
+static struct hotplugger_driver handler = {
+	.name = "module_name",
+	.change_state = &toggle,
+	.is_enabled = &enabled,
+	.whitelist = (char*[]){"another_name", "other_name", NULL},
+};
+
+Note: You could choose to do the initialization of the struct
+      in the module_init function and keep a global variable
+      to prevent issues about implicit declarations and such.
+      something like this:
+.......somewhere at the top......
+static struct hotplugger_driver handler;
+...
+... some codes and functions
+...
+...some_module_init(...)
+{
+...
+	handler = (struct hotplugger_driver) {
+		.name = "module_name",
+		.change_state = &toggle,
+		.is_enabled = &enabled,
+	};
+...
+
+Note: Or, just "split" function declaration and intialization.
+      Notice the two "static struct hotplugger_driver handler".
+      It should work considering how cpufreq_governor.c is written.
+      To be honest, I like this one better as it wont initialize
+      "handler" everytime the init function is called.
+.......somewhere at the top......
+static struct hotplugger_driver handler;
+...
+... some codes and functions
+...
+...
+static struct hotplugger_driver handler = {
+	.name = "module_name",
+	.change_state = &toggle,
+	.is_enabled = &enabled,
+	.whitelist = (char*[]){"another_name", "other_name", NULL},
+};
+...
+
+After you've created it, register it using hotplugger_register_driver()
+like so:
+
+hotplugger_register_driver(&handler);
+
+If your module is unloadable, then make sure to unregister it with
+hotplugger_unregister_driver().
+
+hotplugger_register_driver(&handler);
+
+Next is to disable other running modules.
+
+Tip: There exists a macro is_enabled_func(variable) which will
+     create a wrapper function around variable. The macro creates
+     a is_enabled() function of type bool something like these.
+
+     static bool is_enabled (void)
+
+     If the variable corresponds to a disabled variable instead
+     of enabled there exists is_not_enabled_func(variable) macro
+     which is essentially the same with is_enabled_func macro
+     but with its return values switched.
+
+     NOTE that this does NOT check whether the variable or struct
+     containing the variable is valid. You are going to have a bad
+     time debugging when let's say you have a struct mystruct
+     containing the "enabled" variable. But, you didn't made it static
+     and have to use kmalloc(). When struct mystruct is NULL and
+     you've called any of the functions here, even simply
+     reading/writing the sysfs files, in my case, the kernel would
+     panic and lock-up but there would be no logs, backtrace
+     stacktrace, dumps and etc... would be shown. That's all.
+
+---------------------------------------------
+Disable/enable running modules from the code:
+---------------------------------------------
+
+Every time your module is resuming/starting it's work
+you have to call hotplugger_disable_conflicts() function
+defined by this
+
+int hotplugger_disable_conflicts(struct hotplugger_driver *driver);
+
+The first argument is to provides the list and the identification of
+the module. This is the function that tries to parse and disable
+running modules according to the list.
+
+This would return 0 in success any other value is an error.
+
+But if for some reason you want to enable a cpu hotplug module
+you could use hotplugger_enable_one() defined as
+
+int hotplugger_enable_one(char *name);
+
+Unlike the previous function, you can use this anywhere.
+It takes the name of the module you want to activate/enable as
+its first parameter. It also returns a non-zero integer when there's
+an error. Plus, it doesn't use a whitelist although the module you
+would activate may probably call hotplugger_disable_conflicts()
+which would probably disable the calling module.
+
+It might be better to enclose all these codes in an #ifdef macro
+so that you could compile the module even without the
+CONFIG_HOTPLUGGER_INTERFACE being set.
+You could probably do it like this:
+
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+...code here...
+#endif
+
+------------
+Sysfs files:
+------------
+
+The sysfs knobs can be found at /sys/kernel/hotplugger.
+and contains three files.
+
+    available_drivers [read-only, 0444]
+    enable_driver     [read-write, 0644]
+    disable_driver    [read-write, 0644]
+    enabled           [read-write, 0644]
+
+available_drivers shows all of the modules registered, everything
+enclosed in square brackets [] are currently running. You cannot
+write to this file.
+
+enable_driver shows all of running modules. Writing the name
+of the module here would be enabled. This could return a non-zero
+value in error.
+
+disable_driver shows all of stopped modules. Like the enable_driver,
+writing the name of the running module would be disabled.
+
+By the current implementation, you may not enable or disable multiple
+modules in one invocation.
+
+enabled shows whether the interface is enabled. You can only write
+0 or 1 as integers, not string or "1" or "0" -- quotation marks included.
+0 represents false while 1 represents true. Writing 0 to this file
+will disable most of the features of this interface. Writing 1 will
+undo it.
+
+By default, the interface is enabled.
+
+-------------------------
+Enable/Disable Interface:
+-------------------------
+Defined in hotplug.c, the interface state is reflected in a variable
+named "enabled" with type "atomic_t".
+
+Obviously, there are two states: on(1) and off(0).
+
+Sysfs file "enabled", which may be located at /sys/kernel/hotplugger/,
+can be used to "switch off/on" the interface's functions.
+
+When the state is on(1), obviously, all functions are active.
+When the sate is off(0), You can STILL un/register modules or drivers
+but you may not use these functions:
+    int hotplugger_disable_conflicts(struct hotplugger_driver *driver);
+    int hotplugger_enable_one(const char *name);
+
+As of now there's no way to toggle the state in the code.
+
+---------------------------------------
+Lock ups and hangs and troubleshooting:
+---------------------------------------
+Read up how to enable debugging in the kernel and
+define this in your .config file:
+CONFIG_HOTPLUGGER_INTERFACE_DEBUG=y
+
+About 80% of the time, the problem lies within your modules code
+and how the functions, passed through the function pointers, behave.
+
+So first, try to not use the is_enabled_func macro and create your own
+function of the is_enabled() function pointer.
+
+Check whether your struct hotplugger_driver variable is valid, not NULL,
+or even allocated in the stack, and initialized before you use
+the functions to disable/enable other modules.
+
+Make sure the you register your struct hotplugger_driver variable
+ONCE and remove it once you're really sure it won't be used again.
+Like when the module is unloaded or the cpufreq governor is not being
+used in any of the processors.
+
+Mind the return values of the hotplugger_disable_conflicts() and
+hotplugger_enable_one() functions, they are put there for a reason.
+
+The other 17% is from this module, so feel free to modify this
+under GPL.
+
+The 2% is from quirks the linux kernel. Try to NOT build this
+interface and try to manually switch modules.
+The 1% is from your luck and fate. There isn't much to do.
