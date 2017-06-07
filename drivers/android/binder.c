@@ -286,6 +286,7 @@ struct binder_node {
 	unsigned has_weak_ref:1;
 	unsigned pending_weak_ref:1;
 	unsigned has_async_transaction:1;
+	unsigned sched_policy:2;
 	unsigned accept_fds:1;
 	unsigned min_priority:8;
 	struct list_head async_todo;
@@ -1747,6 +1748,7 @@ static int binder_translate_binder(struct flat_binder_object *fp,
 	struct binder_ref *ref;
 	struct binder_proc *proc = thread->proc;
 	struct binder_proc *target_proc = t->to_proc;
+	int priority;
 
 	node = binder_get_node(proc, fp->binder);
 	if (!node) {
@@ -1754,7 +1756,10 @@ static int binder_translate_binder(struct flat_binder_object *fp,
 		if (!node)
 			return -ENOMEM;
 
-		node->min_priority = NICE_TO_PRIO(fp->flags & FLAT_BINDER_FLAG_PRIORITY_MASK);
+		priority = fp->flags & FLAT_BINDER_FLAG_PRIORITY_MASK;
+		node->sched_policy = (fp->flags & FLAT_BINDER_FLAG_PRIORITY_MASK) >>
+			FLAT_BINDER_FLAG_SCHED_POLICY_SHIFT;
+		node->min_priority = to_kernel_prio(node->sched_policy, priority);
 		node->accept_fds = !!(fp->flags & FLAT_BINDER_FLAG_ACCEPTS_FDS);
 	}
 	if (fp->cookie != node->cookie) {
@@ -3084,8 +3089,17 @@ retry:
 			tr.cookie =  target_node->cookie;
 			t->saved_priority.sched_policy = current->policy;
 			t->saved_priority.prio = current->normal_prio;
-			if (target_node->min_priority < t->priority.prio) {
-				prio.sched_policy = SCHED_NORMAL;
+			if (target_node->min_priority < t->priority.prio ||
+			    (target_node->min_priority == t->priority.prio &&
+			     target_node->sched_policy == SCHED_FIFO)) {
+				/*
+				 * In case the minimum priority on the node is
+				 * higher (lower value), use that priority. If
+				 * the priority is the same, but the node uses
+				 * SCHED_FIFO, prefer SCHED_FIFO, since it can
+				 * run unbounded, unlike SCHED_RR.
+				 */
+				prio.sched_policy = target_node->sched_policy;
 				prio.prio = target_node->min_priority;
 			}
 			binder_set_priority(current, prio);
@@ -4089,8 +4103,9 @@ static void print_binder_node(struct seq_file *m, struct binder_node *node)
 	hlist_for_each_entry(ref, &node->refs, node_entry)
 		count++;
 
-	seq_printf(m, "  node %d: u%016llx c%016llx hs %d hw %d ls %d lw %d is %d iw %d",
+	seq_printf(m, "  node %d: u%016llx c%016llx pri %d:%d hs %d hw %d ls %d lw %d is %d iw %d",
 		   node->debug_id, (u64)node->ptr, (u64)node->cookie,
+		   node->sched_policy, node->min_priority,
 		   node->has_strong_ref, node->has_weak_ref,
 		   node->local_strong_refs, node->local_weak_refs,
 		   node->internal_strong_refs, count);
