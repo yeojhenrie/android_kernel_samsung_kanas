@@ -24,6 +24,9 @@
 #include <linux/cpufreq.h>
 
 #ifdef CONFIG_POWERSUSPEND
+#include <linux/powersuspend.h>
+#endif
+ 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
