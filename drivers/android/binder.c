@@ -413,6 +413,7 @@ struct binder_thread {
 		/* we are also waiting on */
 	wait_queue_head_t wait;
 	struct binder_stats stats;
+	struct task_struct *task;
 };
 
 struct binder_transaction {
@@ -431,6 +432,7 @@ struct binder_transaction {
 	unsigned int	flags;
 	struct binder_priority	priority;
 	struct binder_priority	saved_priority;
+	bool    set_priority_called;
 	kuid_t	sender_euid;
 };
 
@@ -650,6 +652,38 @@ static void binder_set_priority(struct task_struct *task,
 	}
 	if (is_fair_policy(policy))
 		set_user_nice(task, priority);
+}
+
+static void binder_transaction_priority(struct task_struct *task,
+					struct binder_transaction *t,
+					struct binder_priority node_prio)
+{
+	struct binder_priority desired_prio;
+
+	if (t->set_priority_called)
+		return;
+
+	t->set_priority_called = true;
+	t->saved_priority.sched_policy = task->policy;
+	t->saved_priority.prio = task->normal_prio;
+
+	desired_prio.prio = t->priority.prio;
+	desired_prio.sched_policy = t->priority.sched_policy;
+
+	if (node_prio.prio < t->priority.prio ||
+	    (node_prio.prio == t->priority.prio &&
+	     node_prio.sched_policy == SCHED_FIFO)) {
+		/*
+		 * In case the minimum priority on the node is
+		 * higher (lower value), use that priority. If
+		 * the priority is the same, but the node uses
+		 * SCHED_FIFO, prefer SCHED_FIFO, since it can
+		 * run unbounded, unlike SCHED_RR.
+		 */
+		desired_prio = node_prio;
+	}
+
+	binder_set_priority(task, desired_prio);
 }
 
 static size_t binder_buffer_size(struct binder_proc *proc,
@@ -2031,6 +2065,7 @@ static void binder_transaction(struct binder_proc *proc,
 	struct binder_buffer_object *last_fixup_obj = NULL;
 	binder_size_t last_fixup_min_off = 0;
 	struct binder_context *context = proc->context;
+	struct binder_priority node_prio;
 
 	e = binder_transaction_log_add(&context->transaction_log);
 	e->call_type = reply ? 2 : !!(tr->flags & TF_ONE_WAY);
@@ -2049,7 +2084,6 @@ static void binder_transaction(struct binder_proc *proc,
 			return_error = BR_FAILED_REPLY;
 			goto err_empty_call_stack;
 		}
-		binder_set_priority(current, in_reply_to->saved_priority);
 		if (in_reply_to->to_thread != thread) {
 			binder_user_error("%d:%d got reply transaction with bad transaction stack, transaction %d has target %d:%d\n",
 				proc->pid, thread->pid, in_reply_to->debug_id,
@@ -2375,11 +2409,15 @@ static void binder_transaction(struct binder_proc *proc,
 	if (reply) {
 		BUG_ON(t->buffer->async_transaction != 0);
 		binder_pop_transaction(target_thread, in_reply_to);
+		binder_set_priority(current, in_reply_to->saved_priority);
 	} else if (!(t->flags & TF_ONE_WAY)) {
 		BUG_ON(t->buffer->async_transaction != 0);
 		t->need_reply = 1;
 		t->from_parent = thread->transaction_stack;
 		thread->transaction_stack = t;
+		node_prio.prio = t->buffer->target_node->min_priority;
+		node_prio.sched_policy = t->buffer->target_node->sched_policy;
+		binder_transaction_priority(target_thread->task, t, node_prio);
 	} else {
 		BUG_ON(target_node == NULL);
 		BUG_ON(t->buffer->async_transaction != 1);
@@ -2438,6 +2476,7 @@ err_no_context_mgr_node:
 
 	BUG_ON(thread->return_error != BR_OK);
 	if (in_reply_to) {
+		binder_set_priority(current, in_reply_to->saved_priority);
 		thread->return_error = BR_TRANSACTION_COMPLETE;
 		binder_send_failed_reply(in_reply_to, return_error);
 	} else
@@ -3083,26 +3122,13 @@ retry:
 		BUG_ON(t->buffer == NULL);
 		if (t->buffer->target_node) {
 			struct binder_node *target_node = t->buffer->target_node;
-			struct binder_priority prio = t->priority;
+			struct binder_priority node_prio;
 
 			tr.target.ptr = target_node->ptr;
 			tr.cookie =  target_node->cookie;
-			t->saved_priority.sched_policy = current->policy;
-			t->saved_priority.prio = current->normal_prio;
-			if (target_node->min_priority < t->priority.prio ||
-			    (target_node->min_priority == t->priority.prio &&
-			     target_node->sched_policy == SCHED_FIFO)) {
-				/*
-				 * In case the minimum priority on the node is
-				 * higher (lower value), use that priority. If
-				 * the priority is the same, but the node uses
-				 * SCHED_FIFO, prefer SCHED_FIFO, since it can
-				 * run unbounded, unlike SCHED_RR.
-				 */
-				prio.sched_policy = target_node->sched_policy;
-				prio.prio = target_node->min_priority;
-			}
-			binder_set_priority(current, prio);
+			node_prio.sched_policy = target_node->sched_policy;
+			node_prio.prio = target_node->min_priority;
+			binder_transaction_priority(current, t, node_prio);
 			cmd = BR_TRANSACTION;
 		} else {
 			tr.target.ptr = 0;
@@ -3257,6 +3283,8 @@ static struct binder_thread *binder_get_thread(struct binder_proc *proc)
 		binder_stats_created(BINDER_STAT_THREAD);
 		thread->proc = proc;
 		thread->pid = current->pid;
+		get_task_struct(current);
+		thread->task = current;
 		init_waitqueue_head(&thread->wait);
 		INIT_LIST_HEAD(&thread->todo);
 		rb_link_node(&thread->rb_node, parent, p);
@@ -3304,6 +3332,7 @@ static int binder_free_thread(struct binder_proc *proc,
 	if (send_reply)
 		binder_send_failed_reply(send_reply, BR_DEAD_REPLY);
 	binder_release_work(&thread->todo);
+	put_task_struct(thread->task);
 	kfree(thread);
 	binder_stats_deleted(BINDER_STAT_THREAD);
 	return active_transactions;
