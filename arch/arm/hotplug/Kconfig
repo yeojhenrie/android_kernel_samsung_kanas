@@ -1,3 +1,6 @@
 menu "Generic ARM Soc Hotplug drivers"
 
+# Alucard hotplug
+source "arch/arm/hotplug/alucard/Kconfig"
+
 endmenu
