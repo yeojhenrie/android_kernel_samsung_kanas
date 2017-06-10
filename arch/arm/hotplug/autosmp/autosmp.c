@@ -28,6 +28,10 @@
 #include <linux/cpumask.h>
 #include <linux/hrtimer.h>
 
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+#include <linux/hotplugger.h>
+#endif
+
 #define DEBUG 0
 
 #define ASMP_TAG "AutoSMP: "
@@ -40,6 +44,10 @@ struct asmp_cpudata_t {
 static struct delayed_work asmp_work;
 static struct workqueue_struct *asmp_workq;
 static DEFINE_PER_CPU(struct asmp_cpudata_t, asmp_cpudata);
+
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+static struct hotplugger_driver hotplugger_handle;
+#endif
 
 static struct asmp_param_struct {
 	unsigned int delay;
@@ -132,15 +140,16 @@ static void __cpuinit asmp_work_fn(struct work_struct *work) {
 static void asmp_early_suspend(struct early_suspend *h) {
 	unsigned int cpu;
 
-	/* unplug online cpu cores */
-	if (asmp_param.scroff_single_core)
-		for_each_present_cpu(cpu)
-			if (cpu && cpu_online(cpu))
-				cpu_down(cpu);
+	if (enabled) {
+		/* unplug online cpu cores */
+		if (asmp_param.scroff_single_core)
+			for_each_present_cpu(cpu)
+				if (cpu && cpu_online(cpu))
+					cpu_down(cpu);
 
-	/* suspend main work thread */
-	if (enabled)
+		/* suspend main work thread */
 		cancel_delayed_work_sync(&asmp_work);
+	}
 
 	pr_info(ASMP_TAG"suspended\n");
 }
@@ -148,18 +157,19 @@ static void asmp_early_suspend(struct early_suspend *h) {
 static void __cpuinit asmp_late_resume(struct early_suspend *h) {
 	unsigned int cpu;
 
-	/* hotplug offline cpu cores */
-	if (asmp_param.scroff_single_core)
-		for_each_present_cpu(cpu) {
-			if (num_online_cpus() >= asmp_param.max_cpus)
-				break;
-			if (!cpu_online(cpu))
-				cpu_up(cpu);
-		}
-	/* resume main work thread */
-	if (enabled)
+	if (enabled) {
+		/* hotplug offline cpu cores */
+		if (asmp_param.scroff_single_core)
+			for_each_present_cpu(cpu) {
+				if (num_online_cpus() >= asmp_param.max_cpus)
+					break;
+				if (!cpu_online(cpu))
+					cpu_up(cpu);
+			}
+		/* resume main work thread */
 		queue_delayed_work(asmp_workq, &asmp_work,
 				msecs_to_jiffies(asmp_param.delay));
+	}
 
 	pr_info(ASMP_TAG"resumed\n");
 }
@@ -175,7 +185,12 @@ static int __cpuinit set_enabled(const char *val, const struct kernel_param *kp)
 	unsigned int cpu;
 
 	ret = param_set_bool(val, kp);
+
 	if (enabled) {
+
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+		hotplugger_disable_conflicts(&hotplugger_handle);
+#endif
 		queue_delayed_work(asmp_workq, &asmp_work,
 				msecs_to_jiffies(asmp_param.delay));
 		pr_info(ASMP_TAG"enabled\n");
@@ -287,12 +302,57 @@ static struct attribute_group asmp_stats_attr_group = {
 	.attrs = asmp_stats_attributes,
 	.name = "stats",
 };
+
 #endif
+
+
 /****************************** SYSFS END ******************************/
+
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+static int toggle_enabled(bool state) {
+	unsigned int cpu;
+
+	if (state && enabled != state)
+		hotplugger_disable_conflicts(&hotplugger_handle);
+
+	enabled = state;
+	if (state) {
+		queue_delayed_work(asmp_workq, &asmp_work,
+				msecs_to_jiffies(asmp_param.delay));
+		pr_info(ASMP_TAG"enabled\n");
+	} else {
+		cancel_delayed_work_sync(&asmp_work);
+		for_each_present_cpu(cpu) {
+			if (num_online_cpus() >= nr_cpu_ids)
+				break;
+			if (!cpu_online(cpu))
+				cpu_up(cpu);
+		}
+		pr_info(ASMP_TAG"disabled\n");
+	}
+	enabled = state; /* Yes, duplication */
+
+	return 0;
+}
+
+is_enabled_func(enabled);
+
+static struct hotplugger_driver hotplugger_handle = {
+	.name = "autosmp",
+	.change_state = &toggle_enabled,
+	.is_enabled = &is_enabled,
+};
+#endif
 
 static int __init asmp_init(void) {
 	unsigned int cpu;
 	int rc;
+
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+	hotplugger_register_driver(&hotplugger_handle);
+	if (is_enabled())
+		hotplugger_disable_conflicts(&hotplugger_handle);
+#endif
 
 	asmp_param.max_cpus = nr_cpu_ids;
 	for_each_possible_cpu(cpu)
