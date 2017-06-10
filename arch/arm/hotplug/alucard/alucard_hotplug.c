@@ -22,6 +22,11 @@
 #include <linux/mutex.h>
 #include <linux/module.h>
 #include <linux/slab.h>
+
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+#include <linux/hotplugger.h>
+#endif
+
 /*#ifndef CONFIG_CPU_EXYNOS4210
 #include "acpuclock.h"
 #endif*/
@@ -32,6 +37,10 @@ static struct mutex timer_mutex;
 static struct delayed_work alucard_hotplug_work;
 static struct work_struct alucard_hotplug_offline_work;
 static struct work_struct alucard_hotplug_online_work;
+
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+static struct hotplugger_driver hotplugger_handler;
+#endif
 
 struct hotplug_cpuinfo {
 	cputime64_t prev_cpu_wall;
@@ -319,13 +328,16 @@ define_one_global_rw(hotplug_rq_3_1);
 define_one_global_rw(hotplug_rq_4_0);
 #endif
 
-static void __ref cpus_hotplugging(bool state) {
+static int __ref cpus_hotplugging(bool state) {
 	unsigned int cpu=0;
 	int delay = 0;
 
 	mutex_lock(&timer_mutex);
 
 	if (state) {
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+		hotplugger_disable_conflicts(&hotplugger_handler);
+#endif
 		start_rq_work();
 		for_each_possible_cpu(cpu) {
 			per_cpu(od_hotplug_cpuinfo, cpu).prev_cpu_idle = get_cpu_idle_time_us(cpu, NULL);
@@ -349,6 +361,10 @@ static void __ref cpus_hotplugging(bool state) {
 	}
 
 	mutex_unlock(&timer_mutex);
+
+	atomic_set(&hotplug_tuners_ins.hotplug_enable, state);
+
+	return 0;
 }
 
 /**
@@ -434,8 +450,6 @@ static ssize_t store_hotplug_enable(struct kobject *a, struct attribute *b,
 		cpus_hotplugging(true);
 	else
 		cpus_hotplugging(false);
-
-	atomic_set(&hotplug_tuners_ins.hotplug_enable, input);
 
 	return count;
 }
@@ -699,12 +713,29 @@ static void hotplug_work_fn(struct work_struct *work)
 	mutex_unlock(&timer_mutex);
 }
 
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+static bool is_enabled (void)
+{
+	return (atomic_read(&hotplug_tuners_ins.hotplug_enable) > 0 ? true : false);
+}
+
+static struct hotplugger_driver hotplugger_handler = {
+	.name="alucard_hotplug",
+	.change_state=&cpus_hotplugging,
+	.is_enabled=&is_enabled,
+};
+#endif
+
 int __init alucard_hotplug_init(void)
 {
 	/* We want all CPUs to do sampling nearly on same jiffy */
 	int delay;
 	unsigned int cpu;
 	int ret;
+
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+	hotplugger_register_driver(&hotplugger_handler);
+#endif
 
 	ret = sysfs_create_group(kernel_kobj, &alucard_hotplug_attr_group);
 	if (ret) {
@@ -718,6 +749,9 @@ int __init alucard_hotplug_init(void)
 	}
 
 	if (atomic_read(&hotplug_tuners_ins.hotplug_enable) > 0) {
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+		hotplugger_disable_conflicts(&hotplugger_handler);
+#endif
 		start_rq_work();
 	}
 
@@ -747,6 +781,9 @@ int __init alucard_hotplug_init(void)
 
 static void __exit alucard_hotplug_exit(void)
 {
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+	hotplugger_unregister_driver(&hotplugger_handler);
+#endif
 	cancel_delayed_work_sync(&alucard_hotplug_work);
 	cancel_work_sync(&alucard_hotplug_online_work);
 	cancel_work_sync(&alucard_hotplug_offline_work);
