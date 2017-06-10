@@ -31,6 +31,11 @@
 #include <linux/earlysuspend.h>
 #endif
 
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+#include <linux/moduleparam.h>
+#include <linux/hotplugger.h>
+#endif
+
 //#define DEBUG_INTELLI_PLUG
 #undef DEBUG_INTELLI_PLUG
 
@@ -52,9 +57,42 @@ static struct delayed_work intelli_plug_boost;
 
 static struct workqueue_struct *intelliplug_wq;
 static struct workqueue_struct *intelliplug_boost_wq;
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+static struct hotplugger_driver intelli_plug_hotplug_handler;
+#endif
 
 static unsigned int intelli_plug_active = 0;
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+is_enabled_func(intelli_plug_active);
+static int change_state(bool state) {
+	if (state && intelli_plug_active == false) {
+		hotplugger_disable_conflicts(&intelli_plug_hotplug_handler);
+	}
+	intelli_plug_active = state;
+        return 0;
+}
+
+static int param_set_intelli_plug_active(const char *val, const struct kernel_param *kp) {
+	unsigned int old_val = intelli_plug_active;
+	int ret;
+
+	ret = param_set_uint(val, kp);
+	if (intelli_plug_active == true && old_val == false) {
+		hotplugger_disable_conflicts(&intelli_plug_hotplug_handler);
+	}
+
+	return ret;
+}
+
+static struct kernel_param_ops param_ops_intelli_plug_active = {
+	.set = param_set_intelli_plug_active,
+	.get = param_get_uint,
+};
+
+module_param_cb(intelli_plug_active, &param_ops_intelli_plug_active, &intelli_plug_active, 0644);
+#else
 module_param(intelli_plug_active, uint, 0664);
+#endif
 
 static unsigned int touch_boost_active = 1;
 module_param(touch_boost_active, uint, 0664);
@@ -590,6 +628,14 @@ static struct input_handler intelli_plug_input_handler = {
 	.id_table       = intelli_plug_ids,
 };
 
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+static struct hotplugger_driver intelli_plug_hotplug_handler = {
+	.name = "intelli_plug",
+	.change_state = &change_state,
+	.is_enabled = &is_enabled,
+};
+#endif
+
 int __init intelli_plug_init(void)
 {
 	int rc;
@@ -597,7 +643,6 @@ int __init intelli_plug_init(void)
 	struct cpufreq_policy *policy;
 	struct ip_cpu_info *l_ip_info;
 #endif
-
 	nr_possible_cores = num_possible_cpus();
 
 	pr_info("intelli_plug: version %d.%d by faux123\n",
@@ -625,6 +670,11 @@ int __init intelli_plug_init(void)
 #endif
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	register_early_suspend(&intelli_plug_early_suspend_driver);
+#endif
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+	hotplugger_register_driver(&intelli_plug_hotplug_handler);
+	if (is_enabled())
+		hotplugger_disable_conflicts(&intelli_plug_hotplug_handler);
 #endif
 	intelliplug_wq = alloc_workqueue("intelliplug",
 				WQ_HIGHPRI | WQ_UNBOUND, 1);
