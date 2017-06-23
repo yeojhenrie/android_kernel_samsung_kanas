@@ -287,6 +287,7 @@ struct binder_node {
 	unsigned pending_weak_ref:1;
 	unsigned has_async_transaction:1;
 	unsigned sched_policy:2;
+	unsigned inherit_rt:1;
 	unsigned accept_fds:1;
 	unsigned min_priority:8;
 	struct list_head async_todo;
@@ -656,7 +657,8 @@ static void binder_set_priority(struct task_struct *task,
 
 static void binder_transaction_priority(struct task_struct *task,
 					struct binder_transaction *t,
-					struct binder_priority node_prio)
+					struct binder_priority node_prio,
+					bool inherit_rt)
 {
 	struct binder_priority desired_prio;
 
@@ -667,8 +669,13 @@ static void binder_transaction_priority(struct task_struct *task,
 	t->saved_priority.sched_policy = task->policy;
 	t->saved_priority.prio = task->normal_prio;
 
-	desired_prio.prio = t->priority.prio;
-	desired_prio.sched_policy = t->priority.sched_policy;
+	if (!inherit_rt && is_rt_policy(desired_prio.sched_policy)) {
+		desired_prio.prio = NICE_TO_PRIO(0);
+		desired_prio.sched_policy = SCHED_NORMAL;
+	} else {
+		desired_prio.prio = t->priority.prio;
+		desired_prio.sched_policy = t->priority.sched_policy;
+	}
 
 	if (node_prio.prio < t->priority.prio ||
 	    (node_prio.prio == t->priority.prio &&
@@ -1795,6 +1802,7 @@ static int binder_translate_binder(struct flat_binder_object *fp,
 			FLAT_BINDER_FLAG_SCHED_POLICY_SHIFT;
 		node->min_priority = to_kernel_prio(node->sched_policy, priority);
 		node->accept_fds = !!(fp->flags & FLAT_BINDER_FLAG_ACCEPTS_FDS);
+		node->inherit_rt = !!(fp->flags & FLAT_BINDER_FLAG_INHERIT_RT);
 	}
 	if (fp->cookie != node->cookie) {
 		binder_user_error("%d:%d sending u%016llx node %d, cookie mismatch %016llx != %016llx\n",
@@ -2417,7 +2425,8 @@ static void binder_transaction(struct binder_proc *proc,
 		thread->transaction_stack = t;
 		node_prio.prio = t->buffer->target_node->min_priority;
 		node_prio.sched_policy = t->buffer->target_node->sched_policy;
-		binder_transaction_priority(target_thread->task, t, node_prio);
+		binder_transaction_priority(target_thread->task, t, node_prio,
+		                            t->buffer->target_node->inherit_rt);
 	} else {
 		BUG_ON(target_node == NULL);
 		BUG_ON(t->buffer->async_transaction != 1);
@@ -3128,7 +3137,8 @@ retry:
 			tr.cookie =  target_node->cookie;
 			node_prio.sched_policy = target_node->sched_policy;
 			node_prio.prio = target_node->min_priority;
-			binder_transaction_priority(current, t, node_prio);
+			binder_transaction_priority(current, t, node_prio,
+						    target_node->inherit_rt);
 			cmd = BR_TRANSACTION;
 		} else {
 			tr.target.ptr = 0;
