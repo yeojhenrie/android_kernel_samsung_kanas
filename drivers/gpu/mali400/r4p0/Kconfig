@@ -1,9 +1,20 @@
-config MALI_PLATFORM_SCX15
-	bool "Enable Mali support for SCX15 platform"
+choice
 	depends on MALI400
-        default y
-	---help---
-	  This enables Mali support for SCX15 platform.
+	prompt "Select MALI PLATFORM"
+	default MALI_PLATFORM_SC8830
+	config MALI_PLATFORM_SCX15
+		bool "SCX15"
+		depends on MALI400
+		help
+		This enables Mali support for SCX15 platform.
+
+	config MALI_PLATFORM_SC8830
+		bool "SC8830"
+		depends on MALI400
+		help
+		This enables Mali support for SC8830 platform.
+
+endchoice
 
 #config MALI400
 #	tristate "Mali-300/400/450 support"
@@ -39,6 +50,7 @@ config MALI400_INTERNAL_PROFILING
 	default n
 	---help---
 	  This enables the internal legacy Mali profiling API.
+
 
 config MALI400_UMP
 	bool "Enable UMP support"

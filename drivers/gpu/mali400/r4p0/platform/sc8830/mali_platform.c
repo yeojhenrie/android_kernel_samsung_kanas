@@ -35,11 +35,14 @@
 #include "mali_kernel_common.h"
 #include "base.h"
 
+#warning "Caveat Emptor: This needs more testing"
+#warning "Using this means you've acknowledged that using this sc8830 modified platform code instead of the scx15 is experimental and might lead disasterous/disadvantageous consequences or might just give you a better service with no additional cost."
+
 #define GPU_GLITCH_FREE_DFS	0
 #define GPU_FIX_312MHZ	0
 
 #define GPU_MIN_DIVISION	1
-#define GPU_MAX_DIVISION	3
+#define GPU_MAX_DIVISION	4
 
 #define GPU_SELECT0_VAL		0
 #define GPU_SELECT0_MAX		208000
@@ -431,34 +434,17 @@ void mali_platform_utilization(struct mali_gpu_utilization_data *data)
 			gpu_level=1;
 			break;
 		case 2:
-			gpu_max_freq=GPU_SELECT1_MAX;
-#if GPU_FIX_312MHZ
-			mali_get_freq_select(gpufreq_max_limit,&mali_freq_select,GPU_SELECT3_VAL);
-#else
-			mali_get_freq_select(gpufreq_max_limit,&mali_freq_select,GPU_SELECT1_VAL);
-#endif
-			if(GPU_SELECT3_VAL==mali_freq_select)
-			{
-				gpu_max_freq=GPU_SELECT3_MAX;
-				min_div=GPU_MIN_DIVISION;
-				max_div=GPU_MIN_DIVISION;
-			}
-			else
-			{
-				gpu_max_freq=GPU_SELECT1_MAX;
-				mali_get_div(gpufreq_max_limit,&min_div,GPU_MIN_DIVISION);
-				mali_get_div(gpufreq_max_limit,&max_div,GPU_MIN_DIVISION);
-			}
 			gpu_level=1;
-			break;
-		case 0:
 		case 1:
+		case 0:
 		default:
-#if GPU_FIX_312MHZ
-			mali_get_freq_select(gpufreq_max_limit,&mali_freq_select,GPU_SELECT3_VAL);
-#else
-			mali_get_freq_select(gpufreq_max_limit,&mali_freq_select,GPU_SELECT1_VAL);
-#endif
+			// if the loading ratio is greater then 90%, switch the clock to the maximum
+			if(utilization >= (256*9/10)) {
+				mali_get_freq_select(gpufreq_max_limit,&mali_freq_select,GPU_SELECT3_VAL);
+			} else {
+				mali_get_freq_select(gpufreq_max_limit,&mali_freq_select,GPU_SELECT1_VAL);
+			}
+
 			//if gpu frquency select 312MHz, DFS will be disabled
 			//if gpu frquency select 256MHz, DFS will be enabled
 			if(GPU_SELECT3_VAL==mali_freq_select)
