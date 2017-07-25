@@ -1265,6 +1265,41 @@ static void __exit zram_exit(void)
 	destroy_devices(num_devices);
 }
 
+ssize_t zram_mem_free_percent(void)
+{
+	unsigned long mem_used_pages = 0;
+	int i = 0;
+	struct zram *zram = NULL;
+	struct zram_meta *meta = NULL;
+    static uint32_t total_mem_usage_percent = 30;
+	unsigned long total_zram_pages = totalram_pages*total_mem_usage_percent/100;
+
+	for (i = 0; i < num_devices; i++) {
+
+		zram = &zram_devices[i];
+		if(!zram || !init_done(zram) || !zram->disk) {
+			continue;
+		}
+
+		down_read(&zram->init_lock);
+
+		meta = zram->meta;
+		if (meta && meta->mem_pool) {
+			mem_used_pages += zs_get_total_pages(meta->mem_pool);
+		}
+
+		up_read(&zram->init_lock);
+	}
+
+	pr_debug(
+	   "ZRAM:totalram_pages:%lu, total_zram_pages:%lu, mem_used_pages:%lu\r\n",
+		totalram_pages, total_zram_pages,mem_used_pages);
+
+	return (mem_used_pages >= total_zram_pages) ? 0 :
+			((total_zram_pages - mem_used_pages)*100/total_zram_pages);
+
+}
+
 module_init(zram_init);
 module_exit(zram_exit);
 
