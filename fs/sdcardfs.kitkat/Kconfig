@@ -1,0 +1,26 @@
+config SDCARD_FS_KK
+	bool "sdcard file system for android kitkat"
+	depends on !SDCARD_FS
+	default y
+	help
+	  Sdcardfs is based on Wrapfs file system.
+	  This version is for kitkat based samsung phones as
+	  the newer mainline sdcardfs is created for android versions
+	  6.0 and above and thus is not compatible.
+
+	  Choose this when in doubt.
+
+if SDCARD_FS_KK
+config SDCARD_FS_KK_FADV_NOACTIVE
+	bool "sdcardfs fadvise noactive support"
+	depends on FADV_NOACTIVE
+	default y
+	help
+	  Sdcardfs supports fadvise noactive mode.
+
+config SDCARD_FS_KK_CI_SEARCH
+	bool "sdcardfs case-insensitive search support"
+	depends on SDCARD_FS_KK
+	default y
+
+endif
