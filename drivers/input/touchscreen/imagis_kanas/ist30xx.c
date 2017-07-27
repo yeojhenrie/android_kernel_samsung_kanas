@@ -49,6 +49,7 @@ extern int sec_fac_cmd_init(struct ist30xx_data *data);
 extern int _store_cpu_num_min_limit(unsigned int input);
 struct cpufreq_limit_handle *min_handle = NULL;
 static const unsigned long touch_cpufreq_lock = 1200000;
+static unsigned int touch_booster_finger_cnt = 0;
 #endif
 
 #if IST30XX_USE_KEY
@@ -379,9 +380,6 @@ void print_tsp_event(finger_info *finger)
 {
 	int idx = finger->bit_field.id - 1;
 	bool press;
-#if TOUCH_BOOSTER
-	static finger_cnt = 0;
-#endif
 
 #if IST30XX_EXTEND_COORD
 	press = PRESSED_FINGER(ts_data->t_status, finger->bit_field.id);
@@ -395,7 +393,7 @@ void print_tsp_event(finger_info *finger)
 	if (press) {
 		if (tsp_touched[idx] == false) { // touch down
 #if TOUCH_BOOSTER
-			//if(!finger_cnt)
+			//if(!touch_booster_finger_cnt)
 			{
 				if(!min_handle)
 				{
@@ -409,7 +407,7 @@ void print_tsp_event(finger_info *finger)
 					tsp_info("cpu freq on\n");
 				}
 			}
-			finger_cnt ++;
+			touch_booster_finger_cnt ++;
 #endif
 #if !defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
 			tsp_info("%s%d (%d, %d)\n",
@@ -439,12 +437,13 @@ void print_tsp_event(finger_info *finger)
 #endif
 			tsp_touched[idx] = false;
 #if TOUCH_BOOSTER
-			finger_cnt --;
-			if(!finger_cnt)
+			touch_booster_finger_cnt --;
+			if(touch_booster_finger_cnt <= 0)
 			{
 			//printk(KERN_ERR "[TOUCH_BOOSTER]%s %d\n",__func__,__LINE__);
 				cpufreq_limit_put(min_handle);
 				min_handle = NULL;
+				touch_booster_finger_cnt = 0;
 				_store_cpu_num_min_limit(1);
 				tsp_info("cpu freq off\n");
 			}
@@ -980,6 +979,7 @@ static void ist30xx_early_suspend(struct early_suspend *h)
 		}
 		
 		min_handle = NULL;
+		touch_booster_finger_cnt = 0;
 		tsp_info("cpu freq off\n");
 	}
 #endif
@@ -1013,6 +1013,7 @@ static int ist30xx_suspend(struct device *dev)
 		}
 		
 		min_handle = NULL;
+		touch_booster_finger_cnt = 0;
 		tsp_info("cpu freq off\n");
 	}
 #endif
@@ -1112,6 +1113,18 @@ static void reset_work_func(struct work_struct *work)
 		ist30xx_start(ts_data);
 
 		ist30xx_enable_irq(ts_data);
+
+		// TOUCH BOSTER FIX AT RESET #FIXME
+		{
+		cpufreq_limit_put(min_handle);
+		_store_cpu_num_min_limit(1);
+
+		tsp_info("cpu freq off\n");
+
+		min_handle = NULL;
+		touch_booster_finger_cnt = 0;
+		}
+
 		mutex_unlock(&ist30xx_mutex);
 	}
 }
