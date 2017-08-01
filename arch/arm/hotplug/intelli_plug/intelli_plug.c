@@ -36,6 +36,11 @@
 #include <linux/hotplugger.h>
 #endif
 
+#ifdef CONFIG_CPU_FREQ_LIMIT
+#include <linux/cpufreq_limit.h>
+struct cpufreq_limit_handle *screen_off_limit_handle = NULL;
+#endif
+
 //#define DEBUG_INTELLI_PLUG
 #undef DEBUG_INTELLI_PLUG
 
@@ -384,6 +389,37 @@ static void screen_off_limit(bool on)
 	if (screen_off_max == UINT_MAX)
 		return;
 
+#ifdef CONFIG_CPU_FREQ_LIMIT
+	if (on) {
+		/* limit has been already set, so exit */ 
+		if (screen_off_limit_handle)
+			return;
+
+		screen_off_limit_handle = cpufreq_limit_max_freq(screen_off_max, "intelliplug_scr_lmt");
+		if (IS_ERR(screen_off_limit_handle)) {
+			pr_info("cpulimit failed to acquire handle\n");
+			screen_off_limit_handle = NULL;
+			return;
+		}
+#ifdef DEBUG_INTELLI_PLUG
+		pr_info("cpulimit max is (on): %u %u\n",
+			policy->cpuinfo.max_freq, l_ip_info->sys_max);
+#endif
+	} else {
+		/* limit has NOT been set, so exit */ 
+		if (!screen_off_limit_handle)
+			return;
+
+		if (cpufreq_limit_put(screen_off_limit_handle) != 0)
+			pr_info("cpulimit failed to release invalid handle\n");
+
+		screen_off_limit_handle = NULL;
+#ifdef DEBUG_INTELLI_PLUG
+		pr_info("cpulimit max is (off): %u %u\n",
+			policy->cpuinfo.max_freq, l_ip_info->sys_max);
+#endif
+	}
+#else
 	for_each_online_cpu(cpu) {
 		l_ip_info = &per_cpu(ip_info, cpu);
 		policy = cpufreq_cpu_get(0);
@@ -411,6 +447,7 @@ static void screen_off_limit(bool on)
 		}
 		cpufreq_update_policy(cpu);
 	}
+#endif
 }
 
 void __ref intelli_plug_perf_boost(bool on)
