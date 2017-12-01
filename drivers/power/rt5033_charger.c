@@ -17,7 +17,9 @@
 #include <linux/leds/rt5033_fled.h>
 #include <linux/leds/rtfled.h>
 #endif /* CONFIG_FLED_RT5033 */
-
+#ifdef CONFIG_THUNDERCHARGE_CONTROL
+#include "thundercharge_control.h"
+#endif
 #define SINKING_PERIOD  2000
 
 #define ENABLE_MIVR 1
@@ -434,6 +436,17 @@ static void rt5033_configure_charger(struct rt5033_charger_data *charger)
 #if ENABLE_MIVR
 		rt5033_set_mivr_level(charger);
 #endif /*DISABLE_MIVR*/
+
+#ifdef CONFIG_THUNDERCHARGE_CONTROL
+        if (mswitch) {
+        pr_info("Using custom current of %d",custom_current);
+		/* Input current limit */
+		pr_info("%s : input current (%dmA)\n",
+				__func__, custom_current);
+
+		rt5033_set_input_current_limit(charger,custom_current);
+        } else {
+#endif
 		/* Input current limit */
 		pr_info("%s : input current (%dmA)\n",
 				__func__, charger->pdata->charging_current
@@ -442,6 +455,9 @@ static void rt5033_configure_charger(struct rt5033_charger_data *charger)
 		rt5033_set_input_current_limit(charger,
 				charger->pdata->charging_current
 				[charger->cable_type].input_current_limit);
+#ifdef CONFIG_THUNDERCHARGE_CONTROL
+		}
+#endif
 
 		/* Float voltage */
 		pr_info("%s : float voltage (%dmV)\n",
