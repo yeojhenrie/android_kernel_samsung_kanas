@@ -421,6 +421,9 @@ static void rt5033_configure_charger(struct rt5033_charger_data *charger)
 
 	int eoc;
 	int chg_current;
+#ifdef CONFIG_THUNDERCHARGE_CONTROL
+	int chg_current_limit;
+#endif
 
 	pr_info("%s : Set config charging\n", __func__);
 	if (charger->charging_current < 0) {
@@ -438,15 +441,26 @@ static void rt5033_configure_charger(struct rt5033_charger_data *charger)
 #endif /*DISABLE_MIVR*/
 
 #ifdef CONFIG_THUNDERCHARGE_CONTROL
-        if (mswitch) {
-        pr_info("Using custom current of %d",custom_current);
+		if (mswitch && charger->cable_type ==
+				POWER_SUPPLY_TYPE_MAINS) {
+			chg_current_limit = custom_ac_current;
+			pr_info("%s : thundercharge : Using custom AC current of %d",
+					__func__, chg_current_limit);
+		} else if (mswitch && charger->cable_type ==
+				POWER_SUPPLY_TYPE_BATTERY) {
+			chg_current_limit = custom_usb_current;
+			pr_info("%s : thundercharge : Using custom USB current of %d",
+					__func__, chg_current_limit);
+		} else {
+			chg_current_limit = charger->pdata->charging_current
+				[charger->cable_type].input_current_limit;
+		}
 		/* Input current limit */
 		pr_info("%s : input current (%dmA)\n",
-				__func__, custom_current);
+				__func__, chg_current_limit);
 
-		rt5033_set_input_current_limit(charger,custom_current);
-        } else {
-#endif
+		rt5033_set_input_current_limit(charger,chg_current_limit);
+#else
 		/* Input current limit */
 		pr_info("%s : input current (%dmA)\n",
 				__func__, charger->pdata->charging_current
@@ -455,8 +469,6 @@ static void rt5033_configure_charger(struct rt5033_charger_data *charger)
 		rt5033_set_input_current_limit(charger,
 				charger->pdata->charging_current
 				[charger->cable_type].input_current_limit);
-#ifdef CONFIG_THUNDERCHARGE_CONTROL
-		}
 #endif
 
 		/* Float voltage */
@@ -700,14 +712,51 @@ static int sec_chg_set_property(struct power_supply *psy,
 					if (val->intval == 10) {
 						input_current = 100;
 						chg_current = 700;
+#ifdef CONFIG_THUNDERCHARGE_CONTROL
+						if (mswitch)
+							pr_info("%s : thundercharge : Resetting custom values."
+								"Reason: Will not override" 
+								"manufacturer's decision to decrease input current",
+								__func__);
+#endif
 					} else if (val->intval == 70) {
 						input_current = 500;
 						chg_current = 700;
+#ifdef CONFIG_THUNDERCHARGE_CONTROL
+						if (mswitch)
+							pr_info("%s : thundercharge : Resetting custom values."
+								"Reason: Will not override" 
+								"manufacturer's decision to decrease input current",
+								__func__);
+#endif
 					} else {
 						input_current = charger->pdata->charging_current
 							[charger->cable_type].input_current_limit;
 						chg_current = charger->pdata->charging_current
 							[charger->cable_type].fast_charging_current;
+#ifdef CONFIG_THUNDERCHARGE_CONTROL
+						if (mswitch && charger->cable_type ==
+								POWER_SUPPLY_TYPE_MAINS) {
+							input_current = custom_ac_current;
+							if (chg_current < input_current) {
+								chg_current = input_current;
+								pr_info("%s : thundercharge : Warning, overriding fast charge current",
+									__func__);
+							}
+							pr_info("%s : thundercharge : Using custom AC current of %d",
+									__func__, input_current);
+						} else if (mswitch && charger->cable_type ==
+								POWER_SUPPLY_TYPE_BATTERY) {
+							input_current = custom_usb_current;
+							if (chg_current < input_current) {
+								chg_current = input_current;
+								pr_info("%s : thundercharge : Warning, overriding fast charge current",
+									__func__);
+							}
+							pr_info("%s : thundercharge : Using custom USB current of %d",
+									__func__, input_current);
+						}
+#endif
 					}
 
 					eoc = rt5033_get_current_eoc_setting(charger);
