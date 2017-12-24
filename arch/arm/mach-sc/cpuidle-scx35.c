@@ -327,6 +327,14 @@ static inline void sc_fill_cstate(struct cpuidle_driver *drv, struct cpuidle_dev
 
 	sprintf(state->name, "C%d", idx + 1);
 	strncpy(state->desc, descr, CPUIDLE_DESC_LEN);
+	/*
+	Prevent checking defect fix by SRCN Ju Huaiwei(huaiwei.ju) Aug.27th.2014
+	http://10.252.250.112:7010	=> [CXX]Galaxy-Core-Prime IN INDIA OPEN
+	CID 28408 (#1 of 1): Buffer not null terminated (BUFFER_SIZE_WARNING)
+	1. buffer_size_warning: Calling strncpy with a maximum size argument of 32 bytes on destination
+	array state->desc of size 32 bytes might leave the destination string unterminated.
+	*/
+	state->desc[CPUIDLE_DESC_LEN-1] = '\0';
 	state->flags		= CPUIDLE_FLAG_TIME_VALID;
 	state->exit_latency	= cpuidle_params_table[idx].exit_latency;
 	/*TODO*/
