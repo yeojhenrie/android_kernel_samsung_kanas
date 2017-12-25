@@ -95,6 +95,19 @@ static ssize_t chgr_ver_show(struct kobject *kobj, struct kobj_attribute *attr, 
 	                    DRIVER_VERSION, DRIVER_SUBVER);
 }
 
+static ssize_t cust_current_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
+{
+	int newcurr;
+	sscanf(buf, "%d", &newcurr);
+	if(newcurr >= MIN_VBUS_CURRENT && newcurr <= MAX_VBUS_CURRENT) {
+		custom_usb_current = newcurr;
+        custom_ac_current = newcurr;
+    } else {
+		pr_info("%s: value beyond limit, ignoring\n", THUNDERCHARGE);
+    }
+	return count;
+}
+
 static struct kobj_attribute mswitch_attribute =
 	__ATTR(enabled,
 		0666,
@@ -112,6 +125,13 @@ static struct kobj_attribute cust_ac_current_attribute =
 		cust_ac_current_show,
 		cust_ac_current_store);
 
+/* For compatibility */
+static struct kobj_attribute cust_current_attribute =
+	__ATTR(custom_current,
+		0666,
+		cust_ac_current_show,
+		cust_current_store);
+
 static struct kobj_attribute cust_usb_current_attribute =
 	__ATTR(custom_usb_current,
 		0666,
@@ -121,6 +141,7 @@ static struct kobj_attribute cust_usb_current_attribute =
 static struct attribute *charger_control_attrs[] =
 	{
 		&cust_ac_current_attribute.attr,
+		&cust_current_attribute.attr,
 		&cust_usb_current_attribute.attr,
 		&mswitch_attribute.attr,
 		&chgr_ctrl_ver_attribute.attr,
