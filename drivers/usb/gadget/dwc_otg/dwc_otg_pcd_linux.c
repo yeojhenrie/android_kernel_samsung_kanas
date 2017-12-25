@@ -74,6 +74,10 @@
 #include <mach/usb.h>
 #include <mach/board.h>
 
+#ifdef CONFIG_FORCE_FAST_CHARGE
+#include <linux/fastchg.h>
+#endif
+
 #include "dwc_otg_driver.h"
 #include "dwc_otg_pcd_if.h"
 #include "dwc_otg_cil.h"
@@ -1105,6 +1109,13 @@ static void __udc_startup(void)
 
 	d = gadget_wrapper;
 
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	//if force_charge not disable, do nothing
+	if (force_fast_charge != FAST_CHARGE_DISABLED) {
+		pr_info("USB:startup udc:force fast charge is not disable\n");
+		return;
+	}
+#endif
 	pr_info("USB:startup udc\n");
 	if (!d->udc_startup) {
 		wake_lock(&usb_wake_lock);
@@ -1159,6 +1170,15 @@ void dwc_udc_startup(void)
 		pr_warning("usb cable is not connect\n");
 		return;
 	}
+
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	//if force_charge not disable, do nothing
+	if (force_fast_charge != FAST_CHARGE_DISABLED) {
+		pr_info("force fast charge is not disable\n");
+		return;
+	}
+#endif
+        
 	//udc not startup, startup udc and get a wacklock
 	mutex_lock(&udc_lock);
 	__udc_startup();
@@ -1252,7 +1272,7 @@ static void usb_detect_works(struct work_struct *work)
 	spin_unlock_irqrestore(&d->lock, flags);
 
 	mutex_lock(&udc_lock);
-	if (plug_in){
+	if (plug_in) {
 		pr_info("usb detect plug in,vbus pull up\n");
 		hotplug_callback(VBUS_PLUG_IN, 0);
 		if(get_usb_first_enable_store_flag()){
@@ -1359,7 +1379,12 @@ static void cable2pc_detect_works(struct work_struct *work)
 	}
 
 	mutex_lock(&udc_lock);
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	if ((force_fast_charge != FAST_CHARGE_DISABLED) ||
+		!usb_cable) {
+#else
 	if (!usb_cable) {
+#endif
 		pr_info("cable is ac adapter\n");
 		__udc_shutdown();
 	}

@@ -28,6 +28,9 @@
 #include <linux/platform_data/mv_usb.h>
 #include <mach/gpio-edge.h>
 #endif
+#ifdef CONFIG_FORCE_FAST_CHARGE
+#include <linux/fastchg.h>
+#endif
 #ifdef CONFIG_TOUCHSCREEN_IST3038
 #include "../input/touchscreen/imagis_kanas/ist30xx.h"
 #endif
@@ -466,6 +469,13 @@ static int rt8973_get_cable_type_by_id(rt8973_chip_t *chip)
 	if (cable_type == MUIC_RT8973_CABLE_TYPE_JIG_UART_OFF_WITH_VBUS)
 			cable_type = MUIC_RT8973_CABLE_TYPE_REGULAR_TA;
 
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	/* Redirect MUIC_RT8973_CABLE_TYPE_USB to MUIC_RT8973_CABLE_TYPE_ATT_TA */
+	if (force_fast_charge != FAST_CHARGE_DISABLED && 
+		cable_type == MUIC_RT8973_CABLE_TYPE_USB)
+			cable_type = MUIC_RT8973_CABLE_TYPE_ATT_TA;
+#endif
+
     return cable_type;
 }
 
@@ -476,6 +486,14 @@ static int rt8973_get_cable_type(rt8973_chip_t *chip)
 	if (chip->curr_status.ovp_status | chip->curr_status.ocp_status)
         return MUIC_RT8973_CABLE_TYPE_UNKNOWN;
 	ret = rt8973_get_cable_type_by_device_reg(chip);
+
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	/* Redirect MUIC_RT8973_CABLE_TYPE_USB to MUIC_RT8973_CABLE_TYPE_ATT_TA */
+	if (force_fast_charge != FAST_CHARGE_DISABLED && 
+		ret == MUIC_RT8973_CABLE_TYPE_USB)
+			ret = MUIC_RT8973_CABLE_TYPE_ATT_TA;
+#endif
+
 	if (ret >= 0)
 		return ret;
 	else
