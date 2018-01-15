@@ -1,4 +1,4 @@
-Naive cpu hotplugging modules interface
+Naive interface for cpu hotplugging modules
 By ME<enriquezmark36@gmail.com>
 
 Background and rationale:
@@ -18,11 +18,11 @@ struct hotplugger_driver {
 	struct list_head	list;
 };
 
-where DRIVER_NAME_LEN is a char array with length 32.
+where DRIVER_NAME_LEN is a char array with length of 32 bytes.
 
 change_state is a function pointer which this interface uses to activate
-or deactivate a module. Note that it doesn't unload the modules instead
-it only disables/enables them. Usually, change_state wraps to an
+or deactivate a module. Note that it doesn't unload the module instead
+it only disables/enables it. Usually, change_state wraps to an
 "enabled" variable plus some housekeeping if the module relies on
 threads or workqueues. This may return a non-zero value on error.
 
@@ -37,12 +37,12 @@ be used to determine which modules would be disabled when a module is being
 activated.
 
 By default, the hotplugger_disable_conflicts() function would disable
-every running modules. The whitelist would prevent a running module from being
-disabled.
+all running modules. The whitelist would then prevent a running module
+from being disabled.
 
-The whitelist contains the set of modules' names which will be not be disabled
-while all modules not included will be disabled upon the module activation.
-No racism intended.
+The whitelist contains the set of modules' names as string literals which
+will be not be disabled upon the module activation.
+No racism intended nor regex parser implemented.
 
 These lists should have NULL as its last element. This is a MUST.
 
@@ -54,6 +54,8 @@ but every running and registered module will be disabled just like the
 default behavior.
 
 Currently there's no easy way to whitelist a module to all other modules.
+It may be needed to either not register this module to this interface
+or add it to everyone's whitelists.
 
 --------------------
 Using the whitelist:
@@ -223,6 +225,12 @@ You could probably do it like this:
 ...code here...
 #endif
 
+or use the IS_ENABLED macro make it look like a C code
+
+if (IS_ENABLED(CONFIG_HOTPLUGGER_INTERFACE)) {
+...code here...
+}
+
 ------------
 Sysfs files:
 ------------
@@ -251,7 +259,7 @@ modules in one invocation.
 
 enabled shows whether the interface is enabled. You can only write
 0 or 1 as integers, not string or "1" or "0" -- quotation marks included.
-0 represents false while 1 represents true. Writing 0 to this file
+0 represents off while 1 represents on. Writing 0 to this file
 will disable most of the features of this interface. Writing 1 will
 undo it.
 
@@ -274,13 +282,14 @@ but you may not use these functions:
     int hotplugger_disable_conflicts(struct hotplugger_driver *driver);
     int hotplugger_enable_one(const char *name);
 
-As of now there's no way to toggle the state in the code.
+As of now, there's no way to toggle the state in the code unless by
+hacking.
 
 ---------------------------------------
 Lock ups and hangs and troubleshooting:
 ---------------------------------------
 Read up how to enable debugging in the kernel and
-define this in your .config file:
+add this in your .config file:
 CONFIG_HOTPLUGGER_INTERFACE_DEBUG=y
 
 About 80% of the time, the problem lies within your modules code
