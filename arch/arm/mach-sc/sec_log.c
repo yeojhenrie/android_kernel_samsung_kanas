@@ -59,6 +59,9 @@ static inline void sec_log_save_old(void)
 }
 #endif
 
+static unsigned size;
+static unsigned long base;
+
 extern void register_log_text_hook(void (*f)(char *text, size_t size),
 	char *buf, unsigned *position, size_t bufsize);
 
@@ -119,13 +122,13 @@ static int __init sec_log_setup(char *str)
 	if (reserve_bootmem(base, total_size_for_sec_log, BOOTMEM_EXCLUSIVE)) {
 		pr_err("%s: failed reserving size %lu + %lu "
 		       "at base 0x%lx\n",
-		       __func__, (unsigned long)(size >> 20),(unsigned long)
+		       __func__, (unsigned long)(size >> 20),
 					(total_size_for_sec_log - size), base);
 		goto out;
 	} else {
 		pr_err("%s: Success reserving size %ldMB + %lu "
 		       "at base 0x%lx\n",
-		       __func__, (unsigned long)(size >> 20),(unsigned long)
+		       __func__, (unsigned long)(size >> 20),
 					(total_size_for_sec_log - size), base);
 	}
 
@@ -151,8 +154,8 @@ static int __init sec_log_setup(char *str)
 	sec_log_buf = phys_to_virt(base) + size_struct_sec_log_buffer;
 	sec_log_size = size;
 
-	pr_info("%s: Addresses: struct sec_log_buffer:%p sec_log_buf:%p"
-		"sec_log_ptr:%p sec_log_mag:%p\n",
+	pr_info("%s: Addresses: struct sec_log_buffer:%x sec_log_buf:%x"
+		"sec_log_ptr:%x sec_log_mag:%x\n",
 		__func__, sec_log_buffer, sec_log_buf, sec_log_ptr,
 		sec_log_mag);
 
@@ -169,7 +172,7 @@ static int __init sec_log_setup(char *str)
 		if (*sec_log_ptr)
 			sec_log_save_old();
 		else
-			pr_err("%s: unlikely *sec_log_ptr is zero, skip sec_log_save_old\n", __func__);
+			pr_err("%s: unlikely *sec_log_ptr is zero, skip sec_log_save_old\n");
 	}
 
 	sec_log_buffer->sig = RAM_CONSOLE_SIG;

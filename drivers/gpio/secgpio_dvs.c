@@ -398,6 +398,8 @@ static int secgpio_dvs_probe(struct platform_device *pdev)
 	struct device *secgpio_dotest;
 	struct gpio_dvs *gdvs = dev_get_platdata(&pdev->dev);
 
+	unsigned char direction, level,driver_strength,pull;
+
 	pr_info("[secgpio_dvs] %s has been created!!!\n", __func__);
 
 	secgpio_dvs_class = class_create(THIS_MODULE, "secgpio_check");
@@ -470,9 +472,8 @@ static int __init secgpio_dvs_init(void)
 #endif 
 	ret = platform_driver_register(&secgpio_dvs);
 	pr_info("[secgpio_dvs] secgpio_dvs_init has been initialized!!!\n");
-#if 0
+
 fail_out:
-#endif
         if (ret)
                 pr_err(" (err = %d)!\n", ret);
         return ret;

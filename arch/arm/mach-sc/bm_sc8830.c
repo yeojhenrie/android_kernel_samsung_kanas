@@ -100,7 +100,7 @@ long long t_stamp;
 
 #endif
 
-#ifdef CONFIG_BUS_MONITOR_DEBUG
+#if CONFIG_BUS_MONITOR_DEBUG
 static void __sci_axi_bm_debug(void)
 {
 	u32 bm_index, reg_index, val;
@@ -108,7 +108,7 @@ static void __sci_axi_bm_debug(void)
 	pr_debug("REG_PUB_APB_BUSMON_CFG: 0x%08x\n", sci_glb_read(REG_PUB_APB_BUSMON_CFG, -1UL));
 	for (bm_index = AXI_BM0; bm_index <= AXI_BM9; bm_index++) {
 		for(reg_index=0; reg_index<=0x5c; reg_index+=0x4){
-			val = __raw_readl((void __iomem *)AXI_BM_INTC_REG(bm_index)+reg_index);
+			val = __raw_readl(AXI_BM_INTC_REG(bm_index)+reg_index);
 			if(val)
 				pr_debug("*** %s, chn:%d reg%x:0x%x ***\n",
 						__func__, bm_index, reg_index, val );
@@ -121,9 +121,9 @@ static inline void __sci_axi_bm_chn_en(int chn)
 {
 	u32 val;
 
-	val = __raw_readl((void __iomem *)AXI_BM_INTC_REG(chn));
+	val = __raw_readl(AXI_BM_INTC_REG(chn));
 	val |= (AXI_BM_EN);
-	__raw_writel(val, (void __iomem *)AXI_BM_INTC_REG(chn));
+	__raw_writel(val, AXI_BM_INTC_REG(chn));
 
 	return;
 }
@@ -133,9 +133,9 @@ static inline void __sci_axi_bm_chn_int_clr(int chn)
 {
 	u32 val;
 
-	val = __raw_readl((void __iomem *)AXI_BM_INTC_REG(chn));
+	val = __raw_readl(AXI_BM_INTC_REG(chn));
 	val |= (AXI_BM_INT_CLR);
-	__raw_writel(val, (void __iomem *)AXI_BM_INTC_REG(chn));
+	__raw_writel(val, AXI_BM_INTC_REG(chn));
 
 	return;
 
@@ -145,8 +145,8 @@ static inline u32 __sci_axi_bm_chn_cnt_bw(int chn)
 {
 	u32 rbw, wbw;
 
-	rbw = __raw_readl((void __iomem *)AXI_BM_RBW_IN_WIN_REG(chn));
-	wbw = __raw_readl((void __iomem *)AXI_BM_WBW_IN_WIN_REG(chn));
+	rbw = __raw_readl(AXI_BM_RBW_IN_WIN_REG(chn));
+	wbw = __raw_readl(AXI_BM_WBW_IN_WIN_REG(chn));
 	if(rbw || wbw)
 		pr_debug(" chn:%d, rbw:%u, wbw:%u \n", chn, rbw, wbw );
 
@@ -159,13 +159,13 @@ static void __sci_axi_bm_cnt_start(void)
 	u32 val;
 
 	for (bm_index = AXI_BM0; bm_index <= AXI_BM9; bm_index++) {
-		val = __raw_readl((void __iomem *)AXI_BM_INTC_REG(bm_index));
+		val = __raw_readl(AXI_BM_INTC_REG(bm_index));
 #ifdef DDR_MONITOR_LOG
 		val |= (AXI_BM_EN | AXI_BM_CNT_EN | AXI_BM_CNT_START | AXI_BM_INT_EN);
 #else
 		val |= (AXI_BM_EN | AXI_BM_CNT_EN | AXI_BM_CNT_START | AXI_BM_INT_CLR);
 #endif
-		__raw_writel(val, (void __iomem *)AXI_BM_INTC_REG(bm_index));
+		__raw_writel(val, AXI_BM_INTC_REG(bm_index));
 	}
 	return;
 }
@@ -176,9 +176,9 @@ static void __sci_axi_bm_cnt_stop(void)
 	u32 val;
 
 	for (bm_index = AXI_BM0; bm_index <= AXI_BM9; bm_index++) {
-		val = __raw_readl((void __iomem *)AXI_BM_INTC_REG(bm_index));
+		val = __raw_readl(AXI_BM_INTC_REG(bm_index));
 		val &= ~(AXI_BM_CNT_START);
-		__raw_writel(val, (void __iomem *)AXI_BM_INTC_REG(bm_index));
+		__raw_writel(val, AXI_BM_INTC_REG(bm_index));
 	}
 	return;
 }
@@ -199,14 +199,14 @@ static void __sci_axi_bm_cnt_clr(void)
 	u32 val;
 
 	for (bm_index = AXI_BM0; bm_index <= AXI_BM9; bm_index++) {
-		val = __raw_readl((void __iomem *)AXI_BM_INTC_REG(bm_index));
+		val = __raw_readl(AXI_BM_INTC_REG(bm_index));
 		val |= (AXI_BM_CNT_EN | AXI_BM_EN);
-		__raw_writel(val, (void __iomem *)AXI_BM_INTC_REG(bm_index));
+		__raw_writel(val, AXI_BM_INTC_REG(bm_index));
 		val &= ~(AXI_BM_CNT_START);
-		__raw_writel(val, (void __iomem *)AXI_BM_INTC_REG(bm_index));
+		__raw_writel(val, AXI_BM_INTC_REG(bm_index));
 		val |= (AXI_BM_CNT_CLR);
-		__raw_writel(val, (void __iomem *)AXI_BM_INTC_REG(bm_index));
-#ifdef CONFIG_BUS_MONITOR_DEBUG
+		__raw_writel(val, AXI_BM_INTC_REG(bm_index));
+#if CONFIG_BUS_MONITOR_DEBUG
 		pr_debug(" chn:%d, val:0x%x, reg:0x%x \n", bm_index, val, AXI_BM_INTC_REG(bm_index));
 		__sci_axi_bm_chn_cnt_bw(bm_index);
 #endif
@@ -220,7 +220,7 @@ static void __sci_axi_bm_init(void)
 
 	for (bm_index = AXI_BM0; bm_index <= AXI_BM9; bm_index++) {
 		for(reg_index=0; reg_index<=0x5c; reg_index+=0x4)
-			__raw_writel(0, (void __iomem *)AXI_BM_INTC_REG(bm_index)+reg_index);
+			__raw_writel(0, AXI_BM_INTC_REG(bm_index)+reg_index);
 	}
 
 }
@@ -309,7 +309,7 @@ unsigned int dmc_mon_cnt_bw(void)
 	for (chn = AXI_BM0; chn <= AXI_BM9; chn++) {
 		cnt += __sci_axi_bm_chn_cnt_bw(chn);
 	}
-#ifdef CONFIG_BUS_MONITOR_DEBUG
+#if CONFIG_BUS_MONITOR_DEBUG
 	__sci_axi_bm_debug( );
 	pr_debug(" %s done \n", __func__ );
 #endif
@@ -353,10 +353,7 @@ void dmc_mon_cnt_stop(void)
 }
 EXPORT_SYMBOL_GPL(dmc_mon_cnt_stop);
 
-#ifdef DDR_MONITOR_LOG
 static void __sci_axi_bm_set_winlen(void);
-#endif
-
 void dmc_mon_resume(void)
 {
 #ifdef DDR_MONITOR_LOG
@@ -389,13 +386,13 @@ static void __sci_axi_bm_set_winlen(void)
 	u32 axi_clk, win_len;
 
 	/*the win len is 10ms*/
-	axi_clk = __raw_readl((void __iomem *)REG_AON_APB_DPLL_CFG) & 0x7ff;
+	axi_clk = __raw_readl(REG_AON_APB_DPLL_CFG) & 0x7ff;
 	axi_clk = axi_clk << 2;
 	/*the win_len = (axk_clk / 1000) * 10 */
 	win_len = axi_clk * 10000;
 
 	for (bm_index = AXI_BM0; bm_index <= AXI_BM9; bm_index++) {
-		__raw_writel(win_len, (void __iomem *)AXI_BM_CNT_WIN_LEN_REG(bm_index));
+		__raw_writel(win_len, AXI_BM_CNT_WIN_LEN_REG(bm_index));
 	}
 }
 
@@ -421,16 +418,16 @@ static irqreturn_t __bm_isr(int irq_num, void *dev)
 	__sci_axi_bm_cnt_stop();
 
 	/*count stop time stamp */
-	bm_info[buf_write_index].t_stop = __raw_readl((void __iomem *)(SPRD_SYSCNT_BASE + 0xc));
+	bm_info[buf_write_index].t_stop = __raw_readl(SPRD_SYSCNT_BASE + 0xc);
 
 	for (bm_chn = 0; bm_chn < 10; bm_chn++) {
-		bm_info[buf_write_index].per_data[bm_chn][0] = __raw_readl((void __iomem *)AXI_BM_RTRANS_IN_WIN_REG(bm_chn));
-		bm_info[buf_write_index].per_data[bm_chn][1] = __raw_readl((void __iomem *)AXI_BM_RBW_IN_WIN_REG(bm_chn));
-		bm_info[buf_write_index].per_data[bm_chn][2] = __raw_readl((void __iomem *)AXI_BM_RLATENCY_IN_WIN_REG(bm_chn));
+		bm_info[buf_write_index].per_data[bm_chn][0] = __raw_readl(AXI_BM_RTRANS_IN_WIN_REG(bm_chn));
+		bm_info[buf_write_index].per_data[bm_chn][1] = __raw_readl(AXI_BM_RBW_IN_WIN_REG(bm_chn));
+		bm_info[buf_write_index].per_data[bm_chn][2] = __raw_readl(AXI_BM_RLATENCY_IN_WIN_REG(bm_chn));
 
-		bm_info[buf_write_index].per_data[bm_chn][3] = __raw_readl((void __iomem *)AXI_BM_WTRANS_IN_WIN_REG(bm_chn));
-		bm_info[buf_write_index].per_data[bm_chn][4] = __raw_readl((void __iomem *)AXI_BM_WBW_IN_WIN_REG(bm_chn));
-		bm_info[buf_write_index].per_data[bm_chn][5] = __raw_readl((void __iomem *)AXI_BM_WLATENCY_IN_WIN_REG(bm_chn));
+		bm_info[buf_write_index].per_data[bm_chn][3] = __raw_readl(AXI_BM_WTRANS_IN_WIN_REG(bm_chn));
+		bm_info[buf_write_index].per_data[bm_chn][4] = __raw_readl(AXI_BM_WBW_IN_WIN_REG(bm_chn));
+		bm_info[buf_write_index].per_data[bm_chn][5] = __raw_readl(AXI_BM_WLATENCY_IN_WIN_REG(bm_chn));
 
 		rwbw_cnt += bm_info[buf_write_index].per_data[bm_chn][1];
 		rwbw_cnt += bm_info[buf_write_index].per_data[bm_chn][4];
@@ -466,7 +463,7 @@ static irqreturn_t __bm_isr(int irq_num, void *dev)
 	__sci_axi_bm_set_winlen();
 
 	/*count start time stamp */
-	bm_info[buf_write_index].t_start = __raw_readl((void __iomem *)(SPRD_SYSCNT_BASE + 0xc));
+	bm_info[buf_write_index].t_start = __raw_readl(SPRD_SYSCNT_BASE + 0xc);
 
 	__sci_axi_bm_cnt_start();
 
@@ -544,9 +541,7 @@ static int bm_output_log(void *p)
 static int __init sci_bm_init(void)
 {
 	int bm_index;
-#ifdef DDR_MONITOR_LOG
 	int ret;
-#endif
 
 #ifdef DDR_MONITOR_LOG
 	struct task_struct *t;

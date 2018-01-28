@@ -116,7 +116,7 @@ static int read_write_pin_switch(int is_read, int v, struct sci_pin_switch *p)
 	if (v > mask)
 		printk("v:0x%x overflow bitwidth:%d, mask:0x%x it\n",
 		       v, p->bit_width, mask);
-	val = __raw_readl((void __iomem *)pin_ctl_reg);
+	val = __raw_readl(pin_ctl_reg);
 	if (is_read) {
 		val >>= shift;
 		val &= mask;
@@ -124,7 +124,7 @@ static int read_write_pin_switch(int is_read, int v, struct sci_pin_switch *p)
 	} else {
 		val &= ~(mask << shift);
 		val |= (v & mask) << shift;
-		__raw_writel(val, (void __iomem *)pin_ctl_reg);
+		__raw_writel(val, pin_ctl_reg);
 	}
 	return val;
 }
@@ -147,6 +147,7 @@ static ssize_t pin_switch_proc_write(struct file *file,
 				     const char __user * buffer,
 				     size_t count, loff_t * pos)
 {
+	char lbuf[32];
 	long val = 0;
 	int ret = 0;
 	struct sci_pin_switch *p =
@@ -191,7 +192,8 @@ static ssize_t pin_switch_dir_proc_write(struct file *file,
 					 const char __user * buffer,
 					 size_t count, loff_t * pos)
 {
-	long int val = 0;
+	char lbuf[32];
+	int val = 0;
 	int ret =0;
 	struct sci_pin_switch *p =
 	    (struct sci_pin_switch *)(PDE_DATA(file_inode(file)));

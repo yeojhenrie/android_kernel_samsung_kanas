@@ -458,9 +458,6 @@ static int sd_adjust_window(struct sd_dbs_tuners *sd_tunners , unsigned int load
 	return cur_window_size;
 }
 
-#if 0
-/* This function is unused. To avoid warning it placed under #if 0 - #endif.
-Remove this preprocessor condition to use this function*/
 static unsigned int sd_unplug_avg_load(int cpu, struct sd_dbs_tuners *sd_tunners , unsigned int load)
 {
 	int sum_idx_lo = 0;
@@ -553,7 +550,7 @@ static unsigned int sd_unplug_avg_load(int cpu, struct sd_dbs_tuners *sd_tunners
 	}
 
 }
-#endif
+
 
 static unsigned int sd_unplug_avg_load1(int cpu, struct sd_dbs_tuners *sd_tunners , unsigned int load)
 {
@@ -668,6 +665,7 @@ static unsigned int sd_unplug_avg_load11(int cpu, struct sd_dbs_tuners *sd_tunne
 	int avg_load = 0;
 	int cur_window_pos = 0;
 	int cur_window_pos_tail = 0;
+	int idx = 0;
 	/*
 	initialize the window size for the first time
 	cur_window_cnt[cpu] will be cleared when the core is unpluged
@@ -1566,7 +1564,6 @@ static struct attribute *dbs_attributes_gov_pol[] = {
 	&cpu_down_count_gov_pol.attr,
 	&cpu_hotplug_disable_gov_pol.attr,
 	&cpu_num_limit_gov_pol.attr,
-	&cpu_num_min_limit_gov_pol.attr,
 	NULL
 };
 
@@ -1952,8 +1949,9 @@ static void dbs_refresh_callback(struct work_struct *work)
 static void dbs_input_event(struct input_handle *handle, unsigned int type,
 		unsigned int code, int value)
 {
+	int i;
 	bool ret;
-	static int cnt = 0; 
+	static cnt = 0; 
 
 	if ((!strcmp(handle->dev->name, "ist30xx_ts_input")) 
 			|| (!strcmp(handle->dev->name, "sci-keypad") && code==KEY_HOME && type==EV_KEY && value==1))

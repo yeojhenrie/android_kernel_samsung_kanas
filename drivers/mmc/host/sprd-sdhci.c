@@ -396,10 +396,7 @@ static void sprd_sdhci_host_redirect_platform_send_init_74_clocks_to_chip_select
 }
 
 static int sprd_sdhci_host_set_uhs_signaling(struct sdhci_host *host, unsigned int uhs) {
-#if 0
-	u16 clk, div;
-#endif
-	u16 ctrl_2;
+	u16 clk, div, ctrl_2;
 	unsigned int pre_addr = 0;
 	struct sprd_sdhci_host *sprd_host = SDHCI_HOST_TO_SPRD_HOST(host);
 	struct sprd_sdhci_host_platdata *host_pdata = sprd_host->platdata;
@@ -824,7 +821,7 @@ static const struct attribute *sprd_sdhci_host_attrs[] = {
 };
 
 static const struct attribute_group sprd_sdhci_host_attr_group = {
-	.attrs = (struct attribute **)sprd_sdhci_host_attrs,
+	.attrs = sprd_sdhci_host_attrs,
 };
 
 static const struct attribute_group *sprd_sdhci_host_attr_groups[] = {

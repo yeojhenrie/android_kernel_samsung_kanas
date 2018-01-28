@@ -247,7 +247,7 @@ by clk_get()!\n", "clk_vsp", name_parent);
 		if (ret) {
 			/*clear jpg int*/
 			__raw_writel((1<<3)|(1<<2)|(1<<1)|(1<<0),
-				(void __iomem *)(SPRD_JPG_BASE+GLB_INT_CLR_OFFSET));
+				SPRD_JPG_BASE+GLB_INT_CLR_OFFSET);
 		}
 		put_user(jpg_hw_dev.jpg_int_status, (int __user *)arg);
 		jpg_hw_dev.condition_work_MBIO= 0;
@@ -281,7 +281,7 @@ by clk_get()!\n", "clk_vsp", name_parent);
 				ret = -EINVAL;
 			} else if (ret == 0) {
 				printk(KERN_ERR "jpg error start  timeout\n");
-				ret = __raw_readl((void __iomem *)(SPRD_JPG_BASE+GLB_INT_STS_OFFSET));
+				ret = __raw_readl(SPRD_JPG_BASE+GLB_INT_STS_OFFSET);
 				printk("jpg_int_status %x",ret);
 				ret = -ETIMEDOUT;
 			} else {
@@ -291,7 +291,7 @@ by clk_get()!\n", "clk_vsp", name_parent);
 			if (ret) { //timeout , clean all init bits.
 				/*clear jpg int*/
 				__raw_writel((1<<3)|(1<<2)|(1<<1)|(1<<0),
-					(void __iomem *)(SPRD_JPG_BASE+GLB_INT_CLR_OFFSET));
+					SPRD_JPG_BASE+GLB_INT_CLR_OFFSET);
 				ret  = 1;
 			} 
 			else //catched an init
@@ -317,7 +317,7 @@ by clk_get()!\n", "clk_vsp", name_parent);
 				ret = -EINVAL;
 			} else if (ret == 0) {
 				printk(KERN_ERR "jpg error start  timeout\n");
-				ret = __raw_readl((void __iomem *)(SPRD_JPG_BASE+GLB_INT_STS_OFFSET));
+				ret = __raw_readl(SPRD_JPG_BASE+GLB_INT_STS_OFFSET);
 				printk("jpg_int_status %x",ret);
 				ret = -ETIMEDOUT;
 			} else {
@@ -327,7 +327,7 @@ by clk_get()!\n", "clk_vsp", name_parent);
 			if (ret) { //timeout , clean all init bits.
 				/*clear jpg int*/
 				__raw_writel((1<<3)|(1<<2)|(1<<1)|(1<<0),
-					(void __iomem *)(SPRD_JPG_BASE+GLB_INT_CLR_OFFSET));
+					SPRD_JPG_BASE+GLB_INT_CLR_OFFSET);
 				ret  = 1;
 			} 
 			else //catched an init
@@ -359,14 +359,14 @@ static irqreturn_t jpg_isr(int irq, void *data)
 {
 	int int_status;
 	
-	int_status   =__raw_readl((void __iomem *)(SPRD_JPG_BASE+GLB_INT_STS_OFFSET));
+	int_status   =__raw_readl(SPRD_JPG_BASE+GLB_INT_STS_OFFSET);
 	//printk(KERN_INFO "jpg_isr JPG_INT_STS %x\n",int_status);
         if((int_status) & 0xb) // JPEG ENC 
 	{
 		int ret = 7; // 7 : invalid
 		 if((int_status >> 3) & 0x1) //JPEG ENC  MBIO DONE
 		{
-			__raw_writel((1<<3), (void __iomem *)(SPRD_JPG_BASE+GLB_INT_CLR_OFFSET));
+			__raw_writel((1<<3), SPRD_JPG_BASE+GLB_INT_CLR_OFFSET);
 			ret = 0;
 			jpg_hw_dev.jpg_int_status |=0x8;
 			
@@ -376,7 +376,7 @@ static irqreturn_t jpg_isr(int irq, void *data)
 		}
 		if((int_status >> 0) & 0x1)  // JPEG ENC BSM INIT
 		{
-			__raw_writel((1<<0), (void __iomem *)(SPRD_JPG_BASE+GLB_INT_CLR_OFFSET));
+			__raw_writel((1<<0), SPRD_JPG_BASE+GLB_INT_CLR_OFFSET);
 			jpg_hw_dev.jpg_int_status |=0x1;
 			
 			jpg_hw_dev.condition_work_BSM= 1;
@@ -385,7 +385,7 @@ static irqreturn_t jpg_isr(int irq, void *data)
 		}
 		 if((int_status >> 1) & 0x1)  // JPEG ENC VLC DONE INIT
 		{
-			__raw_writel((1<<1), (void __iomem *)(SPRD_JPG_BASE+GLB_INT_CLR_OFFSET));
+			__raw_writel((1<<1), SPRD_JPG_BASE+GLB_INT_CLR_OFFSET);
 			jpg_hw_dev.jpg_int_status |=0x2;	
 			
 			jpg_hw_dev.condition_work_VLC= 1;
@@ -557,7 +557,9 @@ static struct miscdevice jpg_dev = {
 static int jpg_probe(struct platform_device *pdev)
 {
 
+	int ret_val;
 	int ret;
+	int cmd0;
 
 	sema_init(&jpg_hw_dev.jpg_mutex, 1);
 

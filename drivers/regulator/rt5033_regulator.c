@@ -613,7 +613,7 @@ static int __init rt5033_regulator_probe(struct platform_device *pdev)
 	else {
         BUG_ON(mfd_pdata == NULL);
         if (mfd_pdata->regulator_platform_data == NULL)
-            mfd_pdata->regulator_platform_data = (struct rt5033_regulator_platform_data*)&default_rv_pdata;
+            mfd_pdata->regulator_platform_data = &default_rv_pdata;
         pdata = mfd_pdata->regulator_platform_data;
         init_data = pdata->regulator[pdev->id];
 	}

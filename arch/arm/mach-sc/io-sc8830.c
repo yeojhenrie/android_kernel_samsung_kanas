@@ -160,5 +160,9 @@ void __init sci_map_io(void)
 {
 	iotable_init(sprd_io_desc, ARRAY_SIZE(sprd_io_desc));
 	sc_init_chip_id();
+
+#if defined(CONFIG_SEC_DEBUG)
+        sec_debug_init();
+#endif	
 }
 

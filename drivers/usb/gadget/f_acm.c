@@ -670,8 +670,9 @@ acm_bind(struct usb_configuration *c, struct usb_function *f)
 	else if (acm->port_num == ACM_LOGGING_PORT)
 		acm_data_interface_desc.bInterfaceProtocol = 0xFF;
 	ep = usb_ep_autoconfig(cdev->gadget, &acm_fs_in_desc);
-
+	
 	/* allocate instance-specific endpoints */
+	ep = usb_ep_autoconfig(cdev->gadget, &acm_fs_in_desc);
 	if (!ep)
 		goto fail;
 	acm->port.in = ep;

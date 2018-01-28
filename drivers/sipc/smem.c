@@ -138,7 +138,7 @@ static int smem_debug_show(struct seq_file *m, void *private)
 
 	seq_printf(m, "smem pool infomation:\n");
 	seq_printf(m, "phys_addr=0x%x, total=0x%x, used=0x%x, free=0x%x\n",
-		spool->addr, spool->size, spool->used.counter, fsize);
+		spool->addr, spool->size, spool->used, fsize);
 	seq_printf(m, "smem record list:\n");
 
 	spin_lock_irqsave(&spool->lock, flags);

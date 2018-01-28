@@ -295,7 +295,6 @@ void sprdchg_init(void)
 	printk("ANA_CTL_EIC_BASE0x%x\n", sci_adi_read(ANA_CTL_EIC_BASE + 0x50));
 }
 
-#ifdef SPRDBAT_BATTERY_TEMP_DECT
 static uint16_t sprdbat_adc_to_vol_channel(uint16_t channel, uint16_t adcvalue)
 {
 	uint32_t result;
@@ -315,7 +314,6 @@ static uint16_t sprdbat_adc_to_vol_channel(uint16_t channel, uint16_t adcvalue)
 	return result;
 
 }
-#endif
 
 int sprdchg_read_temp_adc(void)
 {

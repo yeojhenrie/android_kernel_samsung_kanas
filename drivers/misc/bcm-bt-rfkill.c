@@ -88,9 +88,8 @@ static int bcm_bt_rfkill_probe(struct platform_device *pdev)
 	int rc = -EINVAL;
 	struct bcm_bt_rfkill_platform_data *pdata = NULL;
 	struct bcm_bt_rfkill_platform_data *pdata1 = NULL;
-	const struct of_device_id *match = NULL;
        printk("bcm_bt_rfkill_probe in\n");
-
+	const struct of_device_id *match = NULL;
 	match = of_match_device(bcm_bt_rfkill_of_match, &pdev->dev);
 	if (!match) {
 		pr_err("%s: **INFO** No matcing device found\n", __func__);

@@ -80,10 +80,8 @@
 #define LDO_VIBR_PD             (1 << 8)
 #endif
 
-#if 0
 #ifdef CONFIG_SC_VIBRATOR_POWER
 static struct regulator *vibrator_regulator = NULL;
-#endif
 #endif
 
 static struct work_struct vibrator_work;
@@ -173,10 +171,7 @@ static void set_vibrator(int on)
     if (on) 
 	{
             regulator_set_voltage(mot_vdd, 3000000, 3000000);
-			if(regulator_enable(mot_vdd) < 0)
-			{
-				pr_err("Regulator enable failed!\n");
-			}
+            regulator_enable(mot_vdd);
     }
     else if (regulator_is_enabled(mot_vdd)) 
 	{

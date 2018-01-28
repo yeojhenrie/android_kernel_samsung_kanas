@@ -210,8 +210,8 @@ struct regulator_dev *sprd_sdhci_regulator_init(struct platform_device *pdev, st
 	struct regulator_init_data init_data_vmmc, init_data_vqmmc;
 	int retval;
 #endif
-	SPRD_SDHCI_REGULATOR_DEFINE_INFO(vmmc)
-	SPRD_SDHCI_REGULATOR_DEFINE_INFO(vqmmc)
+	SPRD_SDHCI_REGULATOR_DEFINE_INFO(vmmc);
+	SPRD_SDHCI_REGULATOR_DEFINE_INFO(vqmmc);
 	SPRD_SDHCI_REGULATOR_DECLARE_INFO(pdev->id, vmmc);
 	SPRD_SDHCI_REGULATOR_DECLARE_INFO(pdev->id, vqmmc);
 	if(!ext_vdd_name)

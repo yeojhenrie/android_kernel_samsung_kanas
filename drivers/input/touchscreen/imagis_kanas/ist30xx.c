@@ -380,7 +380,7 @@ void print_tsp_event(finger_info *finger)
 	int idx = finger->bit_field.id - 1;
 	bool press;
 #if TOUCH_BOOSTER
-	static int finger_cnt = 0;
+	static finger_cnt = 0;
 #endif
 
 #if IST30XX_EXTEND_COORD
@@ -401,7 +401,7 @@ void print_tsp_event(finger_info *finger)
 				{
 					min_handle = cpufreq_limit_min_freq(touch_cpufreq_lock, "TSP");
 					if (IS_ERR(min_handle)) {
-						printk(KERN_ERR "[TSP] cannot get cpufreq_min lock %lu(%ld)\n",
+						printk(KERN_ERR "[TSP] cannot get cpufreq_min lock %lu(%d)\n",
 						touch_cpufreq_lock, PTR_ERR(min_handle));
 						min_handle = NULL;
 					}
@@ -655,7 +655,6 @@ static int check_report_fingers(struct ist30xx_data *data, int finger_counts)
 }
 
 #if IST30XX_EXTEND_COORD
-#if EXTEND_COORD_CHECKSUM
 static int check_valid_coord(u32 *msg, int cnt)
 {
 	int ret = 0;
@@ -678,7 +677,7 @@ static int check_valid_coord(u32 *msg, int cnt)
 	return (chksum1 == chksum2) ? 0 : -EPERM;
 }
 #endif
-#endif
+
 
 static void report_input_data(struct ist30xx_data *data, int finger_counts, int key_counts)
 {

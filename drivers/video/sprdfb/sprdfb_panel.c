@@ -24,6 +24,7 @@ static LIST_HEAD(panel_list_sub);/* for sub_lcd */
 static DEFINE_MUTEX(panel_mutex);
 uint32_t lcd_id_from_uboot = 0;
 uint32_t lcd_base_from_uboot = 0;
+extern int isReadyTo_mDNIe;
 extern struct panel_if_ctrl sprdfb_mcu_ctrl;
 extern struct panel_if_ctrl sprdfb_rgb_ctrl;
 #ifndef CONFIG_FB_SCX15
@@ -89,12 +90,6 @@ static int32_t panel_reset_dispc(struct panel_spec *self)
 	dispc_write(1, DISPC_RSTN);
 	/* wait 10ms util the lcd is stable */
 	msleep(timing3); 
-	return 0;
-}
-int32_t panel_pulldown_rstn()
-{
-	dispc_write(0, DISPC_RSTN);
-	mdelay(50);
 	return 0;
 }
 static int32_t panel_reset_lcdc(struct panel_spec *self)
@@ -486,19 +481,20 @@ uint32_t sprdfb_panel_ESD_check(struct sprdfb_device *dev)
 #ifdef CONFIG_LCD_ESD_RECOVERY
 void sprdfb_panel_ESD_reset(struct sprdfb_device *dev)
 {
+	uint32_t if_status = 0;
     if(NULL != dev->panel->if_ctrl->panel_if_suspend){
 		dev->panel->if_ctrl->panel_if_suspend(dev);
     }
     mdelay(10);
     if(0 == dev->enable){
 		printk("sprdfb: [%s] leave (Invalid device status)!\n", __FUNCTION__);
-		return;
+		return 0;
     }
     panel_init(dev);
     panel_reset(dev);
     if(0 == dev->enable){
 		printk("sprdfb: [%s] leave (Invalid device status)!\n", __FUNCTION__);
-		return;
+		return 0;
     }
     dev->panel->ops->panel_init(dev->panel);
     panel_ready(dev);
@@ -523,6 +519,7 @@ void sprdfb_panel_suspend(struct sprdfb_device *dev)
 	}
 	msleep(100);
 #else
+	isReadyTo_mDNIe=0;
 	//step1 send lcd sleep cmd or reset panel directly
 	if(dev->panel->suspend_mode == SEND_SLEEP_CMD){
 		panel_sleep(dev);

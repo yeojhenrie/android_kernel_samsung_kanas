@@ -75,6 +75,11 @@ static int e_cpu = 0;
 #define BC_CPU 1
 #define BC_IRQ  IRQ_APTMR1_INT
 
+static __iomem void *base_syscnt = (__iomem void *)SPRD_SYSCNT_BASE;
+#define	SYSCNT_COUNT	(base_syscnt + 0x0004)
+#define	SYSCNT_CTL	(base_syscnt + 0x0008)
+#define	SYSCNT_SHADOW_CNT	(base_syscnt + 0x000C)
+
 static int sched_clock_source_freq;
 static int gptimer_clock_source_freq;
 
@@ -313,9 +318,9 @@ static void __gptimer_clocksource_init(void)
 static void __syscnt_clocksource_init(const char *name, unsigned long hz)
 {
 	/* disable irq for syscnt */
-	__raw_writel(0, (void __iomem *)SYSCNT_CTL);
+	__raw_writel(0, SYSCNT_CTL);
 
-	clocksource_mmio_init((void __iomem *)SYSCNT_SHADOW_CNT, name,
+	clocksource_mmio_init(SYSCNT_SHADOW_CNT, name,
 			      hz, 200, 32, clocksource_mmio_readw_up);
 }
 

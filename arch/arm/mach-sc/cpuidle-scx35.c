@@ -90,8 +90,6 @@ enum {
 	CORE_PD,	/* cpu core power down except cpu0 */
 };
 
-#if 0
-/* This function is currently not used. To avoid warning it is placed under #if 0 macro */
 static void set_cpu_pd(void *data)
 {
 	int cpu_id = *((int*)data);
@@ -118,7 +116,6 @@ static void set_cpu_pd(void *data)
 
 	return;
 }
-#endif
 
 static void sc_cpuidle_debug(void)
 {
@@ -136,7 +133,7 @@ static void sc_cpuidle_debug(void)
 		printk("*** %s, REG_PMU_APB_CP_SLP_STATUS_DBG1:0x%x ***\n",
 				__func__, sci_glb_read(REG_PMU_APB_CP_SLP_STATUS_DBG1, -1UL));
 		printk("*** %s, DDR_OP_MODE:0x%x ***\n",
-				__func__, __raw_readl((void __iomem *)(SPRD_LPDDR2_BASE + 0x03fc)) );
+				__func__, __raw_readl(SPRD_LPDDR2_BASE + 0x03fc) );
 	}else
 		printk("*** %s, LIGHT_SLEEP_EN can not be set ***\n", __func__ );
 }
@@ -155,11 +152,11 @@ static void sc_cpuidle_light_sleep_en(int cpu)
 		 */
 		if (cpu == 0) {
 #if defined(CONFIG_ARCH_SCX15)
-			if (__raw_readl((void __iomem *)REG_AP_AHB_AHB_EB) & BIT_ZIPDEC_EB) {
+			if (__raw_readl(REG_AP_AHB_AHB_EB) & BIT_ZIPDEC_EB) {
 				sci_glb_clr(REG_AP_AHB_AHB_EB, BIT_ZIPDEC_EB);
 				zipdec_status  = 1;
 			}
-			if (__raw_readl((void __iomem *)REG_AP_AHB_AHB_EB) & BIT_ZIPENC_EB) {
+			if (__raw_readl(REG_AP_AHB_AHB_EB) & BIT_ZIPENC_EB) {
 				sci_glb_clr(REG_AP_AHB_AHB_EB, BIT_ZIPENC_EB);
 				zipenc_status  = 1;
 			}
@@ -193,8 +190,6 @@ static void sc_cpuidle_light_sleep_dis(void)
 	return;
 }
 extern void deep_sleep(int);
-
-#if defined(CONFIG_ARCH_SCX15)
 static void idle_into_deep(void)
 {
 	if (sci_glb_read(REG_AP_AHB_AHB_EB, -1UL)  &
@@ -225,7 +220,6 @@ static void idle_into_deep(void)
 	deep_sleep(1);
 	sci_glb_clr(REG_AP_AHB_MCU_PAUSE, BIT_MCU_DEEP_SLEEP_EN /*| BIT_MCU_SLEEP_FOLLOW_CA7_EN*/);
 }
-#endif
 
 /**
  * sc_enter_idle - Programs arm core to enter the specified state
@@ -329,7 +323,7 @@ static inline void sc_fill_cstate(struct cpuidle_driver *drv, struct cpuidle_dev
 {
 	char *descr = sc_cpuidle_desc[idx];
 	struct cpuidle_state *state = &drv->states[idx];
-	/*struct cpuidle_state_usage *state_usage = &dev->states_usage[idx];*/
+	struct cpuidle_state_usage *state_usage = &dev->states_usage[idx];
 
 	sprintf(state->name, "C%d", idx + 1);
 	strncpy(state->desc, descr, CPUIDLE_DESC_LEN);

@@ -684,13 +684,13 @@ static void rt8973_cable_change_handler(struct rt8973_chip *chip,
 	if (chip->pdata->cable_chg_callback)
 		chip->pdata->cable_chg_callback(chip->curr_status.cable_type);
 #ifdef CONFIG_TOUCHSCREEN_IST3038
-	if(strcmp(rt8973_cable_names[chip->curr_status.cable_type], "MUIC_RT8973_CABLE_TYPE_REGULAR_TA") == 0 || 
-		strcmp(rt8973_cable_names[chip->curr_status.cable_type], "MUIC_RT8973_CABLE_TYPE_USB") == 0 )
+	if(rt8973_cable_names[chip->curr_status.cable_type] == "MUIC_RT8973_CABLE_TYPE_REGULAR_TA" || 
+		rt8973_cable_names[chip->curr_status.cable_type] == "MUIC_RT8973_CABLE_TYPE_USB" )
 	{
 		flag = 1;
 		ist30xx_set_ta_mode(flag);
 	}
-	if(strcmp(rt8973_cable_names[chip->curr_status.cable_type], "MUIC_RT8973_CABLE_TYPE_NONE") == 0 && flag == 1)
+	if(rt8973_cable_names[chip->curr_status.cable_type] == "MUIC_RT8973_CABLE_TYPE_NONE" && flag == 1)
 	{
 		flag = 0;
 		ist30xx_set_ta_mode(flag);
@@ -1168,7 +1168,6 @@ static DEVICE_ATTR(adc, S_IRUGO | S_IWUSR | S_IWGRP | S_IXOTH /*0665 */ ,
 static DEVICE_ATTR(usb_state, S_IRUGO, usb_state_show_attrs, NULL);
 static DEVICE_ATTR(usb_sel, S_IRUGO, usb_sel_show_attrs, NULL);
 
-#ifdef SAMSUNG_MVRL_MUIC_RT8973
 static int sec_get_usb_vbus(unsigned int *level)
 {
 	if (current_status->vbus_status) {
@@ -1180,7 +1179,6 @@ static int sec_get_usb_vbus(unsigned int *level)
 	}
 	return 0;
 }
-#endif
 #endif
 
 static int rt8973_parse_dt(struct device *dev,

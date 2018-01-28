@@ -63,7 +63,7 @@ extern void clk_force_disable(struct clk *);
 static void sprd_spi_wait_for_send_complete(u32 reg_base)
 {
 	u32 timeout = 0;
-	while (!(__raw_readl((void __iomem *)(reg_base + SPI_STS2)) & SPI_TX_FIFO_REALLY_EMPTY))
+	while (!(__raw_readl(reg_base + SPI_STS2) & SPI_TX_FIFO_REALLY_EMPTY))
 	{
 		if (++timeout > SPI_TIME_OUT) {
 			/*fixme, set timeout*/
@@ -72,7 +72,7 @@ static void sprd_spi_wait_for_send_complete(u32 reg_base)
 		}
 	}
 
-	while (__raw_readl((void __iomem *)(reg_base + SPI_STS2)) & SPI_TX_BUSY)
+	while (__raw_readl(reg_base + SPI_STS2) & SPI_TX_BUSY)
 	{
 		if (++timeout > SPI_TIME_OUT) {
 			/*fixme, set timeout*/
@@ -125,12 +125,12 @@ static int sprd_spi_transfer_full_duplex(struct spi_device *spi_dev,
 #else
 	bits_per_word = ALIGN_UP(spi_dev->bits_per_word, 8);
 
-	reg_val = __raw_readl((void __iomem *)(reg_base + SPI_CTL0));
+	reg_val = __raw_readl(reg_base + SPI_CTL0);
 	reg_val &= ~(0x1f << 2);
 	if (32 != bits_per_word) {
 		reg_val |= bits_per_word << 2;
 	}
-	writel(reg_val, (void __iomem *)(reg_base + SPI_CTL0));
+	writel(reg_val, reg_base + SPI_CTL0);
 
 #endif
 	/*send data buf*/
@@ -154,7 +154,7 @@ static int sprd_spi_transfer_full_duplex(struct spi_device *spi_dev,
 		}
 	}
 
-	reg_val = __raw_readl((void __iomem *)(reg_base + SPI_CTL1));
+	reg_val = __raw_readl(reg_base + SPI_CTL1);
 
 	reg_val &= ~(0x3 << 12);
 
@@ -164,17 +164,17 @@ static int sprd_spi_transfer_full_duplex(struct spi_device *spi_dev,
 		reg_val |= SPI_RX_MODE |SPI_TX_MODE;
 	}
 
-	writel(reg_val, (void __iomem *)(reg_base + SPI_CTL1));
+	writel(reg_val, reg_base + SPI_CTL1);
 
 	/*reset the fifo*/
-	writel(0x1, (void __iomem *)(reg_base + SPI_FIFO_RST));
-	writel(0x0, (void __iomem *)(reg_base + SPI_FIFO_RST));
+	writel(0x1, reg_base + SPI_FIFO_RST);
+	writel(0x0, reg_base + SPI_FIFO_RST);
 
 	/*alaway set cs pin to low level when transfer */
 	if (spi_dev->chip_select < SPRD_SPI_CHIP_CS_NUM) {
-		reg_val = __raw_readl((void __iomem *)(reg_base + SPI_CTL0));
+		reg_val = __raw_readl(reg_base + SPI_CTL0);
 		reg_val &= ~(0x1 << (spi_dev->chip_select + 8));
-		writel(reg_val, (void __iomem *)(reg_base + SPI_CTL0));
+		writel(reg_val, reg_base + SPI_CTL0);
 	} else {
 		/*fixme, need to support gpio cs*/
 	}
@@ -189,7 +189,7 @@ static int sprd_spi_transfer_full_duplex(struct spi_device *spi_dev,
 			for (i = 0; i < SPRD_SPI_FIFO_SIZE; i++, tx_u8_p++)
 			{
 				__raw_writeb(*tx_u8_p & send_data_msk,
-					(void __iomem *)reg_base + SPI_TXD);
+					reg_base + SPI_TXD);
 			}
 
 			sprd_spi_wait_for_send_complete(reg_base);
@@ -199,13 +199,13 @@ static int sprd_spi_transfer_full_duplex(struct spi_device *spi_dev,
 
 			for (i = 0; i < SPRD_SPI_FIFO_SIZE; i++, rx_u8_p++)
 			{
-				*rx_u8_p = __raw_readb((void __iomem *)(reg_base + SPI_TXD));
+				*rx_u8_p = __raw_readb(reg_base + SPI_TXD);
 			}
 		}
 
 		for (i = 0; i < block_num; i++, tx_u8_p++)
 		{
-			__raw_writeb(*tx_u8_p & send_data_msk, (void __iomem *)(reg_base + SPI_TXD));
+			__raw_writeb(*tx_u8_p & send_data_msk, reg_base + SPI_TXD);
 		}
 
 		sprd_spi_wait_for_send_complete(reg_base);
@@ -215,7 +215,7 @@ static int sprd_spi_transfer_full_duplex(struct spi_device *spi_dev,
 
 		for (i = 0; i < block_num; i++, rx_u8_p++)
 		{
-			*rx_u8_p = __raw_readb((void __iomem *)(reg_base + SPI_TXD));
+			*rx_u8_p = __raw_readb(reg_base + SPI_TXD);
 		}
 		break;
 
@@ -229,7 +229,7 @@ static int sprd_spi_transfer_full_duplex(struct spi_device *spi_dev,
 			for (i =0; i < SPRD_SPI_FIFO_SIZE; i++, tx_u16_p++)
 			{
 				__raw_writew(*tx_u16_p & send_data_msk,
-					(void __iomem *)(reg_base + SPI_TXD));
+					reg_base + SPI_TXD);
 			}
 
 			sprd_spi_wait_for_send_complete(reg_base);
@@ -239,13 +239,13 @@ static int sprd_spi_transfer_full_duplex(struct spi_device *spi_dev,
 
 			for (i = 0; i < SPRD_SPI_FIFO_SIZE; i++, rx_u16_p++)
 			{
-				*rx_u16_p = __raw_readw((void __iomem *)(reg_base + SPI_TXD));
+				*rx_u16_p = __raw_readw(reg_base + SPI_TXD);
 			}
 		}
 
 		for (i = 0; i < block_num; i++, tx_u16_p++)
 		{
-			__raw_writew(*tx_u16_p & send_data_msk, (void __iomem *)(reg_base + SPI_TXD));
+			__raw_writew(*tx_u16_p & send_data_msk, reg_base + SPI_TXD);
 		}
 
 		sprd_spi_wait_for_send_complete(reg_base);
@@ -255,7 +255,7 @@ static int sprd_spi_transfer_full_duplex(struct spi_device *spi_dev,
 
 		for (i = 0; i < block_num; i++, rx_u16_p++)
 		{
-			*rx_u16_p = __raw_readw((void __iomem *)(reg_base + SPI_TXD));
+			*rx_u16_p = __raw_readw(reg_base + SPI_TXD);
 		}
 		break;
 
@@ -269,7 +269,7 @@ static int sprd_spi_transfer_full_duplex(struct spi_device *spi_dev,
 			for (i = 0; i < SPRD_SPI_FIFO_SIZE; i++, tx_u32_p++)
 			{
 				__raw_writel(*tx_u32_p & send_data_msk,
-					(void __iomem *)(reg_base + SPI_TXD));
+					reg_base + SPI_TXD);
 			}
 
 			sprd_spi_wait_for_send_complete(reg_base);
@@ -279,13 +279,13 @@ static int sprd_spi_transfer_full_duplex(struct spi_device *spi_dev,
 
 			for (i = 0; i < SPRD_SPI_FIFO_SIZE; i++, rx_u32_p++)
 			{
-				*rx_u32_p = __raw_readl((void __iomem *)(reg_base + SPI_TXD));
+				*rx_u32_p = __raw_readl(reg_base + SPI_TXD);
 			}
 		}
 
 		for (i = 0; i < block_num; i++, tx_u32_p++)
 		{
-			__raw_writel(*tx_u32_p & send_data_msk, (void __iomem *)(reg_base + SPI_TXD));
+			__raw_writel(*tx_u32_p & send_data_msk, reg_base + SPI_TXD);
 		}
 
 		sprd_spi_wait_for_send_complete(reg_base);
@@ -295,7 +295,7 @@ static int sprd_spi_transfer_full_duplex(struct spi_device *spi_dev,
 
 		for (i = 0; i < block_num; i++, rx_u32_p++)
 		{
-			*rx_u32_p = __raw_readl((void __iomem *)(reg_base + SPI_TXD));
+			*rx_u32_p = __raw_readl(reg_base + SPI_TXD);
 		}
 
 		break;
@@ -305,16 +305,16 @@ static int sprd_spi_transfer_full_duplex(struct spi_device *spi_dev,
 	}
 
 	if (spi_dev->chip_select < SPRD_SPI_CHIP_CS_NUM) {
-		reg_val = __raw_readl((void __iomem *)(reg_base + SPI_CTL0));
+		reg_val = __raw_readl(reg_base + SPI_CTL0);
 		reg_val |= 0xf << 8;
-		__raw_writel(reg_val, (void __iomem *)(reg_base + SPI_CTL0));
+		__raw_writel(reg_val, reg_base + SPI_CTL0);
 	} else {
 		/*fixme, need to support gpio cs*/
 	}
 
-	reg_val = __raw_readl((void __iomem *)(reg_base + SPI_CTL1));
+	reg_val = __raw_readl(reg_base + SPI_CTL1);
 	reg_val &= ~(0x3 << 12);
-	writel(reg_val, (void __iomem *)(reg_base + SPI_CTL1));
+	writel(reg_val, reg_base + SPI_CTL1);
 
 	return trans_node->len;
 }
@@ -387,17 +387,17 @@ static void sprd_spi_backup_config(struct sprd_spi_devdata *spi_chip)
 
 	reg_base = (u32)spi_chip->reg_base;
 
-	spi_chip->reg_backup[0] = __raw_readl((void __iomem *)(reg_base + SPI_CLKD));
-	spi_chip->reg_backup[1] = __raw_readl((void __iomem *)(reg_base + SPI_CTL0));
-	spi_chip->reg_backup[2] = __raw_readl((void __iomem *)(reg_base + SPI_CTL1));
-	spi_chip->reg_backup[3] = __raw_readl((void __iomem *)(reg_base + SPI_CTL2));
-	spi_chip->reg_backup[4] = __raw_readl((void __iomem *)(reg_base + SPI_CTL3));
-	spi_chip->reg_backup[5] = __raw_readl((void __iomem *)(reg_base + SPI_CTL4));
-	spi_chip->reg_backup[6] = __raw_readl((void __iomem *)(reg_base + SPI_CTL5));
-	spi_chip->reg_backup[7] = __raw_readl((void __iomem *)(reg_base + SPI_INT_EN));
-	spi_chip->reg_backup[8] = __raw_readl((void __iomem *)(reg_base + SPI_DSP_WAIT));
-	spi_chip->reg_backup[9] = __raw_readl((void __iomem *)(reg_base + SPI_CTL6));
-	spi_chip->reg_backup[10] = __raw_readl((void __iomem *)(reg_base + SPI_CTL7));
+	spi_chip->reg_backup[0] = __raw_readl(reg_base + SPI_CLKD);
+	spi_chip->reg_backup[1] = __raw_readl(reg_base + SPI_CTL0);
+	spi_chip->reg_backup[2] = __raw_readl(reg_base + SPI_CTL1);
+	spi_chip->reg_backup[3] = __raw_readl(reg_base + SPI_CTL2);
+	spi_chip->reg_backup[4] = __raw_readl(reg_base + SPI_CTL3);
+	spi_chip->reg_backup[5] = __raw_readl(reg_base + SPI_CTL4);
+	spi_chip->reg_backup[6] = __raw_readl(reg_base + SPI_CTL5);
+	spi_chip->reg_backup[7] = __raw_readl(reg_base + SPI_INT_EN);
+	spi_chip->reg_backup[8] = __raw_readl(reg_base + SPI_DSP_WAIT);
+	spi_chip->reg_backup[9] = __raw_readl(reg_base + SPI_CTL6);
+	spi_chip->reg_backup[10] = __raw_readl(reg_base + SPI_CTL7);
 }
 
 /*this function must be exectued in spi's clk is enable*/
@@ -407,17 +407,17 @@ static void sprd_spi_restore_config(const struct sprd_spi_devdata *spi_chip)
 
 	reg_base = (u32)spi_chip->reg_base;
 
-	__raw_writel(spi_chip->reg_backup[0], (void __iomem *)(reg_base + SPI_CLKD));
-	__raw_writel(spi_chip->reg_backup[1], (void __iomem *)(reg_base + SPI_CTL0));
-	__raw_writel(spi_chip->reg_backup[2], (void __iomem *)(reg_base + SPI_CTL1));
-	__raw_writel(spi_chip->reg_backup[3], (void __iomem *)(reg_base + SPI_CTL2));
-	__raw_writel(spi_chip->reg_backup[4], (void __iomem *)(reg_base + SPI_CTL3));
-	__raw_writel(spi_chip->reg_backup[5], (void __iomem *)(reg_base + SPI_CTL4));
-	__raw_writel(spi_chip->reg_backup[6], (void __iomem *)(reg_base + SPI_CTL5));
-	__raw_writel(spi_chip->reg_backup[7], (void __iomem *)(reg_base + SPI_INT_EN));
-	__raw_writel(spi_chip->reg_backup[8], (void __iomem *)(reg_base + SPI_DSP_WAIT));
-	__raw_writel(spi_chip->reg_backup[9], (void __iomem *)(reg_base + SPI_CTL6));
-	__raw_writel(spi_chip->reg_backup[10], (void __iomem *)(reg_base + SPI_CTL7));
+	__raw_writel(spi_chip->reg_backup[0], reg_base + SPI_CLKD);
+	__raw_writel(spi_chip->reg_backup[1], reg_base + SPI_CTL0);
+	__raw_writel(spi_chip->reg_backup[2], reg_base + SPI_CTL1);
+	__raw_writel(spi_chip->reg_backup[3], reg_base + SPI_CTL2);
+	__raw_writel(spi_chip->reg_backup[4], reg_base + SPI_CTL3);
+	__raw_writel(spi_chip->reg_backup[5], reg_base + SPI_CTL4);
+	__raw_writel(spi_chip->reg_backup[6], reg_base + SPI_CTL5);
+	__raw_writel(spi_chip->reg_backup[7], reg_base + SPI_INT_EN);
+	__raw_writel(spi_chip->reg_backup[8], reg_base + SPI_DSP_WAIT);
+	__raw_writel(spi_chip->reg_backup[9], reg_base + SPI_CTL6);
+	__raw_writel(spi_chip->reg_backup[10], reg_base + SPI_CTL7);
 }
 
 static int sprd_spi_setup(struct spi_device *spi_dev)
@@ -469,17 +469,17 @@ static int sprd_spi_setup(struct spi_device *spi_dev)
 		/*fixme*/
 		break;
 	}
-	__raw_writel(reg_val, (void __iomem *)(spi_chip->reg_base + SPI_CTL0));
-	__raw_writel(0x0, (void __iomem *)(spi_chip->reg_base + SPI_CTL1));
+	__raw_writel(reg_val, spi_chip->reg_base + SPI_CTL0);
+	__raw_writel(0x0, spi_chip->reg_base + SPI_CTL1);
 	/*spi master mode*/
-	__raw_writel(0x0, (void __iomem *)(spi_chip->reg_base + SPI_CTL2));
-	__raw_writel(0x0, (void __iomem *)(spi_chip->reg_base + SPI_CTL4));
-	__raw_writel(0x5, (void __iomem *)(spi_chip->reg_base + SPI_CTL5));
-	__raw_writel(0x0, (void __iomem *)(spi_chip->reg_base + SPI_INT_EN));
+	__raw_writel(0x0, spi_chip->reg_base + SPI_CTL2);
+	__raw_writel(0x0, spi_chip->reg_base + SPI_CTL4);
+	__raw_writel(0x5, spi_chip->reg_base + SPI_CTL5);
+	__raw_writel(0x0, spi_chip->reg_base + SPI_INT_EN);
 	/*reset fifo*/
-	__raw_writel(0x1, (void __iomem *)(spi_chip->reg_base + SPI_FIFO_RST));
+	__raw_writel(0x1, spi_chip->reg_base + SPI_FIFO_RST);
 	for (i = 0; i < 0x20; i++);
-	__raw_writel(0x0, (void __iomem *)(spi_chip->reg_base + SPI_FIFO_RST));
+	__raw_writel(0x0, spi_chip->reg_base + SPI_FIFO_RST);
 
 	/*if the spi_src_clk is 48MHz,the spi max working clk is 24MHz*/
 	spi_work_clk = spi_dev->max_speed_hz << 1;
@@ -516,7 +516,7 @@ static int sprd_spi_setup(struct spi_device *spi_dev)
 
 	spi_clk_div = spi_src_clk / (spi_dev->max_speed_hz << 1) - 1;
 
-	__raw_writel(spi_clk_div, (void __iomem *)(spi_chip->reg_base + SPI_CLKD));
+	__raw_writel(spi_clk_div, spi_chip->reg_base + SPI_CLKD);
 
 	/*wait the clk config become effective*/
 	msleep(5);

@@ -123,7 +123,7 @@ static void aux_debugfs_create(void)
 		pr_err("%s return %p\n", __FUNCTION__, clk_cfg_info.debug_aux_dir);
 	}
 	debugfs_create_file("aux", S_IRUGO,
-			    clk_cfg_info.debug_aux_dir, (void *)&clk_cfg_info.cur_sel, &fops_aux_clk_ops);
+			    clk_cfg_info.debug_aux_dir, &clk_cfg_info.cur_sel, &fops_aux_clk_ops);
 }
 
 static int __init aux_debug_init(void)

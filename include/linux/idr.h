@@ -148,9 +148,7 @@ void __idr_remove_all(struct idr *idp);
  * Part of old alloc interface.  This is going away.  Use
  * idr_preload[_end]() and idr_alloc() instead.
  */
-/* __deprecated attribute is removed for this function to suppress the deprecated 
-  warning in kernel/drivers/gpu/ion/ion.c */
-static inline int idr_pre_get(struct idr *idp, gfp_t gfp_mask)
+static inline int __deprecated idr_pre_get(struct idr *idp, gfp_t gfp_mask)
 {
 	return __idr_pre_get(idp, gfp_mask);
 }
@@ -165,9 +163,7 @@ static inline int idr_pre_get(struct idr *idp, gfp_t gfp_mask)
  * Part of old alloc interface.  This is going away.  Use
  * idr_preload[_end]() and idr_alloc() instead.
  */
-/* __deprecated attribute is removed for this function to suppress the deprecated 
-  warning in kernel/drivers/gpu/ion/ion.c */
-static inline int idr_get_new_above(struct idr *idp, void *ptr,
+static inline int __deprecated idr_get_new_above(struct idr *idp, void *ptr,
 						 int starting_id, int *id)
 {
 	return __idr_get_new_above(idp, ptr, starting_id, id);
@@ -194,9 +190,7 @@ static inline int __deprecated idr_get_new(struct idr *idp, void *ptr, int *id)
  * If you're trying to destroy @idp, calling idr_destroy() is enough.
  * This is going away.  Don't use.
  */
-/* __deprecated attribute is removed for this function to suppress the deprecated
-  warning in kernel/drivers/gpu/ion/ion.c */
-static inline void idr_remove_all(struct idr *idp)
+static inline void __deprecated idr_remove_all(struct idr *idp)
 {
 	__idr_remove_all(idp);
 }

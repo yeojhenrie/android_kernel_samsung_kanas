@@ -527,11 +527,11 @@ config SEC_THERMISTOR
 		default y
 		
 config MACH_KANAS
-		bool "Kanas related changes"
+		bool " Kanas related changes "
 		default n
 
 config KANAS_GPS_AVDD18
-       bool "Kanas related regulator setting"
+       bool " Kanas related regulator setting"
        default n
 
 config SEC_LOG

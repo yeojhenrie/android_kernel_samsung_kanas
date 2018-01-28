@@ -8,20 +8,18 @@
 #define PM_PRINT_ENABLE
 
 /* use this method we can get time everytime */
-#define TIMER_REG(off) 		(SPRD_TIMER_BASE + (off))
-#define SYSCNT_REG(off) 	(SPRD_SYSCNT_BASE + (off))
-#define SYSCNT_COUNT 		SYSCNT_REG(0x0004)
-#define SYSCNT_CTL 			SYSCNT_REG(0x0008)
-#define SYSCNT_SHADOW_CNT 	SYSCNT_REG(0x000C)
+#define TIMER_REG(off) (SPRD_TIMER_BASE + (off))
+#define SYSCNT_REG(off) (SPRD_SYSCNT_BASE + (off))
+#define SYSCNT_COUNT    SYSCNT_REG(0x0004)
 
 static u32 inline get_sys_cnt(void)
 {
 	u32 val1, val2;
-        val1 = __raw_readl((void __iomem *)SYSCNT_COUNT);
-        val2 = __raw_readl((void __iomem *)SYSCNT_COUNT);
+        val1 = __raw_readl(SYSCNT_COUNT);
+        val2 = __raw_readl(SYSCNT_COUNT);
         while(val2 != val1) {
              val1 = val2;
-             val2 = __raw_readl((void __iomem *)SYSCNT_COUNT);
+             val2 = __raw_readl(SYSCNT_COUNT);
         }
         return val2;
 }

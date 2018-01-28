@@ -578,6 +578,7 @@ static void flip_cover_work(struct work_struct *work)
 	struct gpio_keys_drvdata *ddata =
 		container_of(work, struct gpio_keys_drvdata,
 				flip_cover_dwork.work);
+	const struct gpio_keys_platform_data *pdata = ddata->pdata;
 	int comp_val[2]={0};
 
 	comp_val[0] = gpio_get_value(123);
@@ -609,10 +610,6 @@ static irqreturn_t flip_cover_detect(int irq, void *dev_id)
 
 static int gpio_keys_open(struct input_dev *input)
 {
-#ifdef CONFIG_SENSORS_HALL
-        static int ret = -1;
-        int irq;
-#endif
 	struct gpio_keys_drvdata *ddata = input_get_drvdata(input);
 	const struct gpio_keys_platform_data *pdata = ddata->pdata;
 	int error;
@@ -624,11 +621,12 @@ static int gpio_keys_open(struct input_dev *input)
 	}
 // HALL_IC
 #ifdef CONFIG_SENSORS_HALL
+    static int ret = -1;
 	if(ret <0)
 	{
 		gpio_request(123, "flipcover");
 		gpio_direction_input(123);
-		irq = gpio_to_irq(123);
+		int irq = gpio_to_irq(123);
 		printk(KERN_DEBUG"[KEYS] : %s\n", __func__);
 	    	INIT_DELAYED_WORK(&ddata->flip_cover_dwork, flip_cover_work);
 	    	ret =request_threaded_irq(irq, NULL,flip_cover_detect,IRQF_DISABLED | IRQF_TRIGGER_RISING |IRQF_TRIGGER_FALLING | IRQF_ONESHOT | IRQF_NO_SUSPEND,"flip_cover", ddata);
@@ -820,9 +818,6 @@ static void gpio_remove_key(struct gpio_button_data *bdata)
 
 static int gpio_keys_probe(struct platform_device *pdev)
 {
-#ifdef CONFIG_SENSORS_HALL
-    int ret;
-#endif
 	struct device *dev = &pdev->dev;
 	const struct gpio_keys_platform_data *pdata = dev_get_platdata(dev);
 	struct gpio_keys_drvdata *ddata;
@@ -836,6 +831,9 @@ static int gpio_keys_probe(struct platform_device *pdev)
 			return PTR_ERR(pdata);
 	}
 // HALL_IC
+#ifdef CONFIG_SENSORS_HALL
+    	int ret;
+#endif
 	printk("[KEYS] Func: %s, Line: %d\n", __func__, __LINE__);
 	ddata = kzalloc(sizeof(struct gpio_keys_drvdata) +
 			pdata->nbuttons * sizeof(struct gpio_button_data),

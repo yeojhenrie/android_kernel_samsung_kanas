@@ -2954,9 +2954,8 @@ static int binder_node_release(struct binder_node *node, int refs)
 				BUG();
 		}
 	}
-#if 0
+
 out:
-#endif
 	binder_debug(BINDER_DEBUG_DEAD_BINDER,
 		     "node %d now dead, refs %d, death %d\n",
 		     node->debug_id, refs, death);

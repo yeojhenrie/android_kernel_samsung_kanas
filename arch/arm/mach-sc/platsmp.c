@@ -40,8 +40,8 @@ static int __cpuinit boot_secondary_cpus(int cpu_id, u32 paddr)
 {
 	if (cpu_id != 1)
 		return -1;
-	writel(paddr,(void __iomem *)CPU_JUMP_VADDR);
-	writel(1 << (cpu_id * 4),(void __iomem *)HOLDING_PEN_VADDR);
+	writel(paddr,CPU_JUMP_VADDR);
+	writel(1 << (cpu_id * 4),HOLDING_PEN_VADDR);
 	return 0;
 }
 
@@ -92,23 +92,23 @@ int poweron_cpus(int cpu)
 	sci_glb_write(poweron, val, -1UL);
 
 	//writel((__raw_readl(REG_AP_AHB_CA7_RST_SET) | (1 << cpu)), REG_AP_AHB_CA7_RST_SET);
-	val = (BIT_PD_CA7_C3_AUTO_SHUTDOWN_EN | __raw_readl((void __iomem *)poweron)) &~(BIT_PD_CA7_C3_FORCE_SHUTDOWN);
+	val = (BIT_PD_CA7_C3_AUTO_SHUTDOWN_EN | __raw_readl(poweron)) &~(BIT_PD_CA7_C3_FORCE_SHUTDOWN);
 	//writel(val,poweron);
 	sci_glb_write(poweron, val, -1UL);
 	dmb();
 	udelay(1000);
 
-	while((__raw_readl((void __iomem *)poweron)&BIT_PD_CA7_C3_FORCE_SHUTDOWN) ||
-		!(__raw_readl((void __iomem *)REG_AP_AHB_CA7_RST_SET)&(1 << cpu)) ){
+	while((__raw_readl(poweron)&BIT_PD_CA7_C3_FORCE_SHUTDOWN) ||
+		!(__raw_readl(REG_AP_AHB_CA7_RST_SET)&(1 << cpu)) ){
 		printk("*** %s here ***\n", __func__ );
 
-		writel((__raw_readl((void __iomem *)REG_AP_AHB_CA7_RST_SET) | (1 << cpu)), (void __iomem *)REG_AP_AHB_CA7_RST_SET);
-		val = (BIT_PD_CA7_C3_AUTO_SHUTDOWN_EN | __raw_readl((void __iomem *)poweron)) &~(BIT_PD_CA7_C3_FORCE_SHUTDOWN);
-		writel(val,(void __iomem *)poweron);
+		writel((__raw_readl(REG_AP_AHB_CA7_RST_SET) | (1 << cpu)), REG_AP_AHB_CA7_RST_SET);
+		val = (BIT_PD_CA7_C3_AUTO_SHUTDOWN_EN | __raw_readl(poweron)) &~(BIT_PD_CA7_C3_FORCE_SHUTDOWN);
+		writel(val,poweron);
 		dmb();
 		udelay(500);
 	}
-	writel((__raw_readl((void __iomem *)REG_AP_AHB_CA7_RST_SET) & ~(1 << cpu)), (void __iomem *)REG_AP_AHB_CA7_RST_SET);
+	writel((__raw_readl(REG_AP_AHB_CA7_RST_SET) & ~(1 << cpu)), REG_AP_AHB_CA7_RST_SET);
 	return 0;
 }
 
@@ -124,13 +124,13 @@ int powerdown_cpus(int cpu)
 	else
 		return -1;
 
-	val = (BIT_PD_CA7_C3_FORCE_SHUTDOWN | __raw_readl((void __iomem *)poweron)) &~(BIT_PD_CA7_C3_AUTO_SHUTDOWN_EN);
-	writel(val, (void __iomem *)poweron);
+	val = (BIT_PD_CA7_C3_FORCE_SHUTDOWN | __raw_readl(poweron)) &~(BIT_PD_CA7_C3_AUTO_SHUTDOWN_EN);
+	writel(val, poweron);
 
 
 	while (i < 20) {
 		//check power down?
-		if (((__raw_readl((void __iomem *)REG_PMU_APB_PWR_STATUS0_DBG) >> (4 * (cpu_logical_map(cpu) + 1))) & 0x0f) == 0x07) {
+		if (((__raw_readl(REG_PMU_APB_PWR_STATUS0_DBG) >> (4 * (cpu_logical_map(cpu) + 1))) & 0x0f) == 0x07) {
 			break;
 		}
 		udelay(60);
@@ -148,8 +148,8 @@ static int __cpuinit boot_secondary_cpus(int cpu_id, u32 paddr)
 	if (cpu_id < 1 || cpu_id > 3)
 		return -1;
 
-	writel(paddr,(void __iomem *)(CPU_JUMP_VADDR + (cpu_id << 2)));
-	writel(readl((void __iomem *)HOLDING_PEN_VADDR) | (1 << cpu_id),(void __iomem *)HOLDING_PEN_VADDR);
+	writel(paddr,(CPU_JUMP_VADDR + (cpu_id << 2)));
+	writel(readl(HOLDING_PEN_VADDR) | (1 << cpu_id),HOLDING_PEN_VADDR);
 	poweron_cpus(cpu_id);
 
 	return 0;
@@ -317,7 +317,7 @@ void __init sprd_smp_prepare_cpus(unsigned int max_cpus)
 }
 
 extern int sprd_cpu_kill(unsigned int cpu);
-extern void sprd_cpu_die(unsigned int cpu);
+extern int sprd_cpu_die(unsigned int cpu);
 extern int sprd_cpu_disable(unsigned int cpu);
 
 struct smp_operations sprd_smp_ops __initdata = { 

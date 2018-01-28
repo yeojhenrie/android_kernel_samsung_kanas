@@ -102,7 +102,7 @@ static int __dma_set_int_type(u32 dma_chn, dma_int_type int_type)
 {
 	u32 reg_val;
 
-	reg_val = __raw_readl((void __iomem *)DMA_CHN_INT(dma_chn));
+	reg_val = __raw_readl(DMA_CHN_INT(dma_chn));
 	reg_val &= ~0x1f;
 
 	switch (int_type) {
@@ -133,7 +133,7 @@ static int __dma_set_int_type(u32 dma_chn, dma_int_type int_type)
 		return -EINVAL;
 	}
 
-	__raw_writel(reg_val, (void __iomem *)DMA_CHN_INT(dma_chn));
+	__raw_writel(reg_val, DMA_CHN_INT(dma_chn));
 
 	return 0;
 }
@@ -303,13 +303,13 @@ static void __inline __dma_int_clr(u32 dma_chn)
 {
 	u32 reg_val;
 
-	reg_val = __raw_readl((void __iomem *)DMA_CHN_INT(dma_chn));
-	__raw_writel(0x1f << 24 | reg_val, (void __iomem *)DMA_CHN_INT(dma_chn));
+	reg_val = __raw_readl(DMA_CHN_INT(dma_chn));
+	__raw_writel(0x1f << 24 | reg_val, DMA_CHN_INT(dma_chn));
 }
 
 static void __inline __dma_int_dis(u32 dma_chn)
 {
-	__raw_writel(0x1f << 24, (void __iomem *)DMA_CHN_INT(dma_chn));
+	__raw_writel(0x1f << 24, DMA_CHN_INT(dma_chn));
 }
 
 static void __init __dma_reg_init(void)
@@ -321,7 +321,7 @@ static void __init __dma_reg_init(void)
 	while (i--) ;
 	sci_glb_clr(REG_AP_AHB_AHB_RST, 0x1 << 8);
 
-	__raw_writel(0x0, (void __iomem *)DMA_FRAG_WAIT);
+	__raw_writel(0x0, DMA_FRAG_WAIT);
 }
 
 static irqreturn_t __dma_irq_handle(int irq, void *dev_id)
@@ -332,7 +332,7 @@ static irqreturn_t __dma_irq_handle(int irq, void *dev_id)
 
 	spin_lock(&dma_lock);
 
-	irq_status = readl((void __iomem *)DMA_INT_MSK_STS);
+	irq_status = readl(DMA_INT_MSK_STS);
 
 	if (unlikely(0 == irq_status)) {
 		spin_unlock(&dma_lock);
@@ -340,7 +340,7 @@ static irqreturn_t __dma_irq_handle(int irq, void *dev_id)
 	}
 
 	/*read again */
-	irq_status = readl((void __iomem *)DMA_INT_MSK_STS);
+	irq_status = readl(DMA_INT_MSK_STS);
 	while (irq_status) {
 		i = __ffs(irq_status);
 		irq_status &= (irq_status - 1);
@@ -348,7 +348,7 @@ static irqreturn_t __dma_irq_handle(int irq, void *dev_id)
 		/*the dma chn index is start with 1,notice! */
 		reg_addr = DMA_CHN_INT(i + 1);
 		/*clean all type interrupt */
-		writel(readl((void __iomem *)reg_addr) | (0x1f << 24), (void __iomem *)reg_addr);
+		writel(readl(reg_addr) | (0x1f << 24), reg_addr);
 
 		if (dma_chns[i + 1].irq_handler)
 			/*audio driver need to get the dma chn */
@@ -364,38 +364,38 @@ static irqreturn_t __dma_irq_handle(int irq, void *dev_id)
 static void __inline __dma_set_uid(u32 dma_chn, u32 dev_id)
 {
 	if (DMA_UID_SOFTWARE != dev_id) {
-		__raw_writel(dma_chn, (void __iomem *)DMA_REQ_CID(dev_id));
+		__raw_writel(dma_chn, DMA_REQ_CID(dev_id));
 	}
 }
 
 static void __inline __dma_chn_enable(u32 dma_chn)
 {
-	writel(readl((void __iomem *)DMA_CHN_CFG(dma_chn)) | 0x1, (void __iomem *)DMA_CHN_CFG(dma_chn));
+	writel(readl(DMA_CHN_CFG(dma_chn)) | 0x1, DMA_CHN_CFG(dma_chn));
 }
 
 static void __inline __dma_chn_disable(u32 dma_chn)
 {
-	writel(readl((void __iomem *)DMA_CHN_CFG(dma_chn)) & ~0x1, (void __iomem *)DMA_CHN_CFG(dma_chn));
+	writel(readl(DMA_CHN_CFG(dma_chn)) & ~0x1, DMA_CHN_CFG(dma_chn));
 }
 
 static void __inline __dma_soft_request(u32 dma_chn)
 {
-	writel(readl((void __iomem *)DMA_CHN_REQ(dma_chn)) | 0x1, (void __iomem *)DMA_CHN_REQ(dma_chn));
+	writel(readl(DMA_CHN_REQ(dma_chn)) | 0x1, DMA_CHN_REQ(dma_chn));
 }
 
 static void __dma_stop_and_disable(u32 dma_chn)
 {
 	/*if the chn has disable already, do nothing */
-	if (!(readl((void __iomem *)DMA_CHN_CFG(dma_chn)) & 0x1))
+	if (!(readl(DMA_CHN_CFG(dma_chn)) & 0x1))
 		return;
 
-	writel(readl((void __iomem *)DMA_CHN_PAUSE(dma_chn)) | 0x1, (void __iomem *)DMA_CHN_PAUSE(dma_chn));
+	writel(readl(DMA_CHN_PAUSE(dma_chn)) | 0x1, DMA_CHN_PAUSE(dma_chn));
 	/*fixme, need to set timeout */
-	while (!(readl((void __iomem *)DMA_CHN_PAUSE(dma_chn)) & (0x1 << 16))) ;
+	while (!(readl(DMA_CHN_PAUSE(dma_chn)) & (0x1 << 16))) ;
 
-	writel(readl((void __iomem *)DMA_CHN_CFG(dma_chn)) & ~0x1, (void __iomem *)DMA_CHN_CFG(dma_chn));
+	writel(readl(DMA_CHN_CFG(dma_chn)) & ~0x1, DMA_CHN_CFG(dma_chn));
 
-	writel(readl((void __iomem *)DMA_CHN_PAUSE(dma_chn)) & ~0x1, (void __iomem *)DMA_CHN_PAUSE(dma_chn));
+	writel(readl(DMA_CHN_PAUSE(dma_chn)) & ~0x1, DMA_CHN_PAUSE(dma_chn));
 }
 
 /*HAL layer function*/
@@ -593,7 +593,7 @@ u32 sci_dma_get_src_addr(u32 dma_chn)
 		return 0;
 	}
 
-	return __raw_readl((void __iomem *)DMA_CHN_SRC_ADR(dma_chn));
+	return __raw_readl(DMA_CHN_SRC_ADR(dma_chn));
 }
 
 u32 sci_dma_get_dst_addr(u32 dma_chn)
@@ -603,7 +603,7 @@ u32 sci_dma_get_dst_addr(u32 dma_chn)
 		return 0;
 	}
 
-	return __raw_readl((void __iomem *)DMA_CHN_DES_ADR(dma_chn));
+	return __raw_readl(DMA_CHN_DES_ADR(dma_chn));
 }
 
 #define DMA_MEMCPY_MIN_SIZE 64

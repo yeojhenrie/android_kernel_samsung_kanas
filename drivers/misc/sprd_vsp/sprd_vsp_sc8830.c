@@ -325,8 +325,8 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
                 vsp_fp->vsp_int_status |= (1<<31);
                 ret = -ETIMEDOUT;
                 /*clear vsp int*/
-                __raw_writel((1<<1) |(1<<2)|(1<<4)|(1<<5), (void __iomem *)(VSP_GLB_REG_BASE+VSP_INT_CLR_OFF));
-                __raw_writel((1<<0)|(1<<1)|(1<<2), (void __iomem *)(SPRD_VSP_BASE+ARM_INT_CLR_OFF));
+                __raw_writel((1<<1) |(1<<2)|(1<<4)|(1<<5), VSP_GLB_REG_BASE+VSP_INT_CLR_OFF);
+                __raw_writel((1<<0)|(1<<1)|(1<<2), SPRD_VSP_BASE+ARM_INT_CLR_OFF);
             } else {
                 ret = 0;
             }
@@ -388,30 +388,30 @@ static irqreturn_t vsp_isr(int irq, void *data)
     }
 
     //check which module occur interrupt and clear coresponding bit
-    int_status =  __raw_readl((void __iomem *)(VSP_GLB_REG_BASE+VSP_INT_STS_OFF));
+    int_status =  __raw_readl(VSP_GLB_REG_BASE+VSP_INT_STS_OFF);
     if((int_status >> 1) & 0x1) // VLC SLICE DONE
     {
-        __raw_writel((1<<1), (void __iomem *)(VSP_GLB_REG_BASE+VSP_INT_CLR_OFF));
+        __raw_writel((1<<1), VSP_GLB_REG_BASE+VSP_INT_CLR_OFF);
         ret = (1<<1);
     } else if((int_status >> 2) & 0x1) // MBW SLICE DONE
     {
-        __raw_writel((1<<2), (void __iomem *)(VSP_GLB_REG_BASE+VSP_INT_CLR_OFF));
+        __raw_writel((1<<2), VSP_GLB_REG_BASE+VSP_INT_CLR_OFF);
         ret = (1<<2);
     } else if((int_status >> 4) & 0x1) // VLD ERR
     {
-        __raw_writel((1<<4), (void __iomem *)(VSP_GLB_REG_BASE+VSP_INT_CLR_OFF));
+        __raw_writel((1<<4), VSP_GLB_REG_BASE+VSP_INT_CLR_OFF);
         ret = (1<<4);
     } else if((int_status >> 5) & 0x1) // TIMEOUT ERR
     {
-        __raw_writel((1<<5), (void __iomem *)(VSP_GLB_REG_BASE+VSP_INT_CLR_OFF));
+        __raw_writel((1<<5), VSP_GLB_REG_BASE+VSP_INT_CLR_OFF);
         ret = (1<<5);
     }
 
     //clear VSP accelerator interrupt bit
-    int_status =  __raw_readl((void __iomem *)(SPRD_VSP_BASE+ARM_INT_STS_OFF));
+    int_status =  __raw_readl(SPRD_VSP_BASE+ARM_INT_STS_OFF);
     if ((int_status >> 2) & 0x1) //VSP ACC INT
     {
-        __raw_writel((1<<2), (void __iomem *)(SPRD_VSP_BASE+ARM_INT_CLR_OFF));
+        __raw_writel((1<<2), SPRD_VSP_BASE+ARM_INT_CLR_OFF);
     }
 
     vsp_fp->vsp_int_status = ret;
@@ -473,6 +473,7 @@ static int vsp_open(struct inode *inode, struct file *filp)
 
 static int vsp_release (struct inode *inode, struct file *filp)
 {
+    int ret;
     struct vsp_fh *vsp_fp = filp->private_data;
 
     if (vsp_fp == NULL) {
@@ -499,6 +500,7 @@ static int vsp_release (struct inode *inode, struct file *filp)
     printk(KERN_INFO "vsp_release %p\n", vsp_fp);
     kfree(filp->private_data);
     filp->private_data=NULL;
+
     printk(KERN_INFO "VSP mmi_clk close\n");
     clk_disable(vsp_hw_dev.mm_clk);
 
@@ -522,6 +524,7 @@ static struct miscdevice vsp_dev = {
 
 static int vsp_suspend(struct platform_device *pdev, pm_message_t state)
 {
+    int ret=-1;
     int cnt;
     int instance_cnt = atomic_read(&vsp_instance_cnt);
 
@@ -547,6 +550,7 @@ static int vsp_resume(struct platform_device *pdev)
 
     for (cnt = 0; cnt < instance_cnt; cnt++) {
         ret = vsp_set_mm_clk();
+
 
         printk(KERN_INFO "vsp_resume, cnt: %d\n", cnt);
     }

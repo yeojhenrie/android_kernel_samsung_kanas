@@ -361,14 +361,13 @@ LOCAL int sprd_v4l2_start_flash(struct dcam_frame *frame, void* param)
 int flash_thread_loop(void *arg)
 {
 	struct dcam_dev          *dev = (struct dcam_dev*)arg;
-	int ret;
 
 	if (dev == NULL) {
 		DCAM_TRACE("flash_thread_loop, dev is NULL \n");
 		return -1;
 	}
 	while (1) {
-		ret = down_interruptible(&dev->flash_thread_sem);
+		down_interruptible(&dev->flash_thread_sem);
 		if (dev->is_flash_thread_stop) {
 			sprd_v4l2_setflash(0);
 			printk("flash_thread_loop stop \n");
@@ -993,7 +992,7 @@ LOCAL int sprd_v4l2_tx_done(struct dcam_frame *frame, void* param)
 	uint32_t                 fmr_index;
 	if (NULL == frame || NULL == param || 0 == atomic_read(&dev->stream_on))
 		return -EINVAL;
-	/*if (0 == dev->dcam_cxt.capture_mode) {//single-frame sample mode
+	/*if (0 == dev->dcam_cxt.capture_mode) {/*single-frame sample mode
 		dev->dcam_cxt.flash_status = FLASH_CLOSE_AFTER_OPEN;
 		sprd_v4l2_start_flash(frame, param);
 	}*/

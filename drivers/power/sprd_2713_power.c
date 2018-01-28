@@ -330,6 +330,7 @@ static ssize_t sprdbat_show_caliberate(struct device *dev,
 	const ptrdiff_t off = attr - sprd_caliberate;
 	int adc_value;
 	int voltage;
+	int temp_value;
 	uint32_t now_current;
 
 	switch (off) {
@@ -1141,7 +1142,6 @@ static void sprdbat_charge_works(struct work_struct *work)
 {
 	uint32_t cur;
 	unsigned long irq_flag = 0;
-	int value;
 
 	SPRDBAT_DEBUG("sprdbat_charge_works----------start\n");
 
@@ -1190,7 +1190,7 @@ static void sprdbat_charge_works(struct work_struct *work)
 		}
 		if (sprdbat_cccv_cal_from_chip) {
 			SPRDBAT_DEBUG("sprdbat_cccv_cal_from_chip == 1\n");
-			value = gpio_get_value(sprdbat_data->gpio_chg_cv_state);
+			int value = gpio_get_value(sprdbat_data->gpio_chg_cv_state);
 			if (value && (sprdbat_data->bat_info.bat_current <
 			    sprdbat_data->bat_param.chg_end_cur)) {
 				sprdbat_trickle_chg = 0;

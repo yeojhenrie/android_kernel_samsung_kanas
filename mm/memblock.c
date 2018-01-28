@@ -603,7 +603,7 @@ static int __init_memblock memblock_add_region_ext(char* func, unsigned int line
 	phys_addr_t obase = base;
 	phys_addr_t end = base + memblock_cap_size(base, &size);
 	int i, nr_new;
-	char name[REGION_NAME_LEN]={0};
+	char* name[REGION_NAME_LEN]={0};
 
 	if (!size)
 		return 0;
@@ -917,7 +917,7 @@ static phys_addr_t __init memblock_alloc_base_nid(phys_addr_t size,
 }
 
 #ifdef CONFIG_MEMBLOCK_RESERVE_DEBUG
-static phys_addr_t __init memblock_alloc_base_nid_ext(char* func, unsigned int line, phys_addr_t size,
+static phys_addr_t __init memblock_alloc_base_nid_ext(char* func, char*line, phys_addr_t size,
 					phys_addr_t align, phys_addr_t max_addr,
 					int nid)
 {

@@ -197,6 +197,7 @@ static int debug_shrinker_show(struct seq_file *s, void *unused)
 
 	down_read(&shrinker_rwsem);
 	list_for_each_entry(shrinker, &shrinker_list, list) {
+		char name[64];
 		int num_objs;
 
 		num_objs = shrinker->shrink(shrinker, &sc);
@@ -1941,11 +1942,6 @@ static void shrink_lruvec(struct lruvec *lruvec, struct scan_control *sc)
 
 	get_scan_count(lruvec, sc, nr);
 
-#ifdef CONFIG_RUNTIME_COMPCACHE
-	if (rtcc_reclaim(sc))
-		nr[LRU_INACTIVE_FILE] = nr[LRU_ACTIVE_FILE] = 0;
-#endif /* CONFIG_RUNTIME_COMPCACHE */
-
 	blk_start_plug(&plug);
 	while (nr[LRU_INACTIVE_ANON] || nr[LRU_ACTIVE_FILE] ||
 					nr[LRU_INACTIVE_FILE]) {
@@ -1953,6 +1949,9 @@ static void shrink_lruvec(struct lruvec *lruvec, struct scan_control *sc)
 		if (rtcc_reclaim(sc)) {
 			if (rc->nr_swapped >= rc->nr_anon)
 				nr[LRU_INACTIVE_ANON] = nr[LRU_ACTIVE_ANON] = 0;
+
+			if ((sc->nr_reclaimed + nr_reclaimed - rc->nr_swapped) >= rc->nr_file)
+				nr[LRU_INACTIVE_FILE] = nr[LRU_ACTIVE_FILE] = 0;
 		}
 #endif /* CONFIG_RUNTIME_COMPCACHE */
 

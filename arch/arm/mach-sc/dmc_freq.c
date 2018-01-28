@@ -111,39 +111,39 @@ static void close_cp(void)
 	u32 value;
 	u32 times;
 
-	value = __raw_readl((void __iomem *)CP_FLAGS_ADDR);
+	value = __raw_readl(CP_FLAGS_ADDR);
 	times = 0;
 	while((value & EMC_FREQ_SWITCH_STATUS_MASK) != (EMC_FREQ_SWITCH_COMPLETE << EMC_FREQ_SWITCH_STATUS_OFFSET)) {
-		value = __raw_readl((void __iomem *)CP_FLAGS_ADDR);
+		value = __raw_readl(CP_FLAGS_ADDR);
 		mdelay(2);
 		if(times >= 100) {
 			break;
 		}
 		times ++;
 	}
-	info("__emc_clk_set flag =  0x%08x , version flag = 0x%08x phy register = 0x%08x\n", __raw_readl((void __iomem *)CP_FLAGS_ADDR),__raw_readl((void __iomem *)(CP_FLAGS_ADDR - 4)), __raw_readl((void __iomem *)(SPRD_LPDDR2_PHY_BASE + 0x4)));
+	info("__emc_clk_set flag =  0x%08x , version flag = 0x%08x phy register = 0x%08x\n", __raw_readl(CP_FLAGS_ADDR),__raw_readl(CP_FLAGS_ADDR - 4), __raw_readl(SPRD_LPDDR2_PHY_BASE + 0x4));
 	udelay(200);
 }
 static void wait_cp_run(void)
 {
 	u32 val;
 	u32 times = 0;
-	val = __raw_readl((void __iomem *)(CP_FLAGS_ADDR - 4));
+	val = __raw_readl(CP_FLAGS_ADDR - 4);
 	while(val != 0x11223344/*cp run flag*/) {
 		mdelay(2);
-		val = __raw_readl((void __iomem *)(CP_FLAGS_ADDR - 4));
+		val = __raw_readl(CP_FLAGS_ADDR - 4);
 		times ++;
 		if(times >= 10) {
 			panic("wait_cp2_run timeout\n");
 		}
 	}
-	__raw_writel(0x44332211, (void __iomem *)(CP_FLAGS_ADDR - 4))/*for watchdog reset, so clear it*/;
+	__raw_writel(0x44332211, CP_FLAGS_ADDR - 4)/*for watchdog reset, so clear it*/;
 }
 #endif
 #ifdef EMC_FREQ_AUTO_TEST
 static u32 get_sys_cnt(void)
 {
-	return __raw_readl((void __iomem *)(SPRD_GPTIMER_BASE + 0x44));
+	return __raw_readl(SPRD_GPTIMER_BASE + 0x44);
 }
 #endif
 
@@ -248,7 +248,7 @@ static u32 __emc_clk_set(u32 clk, u32 sene, u32 dll_enable, u32 bps_200)
         __set_dpll_clk(332);
 	}
 #else
-	__raw_writel(flag, (void __iomem *)CP_FLAGS_ADDR);
+	__raw_writel(flag, CP_FLAGS_ADDR);
 
 	#ifdef CONFIG_SCX35_DMC_FREQ_CP0
 		sci_glb_set(SPRD_IPI_BASE,1 << 0);//send ipi interrupt to cp0
@@ -263,7 +263,7 @@ static u32 __emc_clk_set(u32 clk, u32 sene, u32 dll_enable, u32 bps_200)
 	#endif
 	close_cp();
 	info("__emc_clk_set clk = %d REG_AON_APB_DPLL_CFG = %x, PUBL_DLLGCR = %x\n",
-				clk, sci_glb_read(REG_AON_APB_DPLL_CFG, -1), __raw_readl((void __iomem *)(SPRD_LPDDR2_PHY_BASE + 0x04)));
+				clk, sci_glb_read(REG_AON_APB_DPLL_CFG, -1), __raw_readl(SPRD_LPDDR2_PHY_BASE + 0x04));
 #endif
 	if(emc_clk_get() != clk) {
 		info("clk set error, set clk = %d, get clk = %d, sence = %d\n", clk, emc_clk_get(), sene);
@@ -302,7 +302,6 @@ static u32 get_emc_clk_select(u32 clk)
  * flag = 0, close dpll
  */
 static u32 dpll_rel_cfg_bak = 0;
-#if defined (EMC_FREQ_AUTO_TEST) || defined(CONFIG_SCX35_DMC_FREQ_AP)
 static void __dpll_open(u32 flag)
 {
 	u32 reg;
@@ -319,7 +318,6 @@ static void __dpll_open(u32 flag)
 		sci_glb_clr(REG_PMU_APB_DPLL_REL_CFG, mask);
 	}
 }
-#endif
 u32 emc_clk_set(u32 new_clk, u32 sene)
 {
 	u32 dll_enable = EMC_DLL_SWITCH_ENABLE_MODE;
@@ -429,7 +427,7 @@ u32 emc_clk_set(u32 new_clk, u32 sene)
 		__emc_clk_set(new_clk, 0, dll_enable, 0);
 	}
 
-	printk("sys timer = 0x%08x, ap sys count = 0x%08x\n", __raw_readl((void __iomem *)(SPRD_SYSTIMER_CMP_BASE + 4)), __raw_readl((void __iomem *)(SPRD_SYSCNT_BASE + 0xc)));
+	printk("sys timer = 0x%08x, ap sys count = 0x%08x\n", __raw_readl(SPRD_SYSTIMER_CMP_BASE + 4), __raw_readl(SPRD_SYSCNT_BASE + 0xc));
 #endif
 	//mutex_unlock(&emc_mutex);
 	is_current_set --;
@@ -454,7 +452,7 @@ out:
 #else
 	mutex_unlock(&emc_mutex);
 #endif
-	info("__emc_clk_set REG_AON_APB_DPLL_CFG = %x, PUBL_DLLGCR = %x\n",sci_glb_read(REG_AON_APB_DPLL_CFG, -1), __raw_readl((void __iomem *)(SPRD_LPDDR2_PHY_BASE + 0x04)));
+	info("__emc_clk_set REG_AON_APB_DPLL_CFG = %x, PUBL_DLLGCR = %x\n",sci_glb_read(REG_AON_APB_DPLL_CFG, -1), __raw_readl(SPRD_LPDDR2_PHY_BASE + 0x04));
 	return 0;
 }
 EXPORT_SYMBOL(emc_clk_set);
@@ -555,10 +553,6 @@ static void emc_debugfs_creat(void)
 	debugfs_create_file("delay", S_IRUGO,
 			    debug_root, &emc_delay, &fops_emc_delay);
 }
-
-#if 0
-/* These functions are unused. To avoid warning they are placed under #if 0 - #endif.
-Remove this preprocessor condition to use these functions. */
 static void emc_earlysuspend(struct early_suspend *h)
 {
 #ifndef EMC_FREQ_AUTO_TEST
@@ -576,8 +570,6 @@ static struct early_suspend emc_early_suspend_desc = {
 	.suspend = emc_earlysuspend,
 	.resume = emc_late_resume,
 };
-#endif
-
 #ifdef EMC_FREQ_AUTO_TEST
 #ifdef CONFIG_SCX35_DMC_FREQ_DDR3
 static u32 emc_freq_valid_array[] = {
@@ -749,12 +741,13 @@ static void cp_init(void)
 }
 #endif
 
-#ifndef CONFIG_SPRD_SCX35_DMC_FREQ
+
 static int dmcfreq_pm_notifier_do(struct notifier_block *this,
 		unsigned long event, void *ptr)
 {
-	printk("*** %s, event:0x%lx ***\n", __func__, event );
- 
+	unsigned long irq_flags;
+	printk("*** %s, event:0x%x ***\n", __func__, event );
+
 	switch (event) {
 	case PM_SUSPEND_PREPARE:
 		/*
@@ -770,7 +763,7 @@ static int dmcfreq_pm_notifier_do(struct notifier_block *this,
 		emc_clk_set(max_clk, EMC_FREQ_NORMAL_SWITCH_SENE);   //nomarl tdpll192 -- dpll332
 		return NOTIFY_OK;
 	}
-	printk("*** %s, event:0x%lx done***\n", __func__, event );
+	printk("*** %s, event:0x%x done***\n", __func__, event );
 
 	return NOTIFY_DONE;
 }
@@ -778,13 +771,13 @@ static int dmcfreq_pm_notifier_do(struct notifier_block *this,
 static struct notifier_block dmcfreq_pm_notifier = {
 	.notifier_call = dmcfreq_pm_notifier_do,
 };
-#endif
+
 
 static int __init emc_early_suspend_init(void)
 {
 	dpll_rel_cfg_bak = sci_glb_read(REG_PMU_APB_DPLL_REL_CFG, -1);
 	max_clk = get_spl_emc_clk_set();
-	chip_id = __raw_readl((void __iomem *)REG_AON_APB_CHIP_ID);
+	chip_id = __raw_readl(REG_AON_APB_CHIP_ID);
 	__emc_timing_reg_init();
 #ifndef CONFIG_SCX35_DMC_FREQ_AP
 	cp_init();

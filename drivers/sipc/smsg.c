@@ -50,13 +50,13 @@ irqreturn_t smsg_irq_handler(int irq, void *dev_id)
 		ipc->rxirq_clear();
 	}
 
-	while (readl((void __iomem *)ipc->rxbuf_wrptr) != readl((void __iomem *)ipc->rxbuf_rdptr)) {
-		rxpos = (readl((void __iomem *)ipc->rxbuf_rdptr) & (ipc->rxbuf_size - 1)) *
+	while (readl(ipc->rxbuf_wrptr) != readl(ipc->rxbuf_rdptr)) {
+		rxpos = (readl(ipc->rxbuf_rdptr) & (ipc->rxbuf_size - 1)) *
 			sizeof (struct smsg) + ipc->rxbuf_addr;
 		msg = (struct smsg *)rxpos;
 
 		pr_debug("irq get smsg: wrptr=%d, rdptr=%d, rxpos=0x%08x\n",
-			readl((void __iomem *)ipc->rxbuf_wrptr), readl((void __iomem *)ipc->rxbuf_rdptr), rxpos);
+			readl(ipc->rxbuf_wrptr), readl(ipc->rxbuf_rdptr), rxpos);
 		pr_debug("irq read smsg: channel=%d, type=%d, flag=0x%04x, value=0x%08x\n",
 			msg->channel, msg->type, msg->flag, msg->value);
 		if(msg->type == SMSG_TYPE_DIE) {
@@ -64,7 +64,7 @@ irqreturn_t smsg_irq_handler(int irq, void *dev_id)
 				panic("CP Crash");
 			else {
 				/* update smsg rdptr */
-				writel(readl((void __iomem *)ipc->rxbuf_rdptr) + 1, (void __iomem *)ipc->rxbuf_rdptr);
+				writel(readl(ipc->rxbuf_rdptr) + 1, ipc->rxbuf_rdptr);
 
 				continue;
 			}
@@ -75,7 +75,7 @@ irqreturn_t smsg_irq_handler(int irq, void *dev_id)
 				msg->channel, msg->type, msg->flag, msg->value);
 
 			/* update smsg rdptr */
-			writel(readl((void __iomem *)ipc->rxbuf_rdptr) + 1, (void __iomem *)ipc->rxbuf_rdptr);
+			writel(readl(ipc->rxbuf_rdptr) + 1, ipc->rxbuf_rdptr);
 
 			continue;
 		}
@@ -94,27 +94,27 @@ irqreturn_t smsg_irq_handler(int irq, void *dev_id)
 					msg->channel, msg->type, msg->flag, msg->value);
 			}
 			/* update smsg rdptr */
-			writel(readl((void __iomem *)ipc->rxbuf_rdptr) + 1, (void __iomem *)ipc->rxbuf_rdptr);
+			writel(readl(ipc->rxbuf_rdptr) + 1, ipc->rxbuf_rdptr);
 
 			continue;
 		}
 
 		atomic_inc(&(ch->busy));
 
-		if ((int)(readl((void __iomem *)ch->wrptr) - readl((void __iomem *)ch->rdptr)) >= SMSG_CACHE_NR) {
+		if ((int)(readl(ch->wrptr) - readl(ch->rdptr)) >= SMSG_CACHE_NR) {
 			/* msg cache is full, drop this msg */
 			printk(KERN_ERR "smsg channel %d recv cache is full! "
 				"drop smsg: type=%d, flag=0x%04x, value=0x%08x\n",
 				msg->channel, msg->type, msg->flag, msg->value);
 		} else {
 			/* write smsg to cache */
-			wr = readl((void __iomem *)ch->wrptr) & (SMSG_CACHE_NR - 1);
+			wr = readl(ch->wrptr) & (SMSG_CACHE_NR - 1);
 			memcpy(&(ch->caches[wr]), msg, sizeof(struct smsg));
-			writel(readl((void __iomem *)ch->wrptr) + 1, (void __iomem *)ch->wrptr);
+			writel(readl(ch->wrptr) + 1, ch->wrptr);
 		}
 
 		/* update smsg rdptr */
-		writel(readl((void __iomem *)ipc->rxbuf_rdptr) + 1, (void __iomem *)ipc->rxbuf_rdptr);
+		writel(readl(ipc->rxbuf_rdptr) + 1, ipc->rxbuf_rdptr);
 
 		wake_up_interruptible_all(&(ch->rxwait));
 
@@ -336,15 +336,15 @@ int smsg_send(uint8_t dst, struct smsg *msg, int timeout)
 			msg->channel, msg->type, msg->flag, msg->value);
 
 	spin_lock_irqsave(&(ipc->txpinlock), flags);
-	if ((int)(readl((void __iomem *)ipc->txbuf_wrptr) -
-		readl((void __iomem *)ipc->txbuf_rdptr)) >= ipc->txbuf_size) {
+	if ((int)(readl(ipc->txbuf_wrptr) -
+		readl(ipc->txbuf_rdptr)) >= ipc->txbuf_size) {
 		printk(KERN_WARNING "smsg txbuf is full!\n");
 		rval = -EBUSY;
 		goto send_failed;
 	}
 
 	/* calc txpos and write smsg */
-	txpos = (readl((void __iomem *)ipc->txbuf_wrptr) & (ipc->txbuf_size - 1)) *
+	txpos = (readl(ipc->txbuf_wrptr) & (ipc->txbuf_size - 1)) *
 		sizeof(struct smsg) + ipc->txbuf_addr;
 	memcpy((void *)txpos, msg, sizeof(struct smsg));
 
@@ -357,11 +357,11 @@ int smsg_send(uint8_t dst, struct smsg *msg, int timeout)
 	}
 
 	pr_debug("write smsg: wrptr=%d, rdptr=%d, txpos=0x%08x\n",
-			readl((void __iomem *)ipc->txbuf_wrptr),
-			readl((void __iomem *)ipc->txbuf_rdptr), txpos);
+			readl(ipc->txbuf_wrptr),
+			readl(ipc->txbuf_rdptr), txpos);
 
 	/* update wrptr */
-	writel(readl((void __iomem *)ipc->txbuf_wrptr) + 1, (void __iomem *)ipc->txbuf_wrptr);
+	writel(readl(ipc->txbuf_wrptr) + 1, ipc->txbuf_wrptr);
 	ipc->txirq_trigger();
 
 send_failed:
@@ -401,7 +401,7 @@ int smsg_recv(uint8_t dst, struct smsg *msg, int timeout)
 		}
 
 		/* no wait */
-		if (readl((void __iomem *)ch->wrptr) == readl((void __iomem *)ch->rdptr)) {
+		if (readl(ch->wrptr) == readl(ch->rdptr)) {
 			printk(KERN_WARNING "smsg rx cache is empty!\n");
 			rval = -ENODATA;
 
@@ -411,7 +411,7 @@ int smsg_recv(uint8_t dst, struct smsg *msg, int timeout)
 		mutex_lock(&(ch->rxlock));
 		/* wait forever */
 		rval = wait_event_interruptible(ch->rxwait,
-				(readl((void __iomem *)ch->wrptr) != readl((void __iomem *)ch->rdptr)) ||
+				(readl(ch->wrptr) != readl(ch->rdptr)) ||
 				(ipc->states[msg->channel] == CHAN_STATE_FREE));
 		if (rval < 0) {
 			printk(KERN_WARNING "smsg_recv wait interrupted!\n");
@@ -429,7 +429,7 @@ int smsg_recv(uint8_t dst, struct smsg *msg, int timeout)
 		mutex_lock(&(ch->rxlock));
 		/* wait timeout */
 		rval = wait_event_interruptible_timeout(ch->rxwait,
-			(readl((void __iomem *)ch->wrptr) != readl((void __iomem *)ch->rdptr)) ||
+			(readl(ch->wrptr) != readl(ch->rdptr)) ||
 			(ipc->states[msg->channel] == CHAN_STATE_FREE), timeout);
 		if (rval < 0) {
 			printk(KERN_WARNING "smsg_recv wait interrupted!\n");
@@ -451,12 +451,12 @@ int smsg_recv(uint8_t dst, struct smsg *msg, int timeout)
 	}
 
 	/* read smsg from cache */
-	rd = readl((void __iomem *)ch->rdptr) & (SMSG_CACHE_NR - 1);
+	rd = readl(ch->rdptr) & (SMSG_CACHE_NR - 1);
 	memcpy(msg, &(ch->caches[rd]), sizeof(struct smsg));
-	writel(readl((void __iomem *)ch->rdptr) + 1, (void __iomem *)ch->rdptr);
+	writel(readl(ch->rdptr) + 1, ch->rdptr);
 
 	pr_debug("read smsg: wrptr=%d, rdptr=%d, rd=%d\n",
-			readl((void __iomem *)ch->wrptr), readl((void __iomem *)ch->rdptr), rd);
+			readl(ch->wrptr), readl(ch->rdptr), rd);
 	pr_debug("recv smsg: channel=%d, type=%d, flag=0x%04x, value=0x%08x\n",
 			msg->channel, msg->type, msg->flag, msg->value);
 
@@ -508,10 +508,10 @@ static int smsg_debug_show(struct seq_file *m, void *private)
 		seq_printf(m, "sipc: %s: \n", smsg_sipc->name);
 		seq_printf(m, "dst: 0x%0x, irq: 0x%0x\n",
 			   smsg_sipc->dst, smsg_sipc->irq);
-		seq_printf(m, "txbufAddr: 0x%0x, txbufsize: 0x%0x, txbufrdptr: [0x%0x]=%u, txbufwrptr: [0x%0x]=%u\n",
-			   smsg_sipc->txbuf_addr, smsg_sipc->txbuf_size, smsg_sipc->txbuf_rdptr, readl((void __iomem *)smsg_sipc->txbuf_rdptr), smsg_sipc->txbuf_wrptr, readl((void __iomem *)smsg_sipc->txbuf_wrptr));
-		seq_printf(m, "rxbufAddr: 0x%0x, rxbufsize: 0x%0x, rxbufrdptr: [0x%0x]=%u, rxbufwrptr: [0x%0x]=%u\n",
-			   smsg_sipc->rxbuf_addr, smsg_sipc->rxbuf_size, smsg_sipc->rxbuf_rdptr, readl((void __iomem *)smsg_sipc->rxbuf_rdptr), smsg_sipc->rxbuf_wrptr, readl((void __iomem *)smsg_sipc->rxbuf_wrptr));
+		seq_printf(m, "txbufAddr: 0x%0x, txbufsize: 0x%0x, txbufrdptr: [0x%0x]=%lu, txbufwrptr: [0x%0x]=%lu\n",
+			   smsg_sipc->txbuf_addr, smsg_sipc->txbuf_size, smsg_sipc->txbuf_rdptr, readl(smsg_sipc->txbuf_rdptr), smsg_sipc->txbuf_wrptr, readl(smsg_sipc->txbuf_wrptr));
+		seq_printf(m, "rxbufAddr: 0x%0x, rxbufsize: 0x%0x, rxbufrdptr: [0x%0x]=%lu, rxbufwrptr: [0x%0x]=%lu\n",
+			   smsg_sipc->rxbuf_addr, smsg_sipc->rxbuf_size, smsg_sipc->rxbuf_rdptr, readl(smsg_sipc->rxbuf_rdptr), smsg_sipc->rxbuf_wrptr, readl(smsg_sipc->rxbuf_wrptr));
 
 		for (j=0;  j<SMSG_CH_NR; j++) {
 			seq_printf(m, "channel[%d] states: %d\n", j, smsg_sipc->states[j]);

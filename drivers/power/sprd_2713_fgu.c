@@ -256,9 +256,9 @@ uint16_t voltage_capacity_table[][2] = {
 #define REG_SYST_VALUE                  (SPRD_SYSCNT_BASE + 0x0004)
 static u32 sci_syst_read(void)
 {
-	u32 t = __raw_readl((void __iomem *)REG_SYST_VALUE);
-	while (t != __raw_readl((void __iomem *)REG_SYST_VALUE))
-		t = __raw_readl((void __iomem *)REG_SYST_VALUE);
+	u32 t = __raw_readl(REG_SYST_VALUE);
+	while (t != __raw_readl(REG_SYST_VALUE))
+		t = __raw_readl(REG_SYST_VALUE);
 	return t;
 }
 
@@ -499,6 +499,7 @@ int sprdfgu_read_batcurrent(void)
 
 static int sprdfgu_read_vbat_ocv_pure(uint32_t * vol)
 {
+	u32 ocv_vol_raw;
 
 	if (sprdfgu_reg_get(REG_FGU_OCV_LAST_CNT) > SPRDFGU_OCV_VALID_TIME
 	    || sprdfgu_reg_get(REG_FGU_OCV_VAL) == 0) {
@@ -674,9 +675,7 @@ static void sprdfgu_cal_battery_impedance(void)
 uint32_t sprdfgu_read_capacity(void)
 {
 	int32_t voltage;
-#ifndef SPRDFGU_CAPACITY_FROM_VOL
 	int cap;
-#endif
 #ifdef SPRDFGU_CAPACITY_FROM_VOL
 	voltage = sprdfgu_read_vbat_ocv();
 	return sprdfgu_vol2capacity(voltage);

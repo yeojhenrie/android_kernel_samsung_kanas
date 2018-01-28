@@ -615,26 +615,26 @@ static struct notifier_block __clk_cpufreq_notifier_block = {
 
 int __init sci_clock_init(void)
 {
-	__raw_writel(__raw_readl((void __iomem *)REG_PMU_APB_PD_MM_TOP_CFG)
+	__raw_writel(__raw_readl(REG_PMU_APB_PD_MM_TOP_CFG)
 		     & ~(BIT_PD_MM_TOP_FORCE_SHUTDOWN),
-		     (void __iomem *)REG_PMU_APB_PD_MM_TOP_CFG);
+		     REG_PMU_APB_PD_MM_TOP_CFG);
 
-	__raw_writel(__raw_readl((void __iomem *)REG_PMU_APB_PD_GPU_TOP_CFG)
+	__raw_writel(__raw_readl(REG_PMU_APB_PD_GPU_TOP_CFG)
 		     & ~(BIT_PD_GPU_TOP_FORCE_SHUTDOWN),
-		     (void __iomem *)REG_PMU_APB_PD_GPU_TOP_CFG);
+		     REG_PMU_APB_PD_GPU_TOP_CFG);
 
-	__raw_writel(__raw_readl((void __iomem *)REG_AON_APB_APB_EB0) | BIT_MM_EB |
-		     BIT_GPU_EB, (void __iomem *)REG_AON_APB_APB_EB0);
+	__raw_writel(__raw_readl(REG_AON_APB_APB_EB0) | BIT_MM_EB |
+		     BIT_GPU_EB, REG_AON_APB_APB_EB0);
 
-	__raw_writel(__raw_readl((void __iomem *)REG_MM_AHB_AHB_EB) | BIT_MM_CKG_EB,
-		     (void __iomem *)REG_MM_AHB_AHB_EB);
+	__raw_writel(__raw_readl(REG_MM_AHB_AHB_EB) | BIT_MM_CKG_EB,
+		     REG_MM_AHB_AHB_EB);
 
-	__raw_writel(__raw_readl((void __iomem *)REG_MM_AHB_GEN_CKG_CFG)
+	__raw_writel(__raw_readl(REG_MM_AHB_GEN_CKG_CFG)
 		     | BIT_MM_MTX_AXI_CKG_EN | BIT_MM_AXI_CKG_EN,
-		     (void __iomem *)REG_MM_AHB_GEN_CKG_CFG);
+		     REG_MM_AHB_GEN_CKG_CFG);
 
-	__raw_writel(__raw_readl((void __iomem *)REG_MM_CLK_MM_AHB_CFG) | 0x3,
-		     (void __iomem *)REG_MM_CLK_MM_AHB_CFG);
+	__raw_writel(__raw_readl(REG_MM_CLK_MM_AHB_CFG) | 0x3,
+		     REG_MM_CLK_MM_AHB_CFG);
 #ifndef CONFIG_MACH_SPX15FPGA
 #if defined(CONFIG_DEBUG_FS)
 	clk_debugfs_root = debugfs_create_dir("sprd-clock", NULL);

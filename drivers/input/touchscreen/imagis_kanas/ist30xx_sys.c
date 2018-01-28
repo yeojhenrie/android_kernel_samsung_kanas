@@ -222,7 +222,6 @@ static void ts_power_enable(int en)
 
 
 	static struct regulator *ts_vdd = NULL;
-	int ret;
 
 	if (ts_vdd == NULL) {
 		ts_vdd = regulator_get(NULL, "vddsim2");
@@ -234,7 +233,7 @@ static void ts_power_enable(int en)
 	}
 	if (en) {
 		regulator_set_voltage(ts_vdd, 3000000, 3000000);
-		ret = regulator_enable(ts_vdd);
+		regulator_enable(ts_vdd);
 	}
 	else if (regulator_is_enabled(ts_vdd)) {
 		regulator_disable(ts_vdd);

@@ -204,7 +204,7 @@ static ssize_t key_show(struct device *dev, struct device_attribute *attr, char 
 	uint8_t default_press = 0x80;
 	int is_key_checked = 0;
 
-	keys_pressed = __raw_readl((void __iomem *)KPD_KEY_STATUS);
+	keys_pressed = __raw_readl(KPD_KEY_STATUS);
 	if(keys_pressed & default_press)
 		is_key_checked = sprintf(buf,"%s\n","PRESS");
 	else
@@ -238,27 +238,27 @@ static void dump_keypad_register(void)
 #define INT_EN                      (SPRD_INTC1_BASE + 0x0008)
 #define INT_DIS                     (SPRD_INTC1_BASE + 0x000C)
 
-	printk("\nREG_INT_MASK_STS = 0x%08x\n", __raw_readl((void __iomem *)INT_MASK_STS));
-	printk("REG_INT_RAW_STS = 0x%08x\n", __raw_readl((void __iomem *)INT_RAW_STS));
-	printk("REG_INT_EN = 0x%08x\n", __raw_readl((void __iomem *)INT_EN));
-	printk("REG_INT_DIS = 0x%08x\n", __raw_readl((void __iomem *)INT_DIS));
-	printk("REG_KPD_CTRL = 0x%08x\n", __raw_readl((void __iomem *)KPD_CTRL));
-	printk("REG_KPD_INT_EN = 0x%08x\n", __raw_readl((void __iomem *)KPD_INT_EN));
+	printk("\nREG_INT_MASK_STS = 0x%08x\n", __raw_readl(INT_MASK_STS));
+	printk("REG_INT_RAW_STS = 0x%08x\n", __raw_readl(INT_RAW_STS));
+	printk("REG_INT_EN = 0x%08x\n", __raw_readl(INT_EN));
+	printk("REG_INT_DIS = 0x%08x\n", __raw_readl(INT_DIS));
+	printk("REG_KPD_CTRL = 0x%08x\n", __raw_readl(KPD_CTRL));
+	printk("REG_KPD_INT_EN = 0x%08x\n", __raw_readl(KPD_INT_EN));
 	printk("REG_KPD_INT_RAW_STATUS = 0x%08x\n",
-	       __raw_readl((void __iomem *)KPD_INT_RAW_STATUS));
+	       __raw_readl(KPD_INT_RAW_STATUS));
 	printk("REG_KPD_INT_MASK_STATUS = 0x%08x\n",
-	       __raw_readl((void __iomem *)KPD_INT_MASK_STATUS));
-	printk("REG_KPD_INT_CLR = 0x%08x\n", __raw_readl((void __iomem *)KPD_INT_CLR));
-	printk("REG_KPD_POLARITY = 0x%08x\n", __raw_readl((void __iomem *)KPD_POLARITY));
+	       __raw_readl(KPD_INT_MASK_STATUS));
+	printk("REG_KPD_INT_CLR = 0x%08x\n", __raw_readl(KPD_INT_CLR));
+	printk("REG_KPD_POLARITY = 0x%08x\n", __raw_readl(KPD_POLARITY));
 	printk("REG_KPD_DEBOUNCE_CNT = 0x%08x\n",
-	       __raw_readl((void __iomem *)KPD_DEBOUNCE_CNT));
+	       __raw_readl(KPD_DEBOUNCE_CNT));
 	printk("REG_KPD_LONG_KEY_CNT = 0x%08x\n",
-	       __raw_readl((void __iomem *)KPD_LONG_KEY_CNT));
-	printk("REG_KPD_SLEEP_CNT = 0x%08x\n", __raw_readl((void __iomem *)KPD_SLEEP_CNT));
-	printk("REG_KPD_CLK_DIV_CNT = 0x%08x\n", __raw_readl((void __iomem *)KPD_CLK_DIV_CNT));
-	printk("REG_KPD_KEY_STATUS = 0x%08x\n", __raw_readl((void __iomem *)KPD_KEY_STATUS));
+	       __raw_readl(KPD_LONG_KEY_CNT));
+	printk("REG_KPD_SLEEP_CNT = 0x%08x\n", __raw_readl(KPD_SLEEP_CNT));
+	printk("REG_KPD_CLK_DIV_CNT = 0x%08x\n", __raw_readl(KPD_CLK_DIV_CNT));
+	printk("REG_KPD_KEY_STATUS = 0x%08x\n", __raw_readl(KPD_KEY_STATUS));
 	printk("REG_KPD_SLEEP_STATUS = 0x%08x\n",
-	       __raw_readl((void __iomem *)KPD_SLEEP_STATUS));
+	       __raw_readl(KPD_SLEEP_STATUS));
 }
 #else
 static void dump_keypad_register(void)
@@ -272,8 +272,8 @@ static irqreturn_t sci_keypad_isr(int irq, void *dev_id)
 {
 	unsigned long value;
 	struct sci_keypad_t *sci_kpd = dev_id;
-	unsigned long int_status = __raw_readl((void __iomem *)KPD_INT_MASK_STATUS);
-	unsigned long key_status = __raw_readl((void __iomem *)KPD_KEY_STATUS);
+	unsigned long int_status = __raw_readl(KPD_INT_MASK_STATUS);
+	unsigned long key_status = __raw_readl(KPD_KEY_STATUS);
 	unsigned short *keycodes = sci_kpd->input_dev->keycode;
 	unsigned int row_shift = get_count_order(sci_kpd->cols);
 	int col, row, i;
@@ -282,9 +282,9 @@ static irqreturn_t sci_keypad_isr(int irq, void *dev_id)
 		int status;
 	} key_info[KEY_INT_NUM] = {{0}};
 
-	value = __raw_readl((void __iomem *)KPD_INT_CLR);
+	value = __raw_readl(KPD_INT_CLR);
 	value |= KPD_INT_ALL;
-	__raw_writel(value, (void __iomem *)KPD_INT_CLR);
+	__raw_writel(value, KPD_INT_CLR);
 
 	for (i = 0; i < KEY_INT_NUM; i++) {
 		if (int_status & int_bit[i].int_mask) {
@@ -397,11 +397,11 @@ static int sci_keypad_probe(struct platform_device *pdev)
 
 	__keypad_enable();
 
-	__raw_writel(KPD_INT_ALL, (void __iomem *)KPD_INT_CLR);
-	__raw_writel(CFG_ROW_POLARITY | CFG_COL_POLARITY, (void __iomem *)KPD_POLARITY);
-	__raw_writel(1, (void __iomem *)KPD_CLK_DIV_CNT);
-	__raw_writel(0xc, (void __iomem *)KPD_LONG_KEY_CNT);
-	__raw_writel(0x5, (void __iomem *)KPD_DEBOUNCE_CNT);
+	__raw_writel(KPD_INT_ALL, KPD_INT_CLR);
+	__raw_writel(CFG_ROW_POLARITY | CFG_COL_POLARITY, KPD_POLARITY);
+	__raw_writel(1, KPD_CLK_DIV_CNT);
+	__raw_writel(0xc, KPD_LONG_KEY_CNT);
+	__raw_writel(0x5, KPD_DEBOUNCE_CNT);
 
 	sci_kpd->irq = platform_get_irq(pdev, 0);
 	if (sci_kpd->irq < 0) {
@@ -450,9 +450,9 @@ static int sci_keypad_probe(struct platform_device *pdev)
 	value = KPD_INT_DOWNUP;
 	if (pdata->support_long_key)
 		value |= KPD_INT_LONG;
-	__raw_writel(value, (void __iomem *)KPD_INT_EN);
+	__raw_writel(value, KPD_INT_EN);
 	value = KPD_SLEEP_CNT_VALUE(1000);
-	__raw_writel(value, (void __iomem *)KPD_SLEEP_CNT);
+	__raw_writel(value, KPD_SLEEP_CNT);
 
 	if (__keypad_controller_ver() == 0) {
 		if ((pdata->rows_choose_hw & ~KPDCTL_ROW_MSK_V0)
@@ -479,7 +479,7 @@ static int sci_keypad_probe(struct platform_device *pdev)
 	    rows_choose_hw | pdata->cols_choose_hw;
 	if (pdata->support_long_key)
 		value |= KPD_LONG_KEY_EN;
-	__raw_writel(value, (void __iomem *)KPD_CTRL);
+	__raw_writel(value, KPD_CTRL);
 
 	gpio_request(PB_INT, "powerkey");
 	gpio_direction_input(PB_INT);
@@ -525,10 +525,10 @@ static int sci_keypad_remove(struct
 	unsigned long value;
 	struct sci_keypad_t *sci_kpd = platform_get_drvdata(pdev);
 	/* disable sci keypad controller */
-	__raw_writel(KPD_INT_ALL, (void __iomem *)KPD_INT_CLR);
-	value = __raw_readl((void __iomem *)KPD_CTRL);
+	__raw_writel(KPD_INT_ALL, KPD_INT_CLR);
+	value = __raw_readl(KPD_CTRL);
 	value &= ~(1 << 0);
-	__raw_writel(value, (void __iomem *)KPD_CTRL);
+	__raw_writel(value, KPD_CTRL);
 
 	__keypad_disable();
 
@@ -551,25 +551,25 @@ static int sci_keypad_resume(struct platform_device *dev)
 	unsigned long value;
 
        __keypad_enable();
-	__raw_writel(KPD_INT_ALL, (void __iomem *)KPD_INT_CLR);
-	__raw_writel(CFG_ROW_POLARITY | CFG_COL_POLARITY, (void __iomem *)KPD_POLARITY);
-	__raw_writel(1, (void __iomem *)KPD_CLK_DIV_CNT);
-	__raw_writel(0xc, (void __iomem *)KPD_LONG_KEY_CNT);
-	__raw_writel(0x5, (void __iomem *)KPD_DEBOUNCE_CNT);
+	__raw_writel(KPD_INT_ALL, KPD_INT_CLR);
+	__raw_writel(CFG_ROW_POLARITY | CFG_COL_POLARITY, KPD_POLARITY);
+	__raw_writel(1, KPD_CLK_DIV_CNT);
+	__raw_writel(0xc, KPD_LONG_KEY_CNT);
+	__raw_writel(0x5, KPD_DEBOUNCE_CNT);
 
 	value = KPD_INT_DOWNUP;
 	if (pdata->support_long_key)
 		value |= KPD_INT_LONG;
-	__raw_writel(value, (void __iomem *)KPD_INT_EN);
+	__raw_writel(value, KPD_INT_EN);
 	value = KPD_SLEEP_CNT_VALUE(1000);
-	__raw_writel(value, (void __iomem *)KPD_SLEEP_CNT);
+	__raw_writel(value, KPD_SLEEP_CNT);
 
 	value =
 	    KPD_EN | KPD_SLEEP_EN | pdata->
 	    rows_choose_hw | pdata->cols_choose_hw;
 	if (pdata->support_long_key)
 		value |= KPD_LONG_KEY_EN;
-	__raw_writel(value, (void __iomem *)KPD_CTRL);
+	__raw_writel(value, KPD_CTRL);
 
 	return 0;
 }

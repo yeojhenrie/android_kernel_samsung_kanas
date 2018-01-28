@@ -146,25 +146,25 @@ static void parse_hard_irq(unsigned long val, unsigned long intc)
 
 void hard_irq_set(void)
 {
-	sprd_irqs_sts[0] = __raw_readl((void __iomem *)INT_IRQ_STS);
-	sprd_irqs_sts[1] = __raw_readl((void __iomem *)INT_FIQ_STS);
-	irq_status = __raw_readl((void __iomem *)INTCV0_IRQ_RAW);
+	sprd_irqs_sts[0] = __raw_readl(INT_IRQ_STS);
+	sprd_irqs_sts[1] = __raw_readl(INT_FIQ_STS);
+	irq_status = __raw_readl(INTCV0_IRQ_RAW);
 	parse_hard_irq(irq_status, 0);
-	irq_status = __raw_readl((void __iomem *)INTCV1_IRQ_RAW);
+	irq_status = __raw_readl(INTCV1_IRQ_RAW);
 	parse_hard_irq(irq_status, 1);
-	irq_status = __raw_readl((void __iomem *)INTCV2_IRQ_RAW);
+	irq_status = __raw_readl(INTCV2_IRQ_RAW);
 	parse_hard_irq(irq_status, 2);
-	irq_status = __raw_readl((void __iomem *)INTCV3_IRQ_RAW);
+	irq_status = __raw_readl(INTCV3_IRQ_RAW);
 	parse_hard_irq(irq_status, 3);
 }
 void print_int_status(void)
 {
-	printk("APB_EB 0x%08x\n", __raw_readl((void __iomem *)REG_AP_APB_APB_EB));
-	printk("INTC0 mask:0x%08x raw:0x%08x en:0x%08x\n", __raw_readl((void __iomem *)INTCV0_IRQ_MSKSTS),__raw_readl((void __iomem *)INTCV0_IRQ_RAW), __raw_readl((void __iomem *)INTCV0_IRQ_EN));
-	printk("INTC1 mask:0x%08x raw:0x%08x en:0x%08x\n", __raw_readl((void __iomem *)INTCV1_IRQ_MSKSTS),__raw_readl((void __iomem *)INTCV1_IRQ_RAW), __raw_readl((void __iomem *)INTCV1_IRQ_EN));
-	printk("INTC2 mask:0x%08x raw:0x%08x en:0x%08x\n", __raw_readl((void __iomem *)INTCV2_IRQ_MSKSTS),__raw_readl((void __iomem *)INTCV2_IRQ_RAW), __raw_readl((void __iomem *)INTCV2_IRQ_EN));
-	printk("INTC3 mask:0x%08x raw:0x%08x en:0x%08x\n", __raw_readl((void __iomem *)INTCV3_IRQ_MSKSTS),__raw_readl((void __iomem *)INTCV3_IRQ_RAW), __raw_readl((void __iomem *)INTCV3_IRQ_EN));
-	printk("INT mask:0x%08x raw:0x%08x en:0x%08x\n", __raw_readl((void __iomem *)INT_IRQ_STS),__raw_readl((void __iomem *)INT_IRQ_RAW), __raw_readl((void __iomem *)INT_IRQ_ENB));
+	printk("APB_EB 0x%08x\n", __raw_readl(REG_AP_APB_APB_EB));
+	printk("INTC0 mask:0x%08x raw:0x%08x en:0x%08x\n", __raw_readl(INTCV0_IRQ_MSKSTS),__raw_readl(INTCV0_IRQ_RAW), __raw_readl(INTCV0_IRQ_EN));
+	printk("INTC1 mask:0x%08x raw:0x%08x en:0x%08x\n", __raw_readl(INTCV1_IRQ_MSKSTS),__raw_readl(INTCV1_IRQ_RAW), __raw_readl(INTCV1_IRQ_EN));
+	printk("INTC2 mask:0x%08x raw:0x%08x en:0x%08x\n", __raw_readl(INTCV2_IRQ_MSKSTS),__raw_readl(INTCV2_IRQ_RAW), __raw_readl(INTCV2_IRQ_EN));
+	printk("INTC3 mask:0x%08x raw:0x%08x en:0x%08x\n", __raw_readl(INTCV3_IRQ_MSKSTS),__raw_readl(INTCV3_IRQ_RAW), __raw_readl(INTCV3_IRQ_EN));
+	printk("INT mask:0x%08x raw:0x%08x en:0x%08x\n", __raw_readl(INT_IRQ_STS),__raw_readl(INT_IRQ_RAW), __raw_readl(INT_IRQ_ENB));
 	printk("ANA INT mask:0x%08x raw:0x%08x en:0x%08x\n", sci_adi_read(ANA_REG_INT_MASK_STATUS), sci_adi_read(ANA_REG_INT_RAW_STATUS), sci_adi_read(ANA_REG_INT_EN));
 	printk("ANA EIC MODULE_EN 0x%08x eic bit(3)\n", sci_adi_read(ANA_REG_GLB_ARM_MODULE_EN));
 	printk("ANA EIC int en 0x%08x\n", sci_adi_read(ANA_CTL_EIC_BASE + 0x18));
@@ -306,8 +306,8 @@ void print_hard_irq_inloop(int ret)
 	if (sprd_hard_irq[35]) {
 		for(i=0; i<(GPIO_GROUP_NUM/2); i++){
 			j = 2*i;
-			gpio_irq[j]= __raw_readl((void __iomem *)(SPRD_GPIO_BASE + 0x100*i + REG_GPIO_MIS));
-			gpio_irq[j+1]= __raw_readl((void __iomem *)(SPRD_GPIO_BASE + 0x100*i + 0x80 + REG_GPIO_MIS));
+			gpio_irq[j]= __raw_readl(SPRD_GPIO_BASE + 0x100*i + REG_GPIO_MIS);
+			gpio_irq[j+1]= __raw_readl(SPRD_GPIO_BASE + 0x100*i + 0x80 + REG_GPIO_MIS);
 	//		printk("gpio_irq[%d]:0x%x, gpio_irq[%d]:0x%x \n", j, gpio_irq[j], j+1, gpio_irq[j+1]);
 		}
 		for(i=0; i<GPIO_GROUP_NUM; i++){
@@ -488,7 +488,7 @@ static void print_debug_info(void)
 	apb_pwrstatus1 = sci_glb_read(REG_PMU_APB_PWR_STATUS1_DBG, -1UL);
 	apb_pwrstatus2 = sci_glb_read(REG_PMU_APB_PWR_STATUS2_DBG, -1UL);
 	apb_pwrstatus3 = sci_glb_read(REG_PMU_APB_PWR_STATUS3_DBG, -1UL);
-	apb_slp_status = __raw_readl((void __iomem *)REG_PMU_APB_SLEEP_STATUS);
+	apb_slp_status = __raw_readl(REG_PMU_APB_SLEEP_STATUS);
 	mpll_cfg = sci_glb_read(REG_AON_APB_MPLL_CFG, -1UL);
 	dpll_cfg = sci_glb_read(REG_AON_APB_DPLL_CFG, -1UL);
 	emc_clk_cfg = sci_glb_read(REG_AON_CLK_EMC_CFG, -1UL);
@@ -666,7 +666,7 @@ static void debugfs_init(void)
 }
 static irqreturn_t sys_cnt_isr(int irq, void *dev_id)
 {
-	__raw_writel(8, (void __iomem *)SYSCNT_REG(0X8));
+	__raw_writel(8, SYSCNT_REG(0X8));
 	return IRQ_HANDLED;
 }
 void pm_debug_init(void)
@@ -702,8 +702,8 @@ void pm_debug_set_wakeup_timer(void)
 {
 	u32 val = get_sys_cnt();
 	val = val + 5000;
-	__raw_writel(val, (void __iomem *)SYSCNT_REG(0) );
-	__raw_writel(1, (void __iomem *)SYSCNT_REG(0X8) );
+	__raw_writel(val, SYSCNT_REG(0) );
+	__raw_writel(1, SYSCNT_REG(0X8) );
 }
 #define WDG_BASE		(ANA_WDG_BASE)
 #define SPRD_ANA_BASE		(ANA_CTL_GLB_BASE)
@@ -831,27 +831,23 @@ static gpio_pinmap_t gpio_pinmap_table[] = {
 //sumit
 static void dvs_d_set_bits(uint32_t bits, uint32_t addr)
 {
-        __raw_writel(__raw_readl((void __iomem *)addr) | bits, (void __iomem *)addr);
+        __raw_writel(__raw_readl(addr) | bits, addr);
 }
 
 static void dvs_d_clr_bits(uint32_t bits, uint32_t addr)
 {
-        __raw_writel(__raw_readl((void __iomem *)addr) & ~bits, (void __iomem *)addr);
+        __raw_writel(__raw_readl(addr) & ~bits, addr);
 }
 
 static uint32_t dvs_d_read_reg(uint32_t addr)
 {
-        return __raw_readl((void __iomem *)addr);
+        return __raw_readl(addr);
 }
 
-#if 0
-/* This function is unused. To avoid warning it placed under #if 0 - #endif.
-Remove this preprocessor condition to use this function*/
 static void dvs_d_write_reg(uint32_t value, uint32_t addr)
 {
-        __raw_writel(value, (void __iomem *)addr);
+        __raw_writel(value, addr);
 }
-#endif
 
 static int dvs_gpio_read(unsigned int gpio_num, uint32_t reg)
 {
@@ -923,16 +919,16 @@ void sprd_get_gpio_info(unsigned int gpio_num,
 	if (reg > CTL_PIN_BASE ) {
 
 		if (phonestate == PHONE_INIT)
-			v = (__raw_readl((void __iomem *)reg) &  BITS_PIN_PULL_MASK) >> 6;
+			v = (__raw_readl(reg) &  BITS_PIN_PULL_MASK) >> 6;
 		else
-			v = (__raw_readl((void __iomem *)reg) &  BITS_PIN_PULL_SLEEP_MASK) >> 2;
+			v = (__raw_readl(reg) &  BITS_PIN_PULL_SLEEP_MASK) >> 2;
 
 		*pull = v;
 
-		v = (__raw_readl((void __iomem *)reg) & BITS_PIN_FUNC_MASK) >> 4;
+		v = (__raw_readl(reg) & BITS_PIN_FUNC_MASK) >> 4;
 		*func = v;
 
-		v = (__raw_readl((void __iomem *)reg) & BITS_PIN_DS_MASK) >> 8;
+		v = (__raw_readl(reg) & BITS_PIN_DS_MASK) >> 8;
 		*driver_strength = v;
 
 		if (*func == 3/* gpio pin */) {
@@ -948,7 +944,7 @@ void sprd_get_gpio_info(unsigned int gpio_num,
 				dvs_gpio_write(gpio_num,REG_GPIO_DMSK, 1);
 			}
 
-			v = (__raw_readl((void __iomem *)reg) & GPIO_GROUP_MASK);
+			v = (__raw_readl(reg) & GPIO_GROUP_MASK);
 			if (!dmsk) {
 				// it really has risk doing following action, i think you can keep previous DMSK setting
 				// dvs_gpio_write(gpio_num,REG_GPIO_DMSK, 0);
@@ -960,7 +956,7 @@ void sprd_get_gpio_info(unsigned int gpio_num,
 			reg = CTL_GPIO_BASE + GPIO_GROUP_OFFSET * (gpio_num/GPIO_GROUP_NR)
 				+ REG_GPIO_DIR;
 
-			v = (__raw_readl((void __iomem *)reg) & GPIO_GROUP_MASK);
+			v = (__raw_readl(reg) & GPIO_GROUP_MASK);
 			v >>=  (gpio_num & (GPIO_GROUP_NR -1));
 			v &= 0x1;
 			*direction = v;

@@ -117,8 +117,8 @@ enum {
 };
 
 #define GET_PGA_ID(x)   ((x)-SPRD_CODEC_PGA_START)
-#define SPRD_CODEC_PGA_SIZE  (SPRD_CODEC_PGA_END - SPRD_CODEC_PGA_START)
-static const char *sprd_codec_pga_debug_str[SPRD_CODEC_PGA_SIZE] = {
+#define SPRD_CODEC_PGA_MAX  (SPRD_CODEC_PGA_END - SPRD_CODEC_PGA_START)
+static const char *sprd_codec_pga_debug_str[SPRD_CODEC_PGA_MAX] = {
 	"SPKL",
 	"SPKR",
 	"HPL",
@@ -350,7 +350,7 @@ struct sprd_codec_priv {
 	int ad_sample_val;
 	int ad1_sample_val;
 	struct sprd_codec_mixer mixer[SPRD_CODEC_MIXER_MAX];
-	struct sprd_codec_pga_op pga[SPRD_CODEC_PGA_SIZE];
+	struct sprd_codec_pga_op pga[SPRD_CODEC_PGA_MAX];
 	int mic_bias[SPRD_CODEC_MIC_BIAS_MAX];
 
 	int ap_irq;
@@ -677,7 +677,7 @@ static int sprd_codec_pga_ailr_set(struct snd_soc_codec *codec, int pgaval)
 	return snd_soc_update_bits(codec, SOC_REG(reg), 0x03, val);
 }
 
-static struct sprd_codec_pga sprd_codec_pga_cfg[SPRD_CODEC_PGA_SIZE] = {
+static struct sprd_codec_pga sprd_codec_pga_cfg[SPRD_CODEC_PGA_MAX] = {
 	{sprd_codec_pga_spk_set, 0},
 	{sprd_codec_pga_spkr_set, 0},
 	{sprd_codec_pga_hpl_set, 0},

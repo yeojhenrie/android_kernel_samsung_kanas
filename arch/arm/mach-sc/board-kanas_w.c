@@ -664,33 +664,6 @@ static int sec_bat_adc_ic_read(unsigned int channel) { return 0; }
 	{3782 , -150}, /* -15 */
 	{3887, -200},    /* -20 */
  };
-  static const sec_bat_adc_table_data_t temp_table2[] = {
-	{894 , 700}, /* 70 */
-	{981 , 670}, /* 67 */
-	{1041 , 650}, /* 65 */
-	{1080 , 630}, /* 63 */
-	{1181 , 600}, /* 60 */
-	{1329 , 550}, /* 55 */
-	{1514 , 500}, /* 50 */
-	{1675 , 460}, /* 46 */
-	{1694 , 450}, /* 45 */
-	{1744 , 430}, /* 43 */
-	{1817 , 400}, /* 40 */
-	{1972 , 350}, /* 35 */
-	{2180 , 300}, /* 30 */
-	{2373 , 250}, /* 25 */
-	{2707 , 200}, /* 20 */
-	{2882 , 150}, /* 15 */
-	{3069 , 100}, /* 10 */
-	{3260 , 50}, /* 5 */
-	{3323 , 20}, /* 2 */
-	{3372 , 0}, /* 0 */
-	{3426 , -20}, /* -2 */
-	{3495 , -50}, /* -5 */
-	{3550 , -70}, /* -7 */
-	{3690 , -150}, /* -15 */
-	{3755, -200},    /* -20 */
- };
 #else
 static const sec_bat_adc_table_data_t temp_table[] = {
                 { 159,   800 },
@@ -993,7 +966,7 @@ struct rt5033_mfd_platform_data sc88xx_rt5033_info = {
 #endif
 
 #ifdef CONFIG_REGULATOR_RT5033
-	.regulator_platform_data = (struct rt5033_regulator_platform_data *)&rv_pdata,
+	.regulator_platform_data = &rv_pdata,
 #endif
 };
 
@@ -1037,7 +1010,6 @@ static struct platform_device rt8973_mfd_device_i2cadaptor = {
 
 extern void dwc_udc_startup(void);
 extern void dwc_udc_shutdown(void);
-/*
 static void usb_cable_detect_callback(uint8_t attached)
 {
 	if (attached)
@@ -1045,7 +1017,7 @@ static void usb_cable_detect_callback(uint8_t attached)
 	else
 		dwc_udc_shutdown();
 }
-*/
+
 #include <linux/mfd/rt8973.h>
 static struct rt8973_platform_data rt8973_pdata = {
     .irq_gpio = GPIO_MUIC_IRQ,
@@ -1347,7 +1319,7 @@ static int gps_enable_control(int flag)
                                    return EIO;
                       } else {
                                    regulator_set_voltage(gps_regulator, 1800000, 1800000);
-                                   f_enabled = regulator_enable(gps_regulator);
+                                   regulator_enable(gps_regulator);
                       }
                       f_enabled = 1;
         }
@@ -1482,11 +1454,10 @@ static ssize_t sirf_read_proc(struct file *filp,
 {
 	char page[SIRF_STATUS_LEN]= {0};
 	int len = strlen(sirf_status);
-	unsigned long ret;
 
 	sprintf(page, "%s\n", sirf_status);
-	ret = copy_to_user(buff,page,len + 1);
-	return len + 1; /* fix me */
+	copy_to_user(buff,page,len + 1);
+	return len + 1;
 }
 
 static ssize_t sirf_write_proc(struct file *filp,
@@ -2038,34 +2009,10 @@ static int sc8810_add_i2c_devices(void)
 #ifdef CONFIG_MFD_RT8973
 	i2c_register_board_info(7, rtmuic_i2c_boardinfo, ARRAY_SIZE(rtmuic_i2c_boardinfo));
 #endif
-	if (system_rev >= 0x06) {
-		sec_battery_pdata.temp_adc_table = temp_table2;
-		sec_battery_pdata.temp_adc_table_size =
-			sizeof(temp_table2)/sizeof(sec_bat_adc_table_data_t);
-		sec_battery_pdata.temp_amb_adc_table = temp_table2;
-		sec_battery_pdata.temp_amb_adc_table_size =
-			sizeof(temp_table2)/sizeof(sec_bat_adc_table_data_t);
-
-		sec_battery_pdata.temp_high_threshold_event = 600;
-	       sec_battery_pdata.temp_high_recovery_event = 470;
-		sec_battery_pdata.temp_low_threshold_event = -50;
-		sec_battery_pdata.temp_low_recovery_event = 0;
-	       sec_battery_pdata.temp_high_threshold_normal = 600;
-	       sec_battery_pdata.temp_high_recovery_normal = 470;
-	       sec_battery_pdata.temp_low_threshold_normal = -50;
-	       sec_battery_pdata.temp_low_recovery_normal = 0;
-	       sec_battery_pdata.temp_high_threshold_lpm = 600;
-	       sec_battery_pdata.temp_high_recovery_lpm = 470;
-	       sec_battery_pdata.temp_low_threshold_lpm = -50;
-	       sec_battery_pdata.temp_low_recovery_lpm = 0;
-	}
 #endif
 	return 0;
 }
 
-#if 0
-/* This function is unused. To avoid warning it is placed under #if 0 - #endif.
-Remove this preprocessor condition to use this function*/
 static int customer_ext_headphone_ctrl(int id, int on)
 {
 	static bool is_init = false;
@@ -2097,7 +2044,6 @@ static int customer_ext_headphone_ctrl(int id, int on)
 
 	return HOOK_OK;
 }
-#endif
 
 static int sc8810_add_misc_devices(void)
 {
@@ -2174,7 +2120,7 @@ int __init __clock_init_early(void)
 
 static unsigned int __sci_get_chip_id(void)
 {
-	return __raw_readl((void __iomem *)CHIP_ID_LOW_REG);
+	return __raw_readl(CHIP_ID_LOW_REG);
 }
 #ifdef CONFIG_MACH_SHARK
 static struct platform_ktd253b_backlight_data ktd253b_data = {
@@ -2269,6 +2215,7 @@ static void __init sc8830_init_machine(void)
     if (IS_ERR(sec_class)) {
         pr_err("Failed to create class(sec)!\n");
 		printk("Failed create class \n");
+        return PTR_ERR(sec_class);
 	}
 // GPS for marvell
 #ifdef CONFIG_PROC_FS

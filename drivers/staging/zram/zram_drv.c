@@ -713,9 +713,7 @@ unsigned int zram_get_num_devices(void)
 static int __init zram_init(void)
 {
 	int ret, dev_id;
-#ifdef CONFIG_LZO_HW_ALGO
 	unsigned int chip_id;
-#endif
 
 	if (num_devices > max_num_devices) {
 		pr_warn("Invalid value for num_devices: %u\n",

@@ -203,7 +203,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	int other_file;
 	unsigned long nr_to_scan = sc->nr_to_scan;
 
-#if defined(CONFIG_ZRAM) && !defined(CONFIG_RUNTIME_COMPCACHE)
+#ifdef CONFIG_ZRAM
 	short zram_score_adj = 0;
 #endif
 

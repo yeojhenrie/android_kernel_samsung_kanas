@@ -46,6 +46,9 @@
 #include <asm/virt.h>
 #include <asm/mach/arch.h>
 
+#ifdef CONFIG_SPRD_DEBUG
+#include <mach/sprd_debug.h>
+#endif
 #ifdef CONFIG_SEC_DEBUG_SCHED_LOG
 #include <mach/sec_debug.h>
 #endif
@@ -665,6 +668,10 @@ void handle_IPI(int ipinr, struct pt_regs *regs)
 	if (ipinr < NR_IPI)
 		__inc_irq_stat(cpu, ipi_irqs[ipinr]);
 
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_debug_irq_log(ipinr, do_IPI, 1);
+#endif
+
 #ifdef CONFIG_SEC_DEBUG_SCHED_LOG
 	sec_debug_irq_log(ipinr, do_IPI, 1);
 #endif
@@ -715,6 +722,10 @@ void handle_IPI(int ipinr, struct pt_regs *regs)
 		       cpu, ipinr);
 		break;
 	}
+
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_debug_irq_log(ipinr, do_IPI, 2);
+#endif
 
 #ifdef CONFIG_SEC_DEBUG_SCHED_LOG
 	sec_debug_irq_log(ipinr, do_IPI, 2);

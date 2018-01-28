@@ -429,6 +429,8 @@ static ssize_t show_enable(struct device *dev, struct device_attribute *attr,
 static ssize_t store_freq(struct device *dev, struct device_attribute *attr,
 		const char *buf, size_t count)
 {
+	struct devfreq *devfreq = to_devfreq(dev);
+	struct userspace_data *data;
 	unsigned long wanted;
 	int err = 0;
 
@@ -508,7 +510,6 @@ out:
 	return err;
 }
 
-/*
 static int devfreq_ondemand_stop(struct devfreq *devfreq)
 {
 	int err = 0;
@@ -519,7 +520,6 @@ static int devfreq_ondemand_stop(struct devfreq *devfreq)
 	return err;
 
 }
-*/
 /************ userspace interface *****************/
 
 static int devfreq_ondemand_func(struct devfreq *df,
@@ -557,7 +557,7 @@ static int devfreq_ondemand_func(struct devfreq *df,
 			if(user_requests.ddr_freq_after_req == 0)
 				user_requests.ddr_freq_after_req = max;
 			*freq = (data->set_freq?data->set_freq:user_requests.ddr_freq_after_req);
-			pr_debug("*** %s, data->enable:%d, data->set_freq:%lu, gov_eb:%d ***\n",
+			pr_debug("*** %s, data->enable:%d, data->set_freq:%u, gov_eb:%d ***\n",
 				__func__, data->enable, data->set_freq, gov_eb );
 			return 0;
 		}
@@ -677,7 +677,7 @@ const struct devfreq_governor devfreq_ondemand = {
 
 static int __init devfreq_ondemand_init(void)
 {
-	return devfreq_add_governor((struct devfreq_governor *)&devfreq_ondemand);
+	return devfreq_add_governor(&devfreq_ondemand);
 }
 subsys_initcall(devfreq_ondemand_init);
 
@@ -685,7 +685,7 @@ static void __exit devfreq_ondemand_exit(void)
 {
 	int ret;
 
-	ret = devfreq_remove_governor((struct devfreq_governor *)&devfreq_ondemand);
+	ret = devfreq_remove_governor(&devfreq_ondemand);
 	if (ret)
 		pr_err("%s: failed remove governor %d\n", __func__, ret);
 

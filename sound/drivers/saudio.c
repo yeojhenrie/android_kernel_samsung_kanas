@@ -210,6 +210,7 @@ static int saudio_snd_card_free(const struct snd_saudio *saudio);
 static int saudio_clear_cmd(uint32_t dst, uint32_t channel)
 {
 	int result = 0;
+	int i = 0;
 	struct sblock blk = { 0 };
 	do {
 		result = sblock_receive(dst, channel,  (struct sblock *)&blk, 0);
@@ -376,13 +377,13 @@ static int snd_card_saudio_pcm_open(struct snd_pcm_substream *substream)
 	struct saudio_dev_ctrl *dev_ctrl = NULL;
 	ADEBUG();
 
-	mutex_lock((struct mutex *)&saudio->mutex);
+	mutex_lock(&saudio->mutex);
 	if(!saudio->state) {
-		mutex_unlock((struct mutex *)&saudio->mutex);
+		mutex_unlock(&saudio->mutex);
 		printk("saudio.c: snd_pcm_open error saudio state %d\n",saudio->state);
 		return -EIO;
 	}
-	mutex_unlock((struct mutex *)&saudio->mutex);
+	mutex_unlock(&saudio->mutex);
 
 	pr_info("%s IN, stream_id=%d\n", __func__, stream_id);
 	dev_ctrl = (struct saudio_dev_ctrl *)&(saudio->dev_ctrl[dev]);
@@ -436,13 +437,13 @@ static int snd_card_saudio_pcm_close(struct snd_pcm_substream *substream)
 	struct saudio_dev_ctrl *dev_ctrl = NULL;
 	int result = 0;
 	ADEBUG();
-	mutex_lock((struct mutex *)&saudio->mutex);
+	mutex_lock(&saudio->mutex);
 	if(!saudio->state) {
-		mutex_unlock((struct mutex *)&saudio->mutex);
+		mutex_unlock(&saudio->mutex);
 		printk("saudio.c: snd_pcm_close error saudio state %d\n",saudio->state);
 		return -EIO;
 	}
-	mutex_unlock((struct mutex *)&saudio->mutex);
+	mutex_unlock(&saudio->mutex);
 	dev_ctrl = (struct saudio_dev_ctrl *)&(saudio->dev_ctrl[dev]);
 	pr_info("%s IN, stream_id=%d,dst %d, channel %d\n", __func__, stream_id,
 		dev_ctrl->dst, dev_ctrl->channel);
@@ -555,13 +556,13 @@ static int snd_card_saudio_pcm_prepare(struct snd_pcm_substream *substream)
 	int result = 0;
 
 	ADEBUG();
-	mutex_lock((struct mutex *)&saudio->mutex);
+	mutex_lock(&saudio->mutex);
 	if(!saudio->state) {
-		mutex_unlock((struct mutex *)&saudio->mutex);
+		mutex_unlock(&saudio->mutex);
 		printk("saudio.c: snd_pcm_prepare error saudio state %d\n",saudio->state);
 		return -EIO;
 	}
-	mutex_unlock((struct mutex *)&saudio->mutex);
+	mutex_unlock(&saudio->mutex);
 	pr_info("%s IN, stream_id=%d\n", __func__, stream_id);
 	dev_ctrl = (struct saudio_dev_ctrl *)&(saudio->dev_ctrl[dev]);
 	msg.command = SAUDIO_CMD_PREPARE;
@@ -1244,7 +1245,7 @@ static void saudio_work_card_free_handler(struct work_struct *data)
 	printk(KERN_INFO "saudio: card free handler in\n");
 
 	if (saudio->card) {
-		int result = 0;
+		int result;
 		printk(KERN_INFO
 		       "saudio: work_handler:snd card free in,dst %d, channel %d\n",
 		       saudio->dst, saudio->channel);
@@ -1252,7 +1253,7 @@ static void saudio_work_card_free_handler(struct work_struct *data)
 		saudio->state = 0;
 		mutex_unlock(&saudio->mutex);
 		if (!saudio->in_init)
-			result = saudio_send_common_cmd(saudio->dst, saudio->channel, 0,
+			saudio_send_common_cmd(saudio->dst, saudio->channel, 0,
 					       SAUDIO_CMD_HANDSHAKE, -1);
 		printk(KERN_INFO
 		       "saudio: work_handler:snd card free reulst %d,dst %d, channel %d\n",

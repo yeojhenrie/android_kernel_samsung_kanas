@@ -296,12 +296,10 @@ static int scxx30_dmc_target(struct device *dev, unsigned long *_freq,
 	unsigned long freq = opp_get_freq(opp);
 	unsigned long old_freq = emc_clk_get()*1000 ;
 	unsigned char cp_req;
-#ifdef CONFIG_SCX35_DMC_FREQ_AP
 	unsigned long spinlock_flags;
-#endif
 	unsigned long range = msecs_to_jiffies(SCXX30_POLLING_MS)/5;
 
-	if(time_before(jiffies, (unsigned long)boot_done)){
+	if(time_before(jiffies, boot_done)){
 		return 0;
 	}
 
@@ -498,10 +496,8 @@ static int scxx30_dmcfreq_pm_notifier(struct notifier_block *this,
 	struct dmcfreq_data *data = container_of(this, struct dmcfreq_data,
 						 pm_notifier);
 
-#ifdef CONFIG_SCX35_DMC_FREQ_AP
 	unsigned long flags;
-#endif
-	printk("*** %s, event:0x%lx ***\n", __func__, event );
+	printk("*** %s, event:0x%x ***\n", __func__, event );
 
 	switch (event) {
 	case PM_SUSPEND_PREPARE:
@@ -552,7 +548,7 @@ static irqreturn_t scxx30_cp0_irq_handler(int irq, void *data)
 {
 	struct dmcfreq_data *usr = (struct dmcfreq_data *)data;
 	scxx30_set_max(usr);
-	__raw_writel(CP0_AP_MCU_IRQ1_CLR, (void __iomem *)CP2AP_INT_CTRL);
+	__raw_writel(CP0_AP_MCU_IRQ1_CLR, CP2AP_INT_CTRL);
 
 	return IRQ_HANDLED;
 }
@@ -562,7 +558,7 @@ static irqreturn_t scxx30_cp1_irq_handler(int irq, void *data)
 
 	struct dmcfreq_data *usr = (struct dmcfreq_data *)data;
 	scxx30_set_max(usr);
-	__raw_writel(CP1_AP_MCU_IRQ1_CLR, (void __iomem *)CP2AP_INT_CTRL);
+	__raw_writel(CP1_AP_MCU_IRQ1_CLR, CP2AP_INT_CTRL);
 
 	return IRQ_HANDLED;
 }
@@ -670,8 +666,8 @@ static int scxx30_dmcfreq_probe(struct platform_device *pdev)
 err_map:
 #ifdef CONFIG_SIPC_TD
 	iounmap(data->cpt_share_mem_base);
-err_irq:
 #endif
+err_irq:
 	free_irq(IRQ_CP1_MCU1_INT, data);
 err_cp1_irq:
 	free_irq(IRQ_CP0_MCU1_INT, data);

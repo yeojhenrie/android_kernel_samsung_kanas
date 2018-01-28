@@ -255,9 +255,9 @@ void machine_shutdown(void)
  */
 void machine_halt(void)
 {
+	local_irq_disable();
 	smp_send_stop();
 
-	local_irq_disable();
 	while (1);
 }
 
@@ -269,6 +269,7 @@ void machine_halt(void)
  */
 void machine_power_off(void)
 {
+	local_irq_disable();
 	smp_send_stop();
 
 	if (pm_power_off)
@@ -288,6 +289,7 @@ void machine_power_off(void)
  */
 void machine_restart(char *cmd)
 {
+	local_irq_disable();
 	smp_send_stop();
 
 	/* Flush the console to make sure all the relevant messages make it
@@ -301,7 +303,7 @@ void machine_restart(char *cmd)
 
 	/* Whoops - the platform was unable to reboot. Tell the user! */
 	printk("Reboot failed -- System halted\n");
-	local_irq_disable();
+
 	while (1);
 }
 

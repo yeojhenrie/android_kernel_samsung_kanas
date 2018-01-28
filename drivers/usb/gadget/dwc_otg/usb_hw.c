@@ -111,14 +111,8 @@ void usb_phy_init(void)
 {
 #ifdef CONFIG_USB_CORE_IP_293A
 #if defined(CONFIG_ARCH_SCX35)
-	/* USB_PHY_TUNE value for KanasW (default is 0x4407 3133)
-	*  TXRESTUNE is 0x1
-	*  TXHSXVTUNE is 0x2
-	*  TXVREFTUNE is 0xc
-	*  TXPREEMPAMPTUNE is 0x0
-	*  TXRISETUNE is 0x1
-	*  SQRXTUNE is 0x3 */
-	__raw_writel(0x4406c133,REG_AP_APB_USB_PHY_TUNE);
+	/*shark and dolphin are the same value with SPRD ref phone*/
+	__raw_writel(0x44073e33,REG_AP_APB_USB_PHY_TUNE);
 
 	//sci_glb_set(REG_AP_APB_USB_PHY_TUNE,BIT(9)|BIT(10)|BIT(11)|BIT(20));
 #else

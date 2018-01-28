@@ -127,8 +127,6 @@ static struct mm_reg_bak mm_reg_saved;
  * bit_4 : ap sys
  * bit_5 : dcdc arm
 */
-
-#if defined(CONFIG_ARCH_SCX15)
 static  struct auto_pd_en pd_config = {
 	0x6a6aa6a6, 0x3f,0xa6a66a6a,
 	.pd_config_menu = {
@@ -140,7 +138,6 @@ static  struct auto_pd_en pd_config = {
 	"dcdc_arm",
 	},
 };
-#endif
 
 /*
  * we just conigure the auto_pd_en property for parts of  power domain, ldo  here
@@ -676,45 +673,45 @@ uint32_t ddr_chn_sleep_ctrl0, ddr_chn_sleep_ctrl1;
 #endif
 void bak_last_reg(void)
 {
-	pd_pub_sys = __raw_readl((void __iomem *)REG_PMU_APB_PD_PUB_SYS_CFG);
-	cp_slp_status_dbg0 = __raw_readl((void __iomem *)REG_PMU_APB_CP_SLP_STATUS_DBG0);
-	cp_slp_status_dbg1 = __raw_readl((void __iomem *)REG_PMU_APB_CP_SLP_STATUS_DBG1);
-	pwr_stat0 = __raw_readl((void __iomem *)REG_PMU_APB_PWR_STATUS0_DBG);
-	pwr_stat1 = __raw_readl((void __iomem *)REG_PMU_APB_PWR_STATUS1_DBG);
-	pwr_stat2 = __raw_readl((void __iomem *)REG_PMU_APB_PWR_STATUS2_DBG);
-	pwr_stat3 = __raw_readl((void __iomem *)REG_PMU_APB_PWR_STATUS3_DBG);
-	sleep_ctrl = __raw_readl((void __iomem *)REG_PMU_APB_SLEEP_CTRL);
-	ddr_sleep_ctrl = __raw_readl((void __iomem *)REG_PMU_APB_DDR_SLEEP_CTRL);
-	sleep_status = __raw_readl((void __iomem *)REG_PMU_APB_SLEEP_STATUS);
+	pd_pub_sys = __raw_readl(REG_PMU_APB_PD_PUB_SYS_CFG);
+	cp_slp_status_dbg0 = __raw_readl(REG_PMU_APB_CP_SLP_STATUS_DBG0);
+	cp_slp_status_dbg1 = __raw_readl(REG_PMU_APB_CP_SLP_STATUS_DBG1);
+	pwr_stat0 = __raw_readl(REG_PMU_APB_PWR_STATUS0_DBG);
+	pwr_stat1 = __raw_readl(REG_PMU_APB_PWR_STATUS1_DBG);
+	pwr_stat2 = __raw_readl(REG_PMU_APB_PWR_STATUS2_DBG);
+	pwr_stat3 = __raw_readl(REG_PMU_APB_PWR_STATUS3_DBG);
+	sleep_ctrl = __raw_readl(REG_PMU_APB_SLEEP_CTRL);
+	ddr_sleep_ctrl = __raw_readl(REG_PMU_APB_DDR_SLEEP_CTRL);
+	sleep_status = __raw_readl(REG_PMU_APB_SLEEP_STATUS);
 
 #if defined(CONFIG_ARCH_SCX15)
-	xtl0_rel_cfg = __raw_readl((void __iomem *)REG_PMU_APB_XTL0_REL_CFG);
-	xtl1_rel_cfg = __raw_readl((void __iomem *)REG_PMU_APB_XTL1_REL_CFG);
-	xtl2_rel_cfg = __raw_readl((void __iomem *)REG_PMU_APB_XTL2_REL_CFG);
-	xtlbuf0_rel_cfg = __raw_readl((void __iomem *)REG_PMU_APB_XTLBUF0_REL_CFG);
-	xtlbuf1_rel_cfg = __raw_readl((void __iomem *)REG_PMU_APB_XTLBUF1_REL_CFG);
-	mpll_rel_cfg = __raw_readl((void __iomem *)REG_PMU_APB_MPLL_REL_CFG);
-	dpll_rel_cfg = __raw_readl((void __iomem *)REG_PMU_APB_DPLL_REL_CFG);
-	tdpll_rel_cfg = __raw_readl((void __iomem *)REG_PMU_APB_TDPLL_REL_CFG);
-	wpll_rel_cfg = __raw_readl((void __iomem *)REG_PMU_APB_WPLL_REL_CFG);
-	cpll_rel_cfg = __raw_readl((void __iomem *)REG_PMU_APB_CPLL_REL_CFG);
-	wifipll1_rel_cfg = __raw_readl((void __iomem *)REG_PMU_APB_WIFIPLL1_REL_CFG);
-	wifipll2_rel_cfg = __raw_readl((void __iomem *)REG_PMU_APB_WIFIPLL2_REL_CFG);
-	ddr_chn_sleep_ctrl0 = __raw_readl((void __iomem *)REG_PMU_APB_DDR_CHN_SLEEP_CTRL0);
-	ddr_chn_sleep_ctrl1 = __raw_readl((void __iomem *)REG_PMU_APB_DDR_CHN_SLEEP_CTRL1);
+	xtl0_rel_cfg = __raw_readl(REG_PMU_APB_XTL0_REL_CFG);
+	xtl1_rel_cfg = __raw_readl(REG_PMU_APB_XTL1_REL_CFG);
+	xtl2_rel_cfg = __raw_readl(REG_PMU_APB_XTL2_REL_CFG);
+	xtlbuf0_rel_cfg = __raw_readl(REG_PMU_APB_XTLBUF0_REL_CFG);
+	xtlbuf1_rel_cfg = __raw_readl(REG_PMU_APB_XTLBUF1_REL_CFG);
+	mpll_rel_cfg = __raw_readl(REG_PMU_APB_MPLL_REL_CFG);
+	dpll_rel_cfg = __raw_readl(REG_PMU_APB_DPLL_REL_CFG);
+	tdpll_rel_cfg = __raw_readl(REG_PMU_APB_TDPLL_REL_CFG);
+	wpll_rel_cfg = __raw_readl(REG_PMU_APB_WPLL_REL_CFG);
+	cpll_rel_cfg = __raw_readl(REG_PMU_APB_CPLL_REL_CFG);
+	wifipll1_rel_cfg = __raw_readl(REG_PMU_APB_WIFIPLL1_REL_CFG);
+	wifipll2_rel_cfg = __raw_readl(REG_PMU_APB_WIFIPLL2_REL_CFG);
+	ddr_chn_sleep_ctrl0 = __raw_readl(REG_PMU_APB_DDR_CHN_SLEEP_CTRL0);
+	ddr_chn_sleep_ctrl1 = __raw_readl(REG_PMU_APB_DDR_CHN_SLEEP_CTRL1);
 #endif
 
-	apb_eb0 = __raw_readl((void __iomem *)REG_AON_APB_APB_EB0);
-	apb_eb1 = __raw_readl((void __iomem *)REG_AON_APB_APB_EB1);
-	pwr_ctrl = __raw_readl((void __iomem *)REG_AON_APB_PWR_CTRL);
+	apb_eb0 = __raw_readl(REG_AON_APB_APB_EB0);
+	apb_eb1 = __raw_readl(REG_AON_APB_APB_EB1);
+	pwr_ctrl = __raw_readl(REG_AON_APB_PWR_CTRL);
 
-	ahb_eb = __raw_readl((void __iomem *)REG_AP_AHB_AHB_EB);
+	ahb_eb = __raw_readl(REG_AP_AHB_AHB_EB);
 
-	apb_eb = __raw_readl((void __iomem *)REG_AP_APB_APB_EB);
-	mcu_pause = __raw_readl((void __iomem *)REG_AP_AHB_MCU_PAUSE);
-	sys_force_sleep = __raw_readl((void __iomem *)REG_AP_AHB_AP_SYS_FORCE_SLEEP_CFG);
-	sys_auto_sleep_cfg = __raw_readl((void __iomem *)REG_AP_AHB_AP_SYS_AUTO_SLEEP_CFG);
-	ca7_standby_status = __raw_readl((void __iomem *)REG_AP_AHB_CA7_STANDBY_STATUS);
+	apb_eb = __raw_readl(REG_AP_APB_APB_EB);
+	mcu_pause = __raw_readl(REG_AP_AHB_MCU_PAUSE);
+	sys_force_sleep = __raw_readl(REG_AP_AHB_AP_SYS_FORCE_SLEEP_CFG);
+	sys_auto_sleep_cfg = __raw_readl(REG_AP_AHB_AP_SYS_AUTO_SLEEP_CFG);
+	ca7_standby_status = __raw_readl(REG_AP_AHB_CA7_STANDBY_STATUS);
 
 	ldo_slp_ctrl0 = sci_adi_read(ANA_REG_GLB_LDO_SLP_CTRL0);
 	ldo_slp_ctrl1 = sci_adi_read(ANA_REG_GLB_LDO_SLP_CTRL1);
@@ -897,8 +894,6 @@ void set_reset_vector(void)
 }
 
 #include <linux/slab.h>
-
-#ifdef CONFIG_DDR_VALIDITY_TEST
 static unsigned long *vtest = NULL;
 static unsigned long *ptest = NULL;
 static void test_memory(void)
@@ -906,17 +901,16 @@ static void test_memory(void)
 	int i;
 	vtest = kmalloc(64*1024, GFP_KERNEL);
 	if (vtest) {
-		printk("%s %p %u\n", __func__, vtest, virt_to_phys(vtest));
+		printk("%s %p %p\n", __func__, vtest, virt_to_phys(vtest));
 		for (i = 0; i < (64*1024/4); i++) {
 			vtest[i] = 0x12345678;
 		}
-		ptest =  (unsigned long *)virt_to_phys(vtest);
+		ptest = virt_to_phys(vtest);
 	} else {
 		printk("error kmalloc\n");
 	}
-	sp_pm_reset_vector[64] = (uint32_t)ptest;
+	sp_pm_reset_vector[64] = ptest;
 }
-#endif
 
 void restore_reset_vector(void)
 {
@@ -939,7 +933,6 @@ void restore_reset_vector(void)
 u32 __attribute__ ((naked)) read_cpsr(void)
 {
 	__asm__ __volatile__("mrs r0, cpsr\nbx lr");
-	return 0;
 }
 /* make sure printk is end, if not maybe some messy code  in SERIAL1 output */
 #define UART_TRANSFER_REALLY_OVER (0x1UL << 15)
@@ -952,24 +945,24 @@ static __used void wait_until_uart1_tx_done(void)
 	u32 really_done = 0;
 	u32 timeout = 2000;
 
-	tx_fifo_val = __raw_readl((void __iomem *)UART_STS1);
+	tx_fifo_val = __raw_readl(UART_STS1);
 	tx_fifo_val >>= 8;
 	tx_fifo_val &= 0xff;
 	while(tx_fifo_val != 0) {
 		if (timeout <= 0) break;
 		udelay(100);
-		tx_fifo_val = __raw_readl((void __iomem *)UART_STS1);
+		tx_fifo_val = __raw_readl(UART_STS1);
 		tx_fifo_val >>= 8;
 		tx_fifo_val &= 0xff;
 		timeout--;
 	}
 
 	timeout = 30;
-	really_done = __raw_readl((void __iomem *)UART_STS0);
+	really_done = __raw_readl(UART_STS0);
 	while(!(really_done & UART_TRANSFER_REALLY_OVER)) {
 		if (timeout <= 0) break;
 		udelay(100);
-		really_done = __raw_readl((void __iomem *)UART_STS0);
+		really_done = __raw_readl(UART_STS0);
 		timeout--;
 	}
 }
@@ -1070,7 +1063,7 @@ int deep_sleep(int from_idle)
 		//force_mcu_core_sleep();
 		//bak_last_reg();
 
-		__raw_writel(0x0, (void __iomem *)REG_PMU_APB_CA7_C0_CFG);
+		__raw_writel(0x0, REG_PMU_APB_CA7_C0_CFG);
 		show_deep_reg_status();
 	} else {
 		/* __raw_writel(0x0, REG_PMU_APB_CA7_C0_CFG); */
@@ -1084,7 +1077,7 @@ int deep_sleep(int from_idle)
 
 	udelay(50);
 	if(!from_idle){
-		__raw_writel(0x1, (void __iomem *)REG_PMU_APB_CA7_C0_CFG);
+		__raw_writel(0x1, REG_PMU_APB_CA7_C0_CFG);
 		printk("ret %d not from idle\n", ret);
 		if(ret){
 			printk("deep sleep %u times\n", cnt);
@@ -1126,9 +1119,9 @@ int sprd_cpu_deep_sleep(unsigned int cpu)
 	unsigned long flags, time;
 
 #ifdef CONFIG_SPRD_PM_DEBUG
-	__raw_writel(0xfdffbfff, (void __iomem *)(SPRD_INTC0_BASE + 0xc));//intc0
-	__raw_writel(0x02004000, (void __iomem *)(SPRD_INTC0_BASE + 0x8));//intc0
-	__raw_writel(0xffffffff, (void __iomem *)(SPRD_INTC0_BASE + 0x100c));//intc1
+	__raw_writel(0xfdffbfff, SPRD_INTC0_BASE + 0xc);//intc0
+	__raw_writel(0x02004000, SPRD_INTC0_BASE + 0x8);//intc0
+	__raw_writel(0xffffffff, SPRD_INTC0_BASE + 0x100c);//intc1
 #endif	
 
 
@@ -1257,9 +1250,7 @@ static void init_led(void){}
 
 static void sc8830_power_off(void)
 {
-#if defined(CONFIG_ARCH_SCX15)
 	u32 reg_val;
-#endif
 	pr_emerg("%s\n", __func__);
 	flush_cache_all();
 	outer_flush_all();

@@ -317,7 +317,6 @@ static ssize_t state_show(struct kobject *kobj, struct kobj_attribute *attr,
 	return (s - buf);
 }
 
-#ifdef CONFIG_PM_AUTOSLEEP
 static suspend_state_t decode_state(const char *buf, size_t n)
 {
 #ifdef CONFIG_SUSPEND
@@ -342,7 +341,6 @@ static suspend_state_t decode_state(const char *buf, size_t n)
 
 	return PM_SUSPEND_ON;
 }
-#endif
 
 static ssize_t state_store(struct kobject *kobj, struct kobj_attribute *attr,
 			   const char *buf, size_t n)
@@ -600,6 +598,7 @@ int set_cpufreq_min_limit(int freq)
 
 	cpufreq_min_hd ?
 		(cpufreq_min_limit_val = freq) : (cpufreq_min_limit_val = -1);
+out:
 	mutex_unlock(&cpufreq_limit_mutex);
 	return 1;
 }
@@ -748,7 +747,7 @@ static ssize_t restart_cpc_show(struct kobject *kobj, struct kobj_attribute *att
 }
 
 static ssize_t restart_cpc_store(struct kobject *kobj, struct kobj_attribute *attr,
-                          const char *buf, size_t n)
+                          char *buf)
 {
        unsigned int ret = -EINVAL;
        int val;
@@ -765,7 +764,6 @@ static ssize_t restart_cpc_store(struct kobject *kobj, struct kobj_attribute *at
                         while(1);
                 }
         }
-        return n;
 }
 
 power_attr(restart_cpc);

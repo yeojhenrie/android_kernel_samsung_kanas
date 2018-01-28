@@ -195,7 +195,7 @@ static int wlan_ldo_enable(void)
 	int err;
 #ifdef CONFIG_ARCH_SCX35
 	/*temp config for clk_aux0, waiting for SC8830 pin config*/
-	__raw_writel(0x0101, (void __iomem *)(SPRD_PIN_BASE + 0x0400));
+	__raw_writel(0x0101, SPRD_PIN_BASE + 0x0400);
 	wlan_regulator_18 = regulator_get(NULL, "vdd18");
 #else
 	wlan_regulator_18 = regulator_get(NULL, "vddsd1");
@@ -212,7 +212,8 @@ static int wlan_ldo_enable(void)
 		return -1;
 	}
 	regulator_set_mode(wlan_regulator_18, REGULATOR_MODE_STANDBY);
-	return regulator_enable(wlan_regulator_18);
+	regulator_enable(wlan_regulator_18);
+	return 0;
 }
 
 static void wlan_clk_init(void)

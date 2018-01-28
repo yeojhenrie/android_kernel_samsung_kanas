@@ -94,22 +94,22 @@ struct sci_gpio_chip {
 /* D-Die regs ops */
 static uint32_t d_read_reg(uint32_t addr)
 {
-	return __raw_readl((void __iomem *)addr);
+	return __raw_readl(addr);
 }
 
 static void d_write_reg(uint32_t value, uint32_t addr)
 {
-	__raw_writel(value, (void __iomem *)addr);
+	__raw_writel(value, addr);
 }
 
 static void d_set_bits(uint32_t bits, uint32_t addr)
 {
-	__raw_writel(__raw_readl((void __iomem *)addr) | bits, (void __iomem *)addr);
+	__raw_writel(__raw_readl(addr) | bits, addr);
 }
 
 static void d_clr_bits(uint32_t bits, uint32_t addr)
 {
-	__raw_writel(__raw_readl((void __iomem *)addr) & ~bits, (void __iomem *)addr);
+	__raw_writel(__raw_readl(addr) & ~bits, addr);
 }
 
 /* A-Die regs ops */

@@ -278,8 +278,8 @@ unsigned int fg_get_soc(struct i2c_client *client)
 	#endif
 		if(soc_val < 0)
 		{
-		 soc_val = 0;	
-		} 
+		 soc_val = 0;
+		 }
 	}
 	fuelgauge->info.batt_soc = soc_val;
 	// report FG_SOC for debugging.
@@ -351,7 +351,7 @@ static bool rt5033_fg_get_batt_present(struct i2c_client *client)
 gain_table_prop Gain_Search(struct i2c_client *client, int nTemp, int nVolt)
 {
 	struct sec_fuelgauge_info *fuelgauge = i2c_get_clientdata(client);
-	int nTargetIdx1 = 0, i;
+	int nTargetIdx1 = 0, nTargetIdx2 = 0, i;
 
 	gain_table_prop GainReturn[2];
 	gain_table_prop *rt5033_battery_param1 =  get_battery_data(fuelgauge).param1;

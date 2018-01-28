@@ -86,18 +86,18 @@ struct clk						*g_gsp_clk = NULL;
 
 #define GSP_ERR_RECORD_CNT  8
 static GSP_REG_T g_gsp_reg_err_record[GSP_ERR_RECORD_CNT];
-//static uint32_t g_gsp_reg_err_record_rp=0;
+static uint32_t g_gsp_reg_err_record_rp=0;
 static uint32_t g_gsp_reg_err_record_wp=0;
 
 #define ERR_RECORD_INDEX_ADD(v) (v = ((v+1)&(GSP_ERR_RECORD_CNT-1)))
-//#define ERR_RECORD_INDEX_ADD_RP()   ERR_RECORD_INDEX_ADD(g_gsp_reg_err_record_rp)
+#define ERR_RECORD_INDEX_ADD_RP()   ERR_RECORD_INDEX_ADD(g_gsp_reg_err_record_rp)
 #define ERR_RECORD_INDEX_ADD_WP()   ERR_RECORD_INDEX_ADD(g_gsp_reg_err_record_wp)
-//#define ERR_RECORD_INDEX_GET_RP()   (g_gsp_reg_err_record_rp)
+#define ERR_RECORD_INDEX_GET_RP()   (g_gsp_reg_err_record_rp)
 #define ERR_RECORD_INDEX_GET_WP()   (g_gsp_reg_err_record_wp)
 #define ERR_RECORD_ADD(v)   (g_gsp_reg_err_record[g_gsp_reg_err_record_wp] = (v))
-//#define ERR_RECORD_GET(v)   (&g_gsp_reg_err_record[g_gsp_reg_err_record_rp])
-//#define ERR_RECORD_EMPTY()  (g_gsp_reg_err_record_rp == g_gsp_reg_err_record_wp)
-//#define ERR_RECORD_FULL()   ((g_gsp_reg_err_record_wp+1)&(GSP_ERR_RECORD_CNT-1) == g_gsp_reg_err_record_rp)
+#define ERR_RECORD_GET(v)   (&g_gsp_reg_err_record[g_gsp_reg_err_record_rp])
+#define ERR_RECORD_EMPTY()  (g_gsp_reg_err_record_rp == g_gsp_reg_err_record_wp)
+#define ERR_RECORD_FULL()   ((g_gsp_reg_err_record_wp+1)&(GSP_ERR_RECORD_CNT-1) == g_gsp_reg_err_record_rp)
 
 #ifdef CONFIG_HAS_EARLYSUSPEND_GSP
 static struct early_suspend s_earlysuspend = {0};

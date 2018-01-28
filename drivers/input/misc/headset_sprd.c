@@ -493,14 +493,14 @@ static void headset_adc_en(int en)
                 headset_reg_set_bit(HEADMIC_DETECT_REG(ANA_CFG20), AUDIO_V2ADC_EN);
                 headset_reg_set_val(HEADMIC_DETECT_REG(ANA_CFG20), AUDIO_HEAD2ADC_SEL_MIC_IN, AUDIO_HEAD2ADC_SEL_MASK, AUDIO_HEAD2ADC_SEL_SHIFT);
                 headset_reg_set_bit(HEADMIC_DETECT_REG(ANA_CFG1), AUDIO_ICM_PLUS_EN);
-                headmic_sleep_disable(to_device(((void*)pdata)), 1);
+                headmic_sleep_disable(to_device(pdata), 1);
         } else {
 #ifndef SPRD_HEADSET_DBG
                 headset_reg_clr_bit(HEADMIC_DETECT_REG(ANA_CFG20), AUDIO_HEAD_BUF_EN);
                 headset_reg_clr_bit(HEADMIC_DETECT_REG(ANA_CFG20), AUDIO_V2ADC_EN);
                 headset_reg_set_val(HEADMIC_DETECT_REG(ANA_CFG20), AUDIO_HEAD2ADC_SEL_DISABLE, AUDIO_HEAD2ADC_SEL_MASK, AUDIO_HEAD2ADC_SEL_SHIFT);
 #endif
-                headmic_sleep_disable(to_device(((void*)pdata)), 0);
+                headmic_sleep_disable(to_device(pdata), 0);
         }
 }
 
@@ -530,9 +530,6 @@ static void headset_button_irq_threshold(int enable)
                 headset_reg_set_val(HEADMIC_DETECT_REG(ANA_CFG20), 0xF, AUDIO_HEAD_SBUT_MASK, AUDIO_HEAD_SBUT_SHIFT);
 }
 
-#if 0
-/* This function is unused. To avoid warning it placed under #if 0 - #endif.
-Remove this preprocessor condition to use this function*/
 static void headset_micbias_polling_en(int en)
 {
         if(en) {
@@ -567,7 +564,6 @@ static void headset_micbias_polling_en(int en)
                           sci_adi_read(HEADMIC_BUTTON_REG(HID_CFG4)));
         }
 }
-#endif
 
 static void headset_irq_button_enable(int enable, unsigned int irq)
 {
@@ -691,6 +687,8 @@ static int adc_get_average(int gpio_num, int gpio_value)
 	int adc_average = 0;
 	int success = 1;
 	int adc[ADC_READ_COUNT_DETECT] = {0};
+	struct sprd_headset *ht = &headset;
+	struct sprd_headset_platform_data *pdata = ht->platform_data;
 
 //==============================================
 #if 0
@@ -1039,7 +1037,7 @@ static void headset_detect_work_func(struct work_struct *work)
 
         if(0 == plug_state_last) {
                 if(adie_type >= 3) {
-			headmicbias_power_on(to_device(((void*)pdata)), 1);
+			headmicbias_power_on(to_device(pdata), 1);
                 }
         }
         msleep(100);
@@ -1181,10 +1179,7 @@ static void headset_detect_work_func(struct work_struct *work)
                 ht->type = BIT_HEADSET_OUT;
 		hp_notifier_call_chain(ht->type);
                 switch_set_state(&ht->sdev, ht->type);
-
-#ifdef SPRD_STS_POLLING_EN
 plug_out_already:
-#endif
                 plug_state_last = 0;
 
                 if(1 == pdata->irq_trigger_level_detect)
@@ -1201,7 +1196,7 @@ out:
 
         if(0 == plug_state_last) {
                 if(adie_type >= 3) {
-			headmicbias_power_on(to_device(((void*)pdata)), 0);
+			headmicbias_power_on(to_device(pdata), 0);
                         msleep(100);
                 }
         }
@@ -1333,14 +1328,12 @@ out:
 #endif
 /***polling ana_sts0 to avoid the hardware defect***/
 
-#ifdef ADPGAR_BYP_SELECT
 static void adpgar_byp_select_func(struct work_struct *work)
 {
         headset_reg_set_val(HEADMIC_DETECT_REG(ANA_CFG5), AUDIO_ADPGAR_BYP_HEADMIC_2_ADCR, AUDIO_ADPGAR_BYP_MASK, AUDIO_ADPGAR_BYP_SHIFT);
         msleep(50);
         headset_reg_set_val(HEADMIC_DETECT_REG(ANA_CFG5), AUDIO_ADPGAR_BYP_NORMAL, AUDIO_ADPGAR_BYP_MASK, AUDIO_ADPGAR_BYP_SHIFT);
 }
-#endif
 
 #ifdef SPRD_HEADSET_REG_DUMP
 static void reg_dump_func(struct work_struct *work)
@@ -1436,7 +1429,6 @@ static irqreturn_t headset_button_irq_handler(int irq, void *dev)
                         ht->irq_button, ht->platform_data->gpio_button, gpio_button_value_last,
                         sci_adi_read(ANA_AUDCFGA_INT_BASE+ANA_STS0));
 				headset_button_hardware_bug_fix(ht);
-                headset_irq_button_enable(0, ht->irq_button);
                 return IRQ_HANDLED;
         }
 
@@ -1620,7 +1612,7 @@ static int headset_detect_probe(struct platform_device *pdev)
 		headmicbias_power_on(&pdev->dev, 1);
         msleep(5);//this time delay is necessary here
 
-        PRINT_INFO("D-die chip id = 0x%08X\n", __raw_readl((void __iomem *)REG_AON_APB_CHIP_ID));
+        PRINT_INFO("D-die chip id = 0x%08X\n", __raw_readl(REG_AON_APB_CHIP_ID));
         PRINT_INFO("A-die chip id HIGH = 0x%08X\n", adie_chip_id_high);
         PRINT_INFO("A-die chip id LOW = 0x%08X\n", adie_chip_id_low);
 

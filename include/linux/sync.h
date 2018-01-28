@@ -21,7 +21,6 @@
 #include <linux/list.h>
 #include <linux/spinlock.h>
 #include <linux/wait.h>
-#include <linux/seq_file.h>
 
 struct sync_timeline;
 struct sync_pt;

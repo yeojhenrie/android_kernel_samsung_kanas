@@ -61,7 +61,7 @@ int memblock_remove(phys_addr_t base, phys_addr_t size);
 int memblock_free(phys_addr_t base, phys_addr_t size);
 #ifdef CONFIG_MEMBLOCK_RESERVE_DEBUG
 #define memblock_reserve(base, size) \
-	memblock_reserve_ext((char*)__func__, __LINE__,base, size)
+	memblock_reserve_ext(__func__, __LINE__,base, size)
 #else
 int memblock_reserve(phys_addr_t base, phys_addr_t size);
 #endif
@@ -171,9 +171,9 @@ phys_addr_t memblock_alloc_base_ext(char* func, unsigned int line, phys_addr_t s
 
 #ifdef CONFIG_MEMBLOCK_RESERVE_DEBUG
 #define __memblock_alloc_base(size, align, max_addr) \
-	__memblock_alloc_base_ext((char*)__func__, __LINE__, size, align, max_addr)
+	__memblock_alloc_base_ext(__func__, __LINE__, size, align, max_addr)
 #define memblock_alloc_base(size, align, max_addr) \
-	memblock_alloc_base_ext((char*)__func__, __LINE__, size, align, max_addr)
+	memblock_alloc_base_ext(__func__, __LINE__, size, align, max_addr)
 #else
 phys_addr_t __memblock_alloc_base(phys_addr_t size, phys_addr_t align,
 				  phys_addr_t max_addr);

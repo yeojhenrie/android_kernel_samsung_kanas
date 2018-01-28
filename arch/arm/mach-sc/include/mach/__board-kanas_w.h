@@ -62,8 +62,8 @@
 #define HEADSET_IRQ_TRIGGER_LEVEL_BUTTON 0
 
 #define HEADSET_ADC_MIN_KEY_MEDIA 0
-#define HEADSET_ADC_MAX_KEY_MEDIA 210
-#define HEADSET_ADC_MIN_KEY_VOLUMEUP 211
+#define HEADSET_ADC_MAX_KEY_MEDIA 185
+#define HEADSET_ADC_MIN_KEY_VOLUMEUP 186
 #define HEADSET_ADC_MAX_KEY_VOLUMEUP 370
 #define HEADSET_ADC_MIN_KEY_VOLUMEDOWN 371
 #define HEADSET_ADC_MAX_KEY_VOLUMEDOWN 800
@@ -128,7 +128,7 @@ Video Recording:
 Camera:
    8M,  support ZSL, support preview/capture rotation
 */
-#define SPRD_ION_MM_SIZE         (40 * SZ_1M)
+#define SPRD_ION_MM_SIZE         (32 * SZ_1M)
 #define SPRD_ION_OVERLAY_SIZE    (4 * SZ_1M)
 
 #endif

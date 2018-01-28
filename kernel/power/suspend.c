@@ -43,7 +43,6 @@ static const struct platform_suspend_ops *suspend_ops;
 static DECLARE_WAIT_QUEUE_HEAD(suspend_freeze_wait_head);
 static bool suspend_freeze_wake;
 
-#if 0
 static void freeze_begin(void)
 {
 	suspend_freeze_wake = false;
@@ -53,7 +52,6 @@ static void freeze_enter(void)
 {
 	wait_event(suspend_freeze_wait_head, suspend_freeze_wake);
 }
-#endif
 
 void freeze_wake(void)
 {

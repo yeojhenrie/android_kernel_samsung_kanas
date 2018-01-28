@@ -38,9 +38,7 @@ struct mms_ts_platform_data {
 	int	(*mux_fw_flash)(bool to_gpios);
 	void (*vdd_on)(bool);
 	int (*is_vdd_on)(void);
-	#ifdef CONFIG_TOUCHSCREEN_MMS136
 	void	(*register_cb)(struct tsp_callbacks *);
-	#endif
 	const char	*fw_name;
 	bool	use_touchkey;
 	bool	use_surface_touch;

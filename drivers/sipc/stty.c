@@ -180,7 +180,7 @@ static const struct tty_operations stty_ops = {
 	.write_room  = stty_write_room,
 };
 
-static struct tty_port *stty_port_init(void)
+static struct tty_port *stty_port_init()
 {
 	struct tty_port *port = NULL;
 
@@ -271,7 +271,7 @@ static int  stty_probe(struct platform_device *pdev)
 		return rval;
 	}
 
-	printk( "stty_probe init device addr: %p\n", (void *)stty);
+	printk( "stty_probe init device addr: 0x%0x\n", (void *)stty);
 	platform_set_drvdata(pdev, stty);
 
 	return 0;

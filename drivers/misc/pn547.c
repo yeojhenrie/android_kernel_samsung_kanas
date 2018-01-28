@@ -387,7 +387,6 @@ static int pn547_probe(struct i2c_client *client,
 	disable_irq_nosync(pn547_dev->client->irq);
 	atomic_set(&pn547_dev->irq_enabled, 0);
 
-    gpio_set_value(pn547_dev->firm_gpio, 1);
 	gpio_set_value(pn547_dev->ven_gpio, 1);
 	usleep_range(10000, 11000);
 
@@ -409,7 +408,7 @@ static int pn547_probe(struct i2c_client *client,
 			break;
 	}
 	gpio_set_value(pn547_dev->ven_gpio, 0);
-    gpio_set_value(pn547_dev->firm_gpio, 0);
+
 	if (ret < 0) {
 		pr_err("%s : fail to get i2c addr\n", __func__);
 		goto err_request_irq_failed;

@@ -252,9 +252,6 @@ EXPORT_SYMBOL(rt5033_clr_bits);
 extern int rt5033_init_irq(rt5033_mfd_chip_t *chip);
 extern int rt5033_exit_irq(rt5033_mfd_chip_t *chip);
 
-#if 0
-/* This function is unused. To avoid warning it placed under #if 0 - #endif.
-Remove this preprocessor condition to use this function*/
 static int rt5033mfd_parse_dt(struct device *dev,
 		rt5033_mfd_platform_data_t *pdata)
 {
@@ -279,7 +276,6 @@ static int rt5033mfd_parse_dt(struct device *dev,
 	}
 	return 0;
 }
-#endif
 
 static int __init rt5033_mfd_probe(struct i2c_client *i2c,
 		const struct i2c_device_id *id)
@@ -428,6 +424,8 @@ err_init_irq:
 irq_base_err:
 err_mfd_nomem:
 err_i2cfunc_not_support:
+err_parse_dt:
+err_dt_nomem:
 	return ret;
 }
 

@@ -964,7 +964,7 @@ static void unregister_irq(struct platform_device *pdev,
 }
 
 static int rt5033_charger_parse_dt(struct device *dev,
-		struct sec_battery_platform_data *pdata)
+		struct rt5033_charger_platform_data *pdata)
 {
 	/* Not implemented now, wait for Samsung's battery DT format
 	   struct device_node *np = dev->of_node;

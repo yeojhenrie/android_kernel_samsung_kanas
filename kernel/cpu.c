@@ -576,7 +576,7 @@ static int
 cpu_hotplug_pm_callback(struct notifier_block *nb,
 			unsigned long action, void *ptr)
 {
-	printk("*** %s, action:0x%lx ***\n", __func__, action );
+	printk("*** %s, action:0x%x ***\n", __func__, action );
 	switch (action) {
 
 	case PM_SUSPEND_PREPARE:
@@ -592,7 +592,7 @@ cpu_hotplug_pm_callback(struct notifier_block *nb,
 	default:
 		return NOTIFY_DONE;
 	}
-	printk("*** %s, action:0x%lx done ***\n", __func__, action );
+	printk("*** %s, action:0x%x done ***\n", __func__, action );
 
 	return NOTIFY_OK;
 }

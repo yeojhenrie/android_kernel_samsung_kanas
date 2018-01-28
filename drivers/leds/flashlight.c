@@ -484,7 +484,7 @@ int flashlight_strobe(struct flashlight_device *flashlight_dev)
 }
 EXPORT_SYMBOL(flashlight_strobe);
 
-static int flashlight_match_device_by_name(struct device *dev, const void *data)
+static int flashlight_match_device_by_name(struct device *dev, void *data)
 {
 	const char *name = data;
 	return strcmp(dev_name(dev), name) == 0;

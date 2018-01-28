@@ -1780,39 +1780,39 @@ static int native_tdmodem_start(void *arg)
 	memcpy((void *)(SPRD_IRAM1_BASE + 0x1800), cp1data, sizeof(cp1data));
 
 	/* clear cp1 force shutdown */
-	value = ((__raw_readl((void __iomem *)TD_REG_CLK_ADDR) & ~0x02000000));
-	__raw_writel(value, (void __iomem *)TD_REG_CLK_ADDR);
+	value = ((__raw_readl(TD_REG_CLK_ADDR) & ~0x02000000));
+	__raw_writel(value, TD_REG_CLK_ADDR);
 
 	while(1)
 	{
-		state = __raw_readl((void __iomem *)TD_REG_STATUS_ADDR);
+		state = __raw_readl(TD_REG_STATUS_ADDR);
 		if (!(state & (0xf<<16)))
 			break;
 	}
 
 	/* clear cp1 force deep sleep */
-	value = ((__raw_readl((void __iomem *)TD_REG_CLK_ADDR) & ~0x10000000));
-	__raw_writel(value, (void __iomem *)TD_REG_CLK_ADDR);
+	value = ((__raw_readl(TD_REG_CLK_ADDR) & ~0x10000000));
+	__raw_writel(value, TD_REG_CLK_ADDR);
 
 	/* clear reset cp1 */
-	value = ((__raw_readl((void __iomem *)TD_REG_RESET_ADDR) & ~0x00000002));
-	__raw_writel(value, (void __iomem *)TD_REG_RESET_ADDR);
+	value = ((__raw_readl(TD_REG_RESET_ADDR) & ~0x00000002));
+	__raw_writel(value, TD_REG_RESET_ADDR);
 	return 0;
 }
 static int native_tdmodem_stop(void *arg)
 {
 	u32 value;
 	/* reset cp1 */
-	value = ((__raw_readl((void __iomem *)TD_REG_RESET_ADDR) | 0x00000002));
-	__raw_writel(value, (void __iomem *)TD_REG_RESET_ADDR);
+	value = ((__raw_readl(TD_REG_RESET_ADDR) | 0x00000002));
+	__raw_writel(value, TD_REG_RESET_ADDR);
 
 	/* cp1 force deep sleep */
-	value = ((__raw_readl((void __iomem *)TD_REG_CLK_ADDR) | 0x10000000));
-	__raw_writel(value, (void __iomem *)TD_REG_CLK_ADDR);
+	value = ((__raw_readl(TD_REG_CLK_ADDR) | 0x10000000));
+	__raw_writel(value, TD_REG_CLK_ADDR);
 
 	/* cp1 force shutdown */
-	value = ((__raw_readl((void __iomem *)TD_REG_CLK_ADDR) | 0x02000000));
-	__raw_writel(value, (void __iomem *)TD_REG_CLK_ADDR);
+	value = ((__raw_readl(TD_REG_CLK_ADDR) | 0x02000000));
+	__raw_writel(value, TD_REG_CLK_ADDR);
 	return 0;
 }
 static struct cproc_init_data sprd_cproc_td_pdata = {
@@ -1974,39 +1974,39 @@ static int native_wcdmamodem_start(void *arg)
 	memcpy((void *)SPRD_IRAM1_BASE, cp0data, sizeof(cp0data));
 
 	/* clear cp0 force shutdown */
-	value = ((__raw_readl((void __iomem *)WCDMA_REG_CLK_ADDR) & ~0x02000000));
-	__raw_writel(value, (void __iomem *)WCDMA_REG_CLK_ADDR);
+	value = ((__raw_readl(WCDMA_REG_CLK_ADDR) & ~0x02000000));
+	__raw_writel(value, WCDMA_REG_CLK_ADDR);
 
 	while(1)
 	{
-		state = __raw_readl((void __iomem *)WCDMA_REG_STATUS_ADDR);
+		state = __raw_readl(WCDMA_REG_STATUS_ADDR);
 		if (!(state & (0xf<<28)))
 			break;
 	}
 
 	/* clear cp0 force deep sleep */
-	value = ((__raw_readl((void __iomem *)WCDMA_REG_CLK_ADDR) & ~0x10000000));
-	__raw_writel(value, (void __iomem *)WCDMA_REG_CLK_ADDR);
+	value = ((__raw_readl(WCDMA_REG_CLK_ADDR) & ~0x10000000));
+	__raw_writel(value, WCDMA_REG_CLK_ADDR);
 
 	/* clear reset cp0 cp1 */
-	value = ((__raw_readl((void __iomem *)WCDMA_REG_RESET_ADDR) & ~0x00000001));
-	__raw_writel(value, (void __iomem *)WCDMA_REG_RESET_ADDR);
+	value = ((__raw_readl(WCDMA_REG_RESET_ADDR) & ~0x00000001));
+	__raw_writel(value, WCDMA_REG_RESET_ADDR);
 	return 0;
 }
 static int native_wcdmamodem_stop(void *arg)
 {
 	u32 value;
 	/* reset cp0 */
-	value = ((__raw_readl((void __iomem *)WCDMA_REG_RESET_ADDR) | 0x00000001));
-	__raw_writel(value, (void __iomem *)WCDMA_REG_RESET_ADDR);
+	value = ((__raw_readl(WCDMA_REG_RESET_ADDR) | 0x00000001));
+	__raw_writel(value, WCDMA_REG_RESET_ADDR);
 
 	/* cp0 force deep sleep */
-	value = ((__raw_readl((void __iomem *)WCDMA_REG_CLK_ADDR) | ~0x10000000));
-	__raw_writel(value, (void __iomem *)WCDMA_REG_CLK_ADDR);
+	value = ((__raw_readl(WCDMA_REG_CLK_ADDR) | ~0x10000000));
+	__raw_writel(value, WCDMA_REG_CLK_ADDR);
 
 	/* clear cp0 force shutdown */
-	value = ((__raw_readl((void __iomem *)WCDMA_REG_CLK_ADDR) | ~0x02000000));
-	__raw_writel(value, (void __iomem *)WCDMA_REG_CLK_ADDR);
+	value = ((__raw_readl(WCDMA_REG_CLK_ADDR) | ~0x02000000));
+	__raw_writel(value, WCDMA_REG_CLK_ADDR);
 	return 0;
 }
 
@@ -2076,11 +2076,7 @@ static struct spipe_init_data sprd_stty_wcdma_pdata = {
 	.channel	= SMSG_CH_TTY,
 	.ringnr		= 32,
 	.txbuf_size	= 2*1024,
-#if defined(CONFIG_NFC_PN547)
-	.rxbuf_size	= 8*1024,
-#else
 	.rxbuf_size	= 4*1024,
-#endif
 };
 struct platform_device sprd_stty_wcdma_device = {
 	.name           = "spipe",
@@ -2177,23 +2173,23 @@ static int native_wcnmodem_start(void *arg)
 	memcpy(cp_code_addr, cp2data, sizeof(cp2data));
 
 	/* clear cp2 force shutdown */
-	value = ((__raw_readl((void __iomem *)WCN_REG_CLK_ADDR) & ~0x02000000));
-	__raw_writel(value, (void __iomem *)WCN_REG_CLK_ADDR);
+	value = ((__raw_readl(WCN_REG_CLK_ADDR) & ~0x02000000));
+	__raw_writel(value, WCN_REG_CLK_ADDR);
 
 	while(1)
 	{
-		state = __raw_readl((void __iomem *)WCN_REG_STATUS_ADDR);
+		state = __raw_readl(WCN_REG_STATUS_ADDR);
 		if (!(state & (0xf)))
 		break;
 	}
 
 	/* clear cp2 force deep sleep */
-	value = ((__raw_readl((void __iomem *)WCN_REG_CLK_ADDR) & ~0x10000000));
-	__raw_writel(value, (void __iomem *)WCN_REG_CLK_ADDR);
+	value = ((__raw_readl(WCN_REG_CLK_ADDR) & ~0x10000000));
+	__raw_writel(value, WCN_REG_CLK_ADDR);
 
 	/* clear reset cp2*/
-	value = ((__raw_readl((void __iomem *)WCN_REG_RESET_ADDR) & ~0x00000004));
-	__raw_writel(value, (void __iomem *)WCN_REG_RESET_ADDR);
+	value = ((__raw_readl(WCN_REG_RESET_ADDR) & ~0x00000004));
+	__raw_writel(value, WCN_REG_RESET_ADDR);
 
 	iounmap(cp_code_addr);
 	
@@ -2203,16 +2199,16 @@ static int native_wcnmodem_stop(void *arg)
 {
 	u32 value;
 	/* reset cp2 */
-	value = ((__raw_readl((void __iomem *)WCN_REG_RESET_ADDR) | 0x00000004));
-	__raw_writel(value, (void __iomem *)WCN_REG_RESET_ADDR);
+	value = ((__raw_readl(WCN_REG_RESET_ADDR) | 0x00000004));
+	__raw_writel(value, WCN_REG_RESET_ADDR);
 
 	/* cp2 force deep sleep */
-	value = ((__raw_readl((void __iomem *)WCN_REG_CLK_ADDR) | 0x10000000));
-	__raw_writel(value, (void __iomem *)WCN_REG_CLK_ADDR);
+	value = ((__raw_readl(WCN_REG_CLK_ADDR) | 0x10000000));
+	__raw_writel(value, WCN_REG_CLK_ADDR);
 
 	/* cp2 force shutdown */
-	value = ((__raw_readl((void __iomem *)WCN_REG_CLK_ADDR) | 0x02000000));
-	__raw_writel(value, (void __iomem *)WCN_REG_CLK_ADDR);
+	value = ((__raw_readl(WCN_REG_CLK_ADDR) | 0x02000000));
+	__raw_writel(value, WCN_REG_CLK_ADDR);
 	return 0;
 }
 
@@ -2313,12 +2309,12 @@ uint32_t cpw_rxirq_status(void)
 
 void cpw_rxirq_clear(void)
 {
-	__raw_writel(CPW2AP_IRQ0_CLR, (void __iomem *)CP2AP_INT_CTRL);
+	__raw_writel(CPW2AP_IRQ0_CLR, CP2AP_INT_CTRL);
 }
 
 void cpw_txirq_trigger(void)
 {
-	__raw_writel(AP2CPW_IRQ0_TRIG, (void __iomem *)AP2CP_INT_CTRL);
+	__raw_writel(AP2CPW_IRQ0_TRIG, AP2CP_INT_CTRL);
 }
 
 
@@ -2331,12 +2327,12 @@ uint32_t cpt_rxirq_status(void)
 
 void cpt_rxirq_clear(void)
 {
-	__raw_writel(CPT2AP_IRQ0_CLR, (void __iomem *)CP2AP_INT_CTRL);
+	__raw_writel(CPT2AP_IRQ0_CLR, CP2AP_INT_CTRL);
 }
 
 void cpt_txirq_trigger(void)
 {
-	__raw_writel(AP2CPT_IRQ0_TRIG, (void __iomem *)AP2CP_INT_CTRL);
+	__raw_writel(AP2CPT_IRQ0_TRIG, AP2CP_INT_CTRL);
 }
 
 #define AP2WCN_IRQ0_TRIG	0x100
@@ -2348,11 +2344,11 @@ uint32_t wcn_rxirq_status(void)
 
 void wcn_rxirq_clear(void)
 {
-	__raw_writel(WCN2AP_IRQ0_CLR, (void __iomem *)CP2AP_INT_CTRL);
+	__raw_writel(WCN2AP_IRQ0_CLR, CP2AP_INT_CTRL);
 }
 
 void wcn_txirq_trigger(void)
 {
-	__raw_writel(AP2WCN_IRQ0_TRIG, (void __iomem *)AP2CP_INT_CTRL);
+	__raw_writel(AP2WCN_IRQ0_TRIG, AP2CP_INT_CTRL);
 }
 

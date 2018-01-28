@@ -105,7 +105,7 @@ int sprd_cpu_kill(unsigned int cpu)
 	printk("!! %d  platform_cpu_kill %d !!\n", smp_processor_id(), cpu);
 	while (i < 20) {
 		//check wfi?
-		if (__raw_readl((void __iomem *)(SPRD_AHB_BASE + 0x48)) & (1 << cpu_logical_map(cpu))) {
+		if (__raw_readl(SPRD_AHB_BASE + 0x48) & (1 << cpu_logical_map(cpu))) {
 			powerdown_cpus(cpu);
 			break;
 		}

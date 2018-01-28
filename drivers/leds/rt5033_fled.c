@@ -45,8 +45,6 @@ typedef struct rt5033_fled_info {
     const rt5033_fled_platform_data_t *pdata;
     rt5033_mfd_chip_t *chip;
     struct mutex led_lock;
-    struct workqueue_struct *wq;
-    struct delayed_work timeout_unlock_work;
     struct i2c_client *i2c_client;
     int torch_current;
     int strobe_current;
@@ -246,7 +244,7 @@ EXPORT_SYMBOL(rt5033_boost_notification);
 static int rt5033_fled_set_mode(struct rt_fled_info *fled_info, flashlight_mode_t mode)
 {
     rt5033_fled_info_t *info = (rt5033_fled_info_t *)fled_info;
-	cancel_delayed_work_sync(&info->timeout_unlock_work);
+
     if (info->strobe_status) {
         info->strobe_status = 0;
         rt5033_fled_set_ta_status(info->i2c_client, info->ta_exist);
@@ -290,7 +288,6 @@ static int rt5033_fled_get_mode(struct rt_fled_info *info)
 void rt5033_fled_lock(struct rt_fled_info *fled_info)
 {
     rt5033_fled_info_t *info = (rt5033_fled_info_t *)fled_info;
-	pr_info("rt5033 fled lock\n");
     mutex_lock(&info->led_lock);
 }
 EXPORT_SYMBOL(rt5033_fled_lock);
@@ -298,33 +295,15 @@ EXPORT_SYMBOL(rt5033_fled_lock);
 void rt5033_fled_unlock(struct rt_fled_info *fled_info)
 {
     rt5033_fled_info_t *info = (rt5033_fled_info_t *)fled_info;
-	pr_info("rt5033 fled unlock\n");
     mutex_unlock(&info->led_lock);
 }
 EXPORT_SYMBOL(rt5033_fled_unlock);
 
-static void rt5033_fled_timeout_unlock(
-				struct work_struct *work)
-{
-	rt5033_fled_info_t *info =
-			container_of(to_delayed_work(work),
-					rt5033_fled_info_t,
-					timeout_unlock_work);
-	pr_info("rt5033 fled lock timeout\n");
-	if (info->strobe_status) {
-		info->strobe_status = 0;
-		rt5033_fled_set_ta_status(info->i2c_client, info->ta_exist);
-		rt5033_set_uug_status(info->i2c_client, (info->ta_exist|info->boost) ? 0x02 : 0x00);
-		rt5033_fled_unlock((struct rt_fled_info *)info);
-	}
-}
 static int rt5033_fled_strobe(struct rt_fled_info *fled_info)
 {
     int ret = 0;
-	int timeout = fled_info->hal->fled_get_strobe_timeout(fled_info) / 1024 + 100;
     rt5033_fled_info_t *info = (rt5033_fled_info_t *)fled_info;
     rt5033_set_fled_osc_en(info->i2c_client, 1);
-	cancel_delayed_work_sync(&info->timeout_unlock_work);
     if (info->strobe_status == 0) {
         /* Lock LED until setting to OFF MODE*/
         rt5033_fled_lock(fled_info);
@@ -333,10 +312,6 @@ static int rt5033_fled_strobe(struct rt_fled_info *fled_info)
         if (!info->boost)
             rt5033_set_uug_status(info->i2c_client, 0);
     }
-	pr_info("rt5033 lock timeout = %d ms\n", timeout);
-	queue_delayed_work(info->wq,
-		&info->timeout_unlock_work,
-		msecs_to_jiffies(timeout));
     switch (info->base.flashlight_dev->props.mode)
     {
         case FLASHLIGHT_MODE_FLASH:
@@ -725,7 +700,7 @@ static int rt5033_fled_parse_dt(struct device *dev,
 		struct rt5033_fled_platform_data *pdata)
 {
 	struct device_node *np = dev->of_node;
-	u32 buffer[2] = {0};
+	u32 buffer[2];
 
 	/* copy default value */
 	*pdata = rt5033_default_fled_pdata;
@@ -761,7 +736,7 @@ static int rt5033_fled_parse_dt(struct device *dev,
 	return 0;
 }
 
-static int rt5033_fled_probe(struct platform_device *pdev)
+static __init int rt5033_fled_probe(struct platform_device *pdev)
 {
     int ret;
 	struct rt5033_mfd_chip *chip = dev_get_drvdata(pdev->dev.parent);
@@ -811,9 +786,6 @@ static int rt5033_fled_probe(struct platform_device *pdev)
         goto err_register_irq;
 
     }
-	fled_info->wq = create_workqueue("rt5033fled_workqueue");
-	INIT_DELAYED_WORK(&fled_info->timeout_unlock_work,
-		rt5033_fled_timeout_unlock);
     return 0;
 err_register_irq:
 err_register_pdev:
@@ -824,12 +796,11 @@ err_parse_dt_nomem:
     return ret;
 }
 
-static int rt5033_fled_remove(struct platform_device *pdev)
+static __exit int rt5033_fled_remove(struct platform_device *pdev)
 {
     struct rt5033_fled_info *fled_info;
     RT5033_FLED_INFO("Richtek RT5033 FlashLED driver removing...\n");
     fled_info = platform_get_drvdata(pdev);
-    destroy_workqueue(fled_info->wq);
     unregister_irq(pdev, fled_info);
     platform_device_unregister(&rt_fled_pdev);
     mutex_destroy(&fled_info->led_lock);
