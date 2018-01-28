@@ -2932,7 +2932,7 @@ static int binder_node_release(struct binder_node *node, int refs)
 
 #if 0
 		if (!ref->death)
-			goto out;
+			continue;
 
 		death++;
 
@@ -2955,7 +2955,6 @@ static int binder_node_release(struct binder_node *node, int refs)
 		}
 	}
 
-out:
 	binder_debug(BINDER_DEBUG_DEAD_BINDER,
 		     "node %d now dead, refs %d, death %d\n",
 		     node->debug_id, refs, death);

@@ -396,6 +396,9 @@ static int init_ring_common(struct intel_ring_buffer *ring)
 		}
 	}
 
+	/* Enforce ordering by reading HEAD register back */
+	I915_READ_HEAD(ring);
+
 	/* Initialize the ring. This must happen _after_ we've cleared the ring
 	 * registers with the above sequence (the readback of the HEAD registers
 	 * also enforces ordering), otherwise the hw might lose the new ring
@@ -1459,8 +1462,8 @@ intel_ring_alloc_seqno(struct intel_ring_buffer *ring)
 	return i915_gem_get_seqno(ring->dev, &ring->outstanding_lazy_request);
 }
 
-static int __intel_ring_begin(struct intel_ring_buffer *ring,
-			      int bytes)
+static int __intel_ring_prepare(struct intel_ring_buffer *ring,
+				int bytes)
 {
 	int ret;
 
@@ -1476,7 +1479,6 @@ static int __intel_ring_begin(struct intel_ring_buffer *ring,
 			return ret;
 	}
 
-	ring->space -= bytes;
 	return 0;
 }
 
@@ -1491,12 +1493,17 @@ int intel_ring_begin(struct intel_ring_buffer *ring,
 	if (ret)
 		return ret;
 
+	ret = __intel_ring_prepare(ring, num_dwords * sizeof(uint32_t));
+	if (ret)
+		return ret;
+
 	/* Preallocate the olr before touching the ring */
 	ret = intel_ring_alloc_seqno(ring);
 	if (ret)
 		return ret;
 
-	return __intel_ring_begin(ring, num_dwords * sizeof(uint32_t));
+	ring->space -= num_dwords * sizeof(uint32_t);
+	return 0;
 }
 
 void intel_ring_init_seqno(struct intel_ring_buffer *ring, u32 seqno)
