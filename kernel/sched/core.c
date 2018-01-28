@@ -89,10 +89,6 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/sched.h>
 
-#ifdef CONFIG_SPRD_DEBUG
-#include <mach/sprd_debug.h>
-#endif
-
 #ifdef CONFIG_SEC_DEBUG_SCHED_LOG
 #include <mach/sec_debug.h>
 #endif
@@ -3034,9 +3030,6 @@ need_resched:
 	} else
 		raw_spin_unlock_irq(&rq->lock);
 
-#ifdef CONFIG_SPRD_DEBUG
-	sprd_debug_task_log(cpu, rq->curr);
-#endif
 #ifdef CONFIG_SEC_DEBUG_SCHED_LOG
 	sec_debug_task_log(cpu,rq->curr);
 #endif

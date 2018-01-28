@@ -11,6 +11,7 @@
 enum esd_det_mode {
 	ESD_DET_POLLING,
 	ESD_DET_INTERRUPT,
+	ESD_DET_NOT_REQUIRED, /* For HIMAX LDI, we do not need ESD Recovery function because the Panel is immune to ESD */
 };
 
 enum esd_det_level {

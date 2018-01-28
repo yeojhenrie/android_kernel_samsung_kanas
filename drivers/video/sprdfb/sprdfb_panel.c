@@ -24,7 +24,6 @@ static LIST_HEAD(panel_list_sub);/* for sub_lcd */
 static DEFINE_MUTEX(panel_mutex);
 uint32_t lcd_id_from_uboot = 0;
 uint32_t lcd_base_from_uboot = 0;
-extern int isReadyTo_mDNIe;
 extern struct panel_if_ctrl sprdfb_mcu_ctrl;
 extern struct panel_if_ctrl sprdfb_rgb_ctrl;
 #ifndef CONFIG_FB_SCX15
@@ -90,6 +89,12 @@ static int32_t panel_reset_dispc(struct panel_spec *self)
 	dispc_write(1, DISPC_RSTN);
 	/* wait 10ms util the lcd is stable */
 	msleep(timing3); 
+	return 0;
+}
+int32_t panel_pulldown_rstn()
+{
+	dispc_write(0, DISPC_RSTN);
+	mdelay(50);
 	return 0;
 }
 static int32_t panel_reset_lcdc(struct panel_spec *self)
@@ -519,7 +524,6 @@ void sprdfb_panel_suspend(struct sprdfb_device *dev)
 	}
 	msleep(100);
 #else
-	isReadyTo_mDNIe=0;
 	//step1 send lcd sleep cmd or reset panel directly
 	if(dev->panel->suspend_mode == SEND_SLEEP_CMD){
 		panel_sleep(dev);

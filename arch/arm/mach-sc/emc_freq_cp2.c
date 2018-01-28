@@ -601,14 +601,14 @@ static void umctl2_clk_switch(uint32 clk, uint32 DDR_TYPE, uint32 dll_mode, uint
 	//disable auto refresh
 	REG32(UMCTL_RFSHCTL3) |= (1 << 0);
 	for(i = 0 ; i < 2; i++);
-	emc_clk_select(clk, div);
-	for(i = 0 ; i < 2; i++);
-
 	//phy clock close
 //	REG32(PMU_APB_BASE + 0xc8) &= ~(1 << 2);
 	REG32(PMU_APB_BASE + 0xc8) &= ~(1 << 6);
 
+	ddr_timing_update();
+	emc_clk_select(clk, div);
 	for(i = 0 ; i < 2; i++);
+
 	if(dll_mode == EMC_DLL_SWITCH_DISABLE_MODE) {
 		disable_ddrphy_dll();
 		//phy clock open
@@ -639,7 +639,6 @@ static void umctl2_clk_switch(uint32 clk, uint32 DDR_TYPE, uint32 dll_mode, uint
 	}
 	//enable auto refresh
 	REG32(UMCTL_RFSHCTL3) &= ~(1 << 0);
-	ddr_timing_update();
 	REG32(UMCTL_DFIMISC) |= (1 << 0);
 	enable_cam_command_deque();
 	move_upctl_state_exit_self_refresh(dll_mode);
@@ -663,7 +662,7 @@ static void ddr_timing_update(void)
 	//REG32(UMCTL_DRAMTMG5) = timing->umctl2_dramtmg5;
 	REG32(UMCTL_DRAMTMG6) = timing->umctl2_dramtmg6;
 	//REG32(UMCTL_DRAMTMG7) = timing->umctl2_dramtmg7;
-	REG32(UMCTL_DRAMTMG8) = 1;
+//	REG32(UMCTL_DRAMTMG8) = 1;
 	REG32(PUBL_DX0DQSTR) = timing->publ_dx0dqstr;
 	REG32(PUBL_DX1DQSTR) = timing->publ_dx1dqstr;
 	REG32(PUBL_DX2DQSTR) = timing->publ_dx2dqstr;
@@ -748,7 +747,7 @@ void main_entry(void)
 		timing = (ddr_dfs_val_t *)(CP2_PARAM_ADDR);
 		umctl2_freq_set(clk, ddr_type, dll_mode, div);
 		REG32(FLAG_ADDR) |= (EMC_FREQ_SWITCH_COMPLETE << EMC_FREQ_SWITCH_STATUS_OFFSET);
-		REG32(FLAG_ADDR - 4) = 0x11223367;
+		REG32(FLAG_ADDR - 4) = 0x11223368;
 
 	}
 

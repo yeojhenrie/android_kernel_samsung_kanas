@@ -17,6 +17,7 @@
 #endif
 #include <linux/platform_device.h>
 #include <linux/fb.h>
+#include <linux/reboot.h>
 #include <asm/uaccess.h>
 #include "sprdfb.h"
 #include "sprdfb_panel.h"
@@ -32,7 +33,7 @@
 #include <mach/sec_debug.h>
 #endif
 #include <video/sprd_fb.h>
-
+extern void lcd_backlight_off(int num);
 enum {
 	SPRD_IN_DATA_TYPE_ABGR888 = 0,
 	SPRD_IN_DATA_TYPE_BGR565,
@@ -55,7 +56,9 @@ extern struct display_ctrl sprdfb_dispc_ctrl ;
 #ifdef CONFIG_FB_SC8825
 extern struct display_ctrl sprdfb_lcdc_ctrl;
 #endif
-
+#ifdef CONFIG_FB_LCD_HX8369B_MIPI_DTC
+static struct sprdfb_device *glo_dev = NULL;
+#endif
 static int lcd_is_dummy = 0;
 extern struct panel_spec lcd_panel_dummy;
 int recovery_mode;
@@ -384,7 +387,8 @@ static void sprdfb_early_suspend (struct early_suspend* es)
 	return;
 
 #ifdef CONFIG_LCD_ESD_RECOVERY
-	esd_det_disable(dev->panel->esd_info);
+	if (dev->panel->esd_info->mode != ESD_DET_NOT_REQUIRED)
+		esd_det_disable(dev->panel->esd_info);
 #endif
 	fb_set_suspend(fb, FBINFO_STATE_SUSPENDED);
 	if (!lock_fb_info(fb))
@@ -411,7 +415,8 @@ static void sprdfb_late_resume (struct early_suspend* es)
 	unlock_fb_info(fb);
 	fb_set_suspend(fb, FBINFO_STATE_RUNNING);
 #ifdef CONFIG_LCD_ESD_RECOVERY
-	esd_det_enable(dev->panel->esd_info);
+	if (dev->panel->esd_info->mode != ESD_DET_NOT_REQUIRED)
+		esd_det_enable(dev->panel->esd_info);
 #endif
 }
 #else
@@ -480,7 +485,31 @@ static void esd_enable_func(struct work_struct *work)
     esd_det_enable(dev_global->panel->esd_info);
 }
 #endif
-
+#ifdef CONFIG_FB_LCD_HX8369B_MIPI_DTC
+static int lcd_pcwd_notify_sys(struct notifier_block *this, unsigned long code,
+								void *unused)
+{
+	struct sprdfb_device *dev = glo_dev;
+	printk("sprdfb: [%s]\n",__FUNCTION__);
+	if(dev==NULL)
+	{
+		printk("sprdfb: dev is NULL!\n");
+		return 0;
+	}
+	if(code!=SYS_DOWN && code!=SYS_HALT && code!=SYS_POWER_OFF)
+	{
+		printk("sprdfb: error power-off messsage\n");
+		return 0;
+	}
+	
+	lcd_backlight_off(0);
+	panel_pulldown_rstn();
+	return 0;
+}
+static struct notifier_block lcd_pcwd_notifier = {
+	.notifier_call =	lcd_pcwd_notify_sys,
+};
+#endif
 static int sprdfb_probe(struct platform_device *pdev)
 {
 	struct fb_info *fb = NULL;
@@ -499,11 +528,14 @@ static int sprdfb_probe(struct platform_device *pdev)
 	dev = fb->par;
 	dev->fb = fb;
 	dev->dev_id = pdev->id;
-
+#ifdef CONFIG_FB_LCD_HX8369B_MIPI_DTC
+	glo_dev=dev;
+#endif
+	
 	/*
-	Since it do not support TRIPLE Framebuffer during Recovery;
-	So,we made here to take Two Framebuffer during recovery,
-	and in other case it will take three (Due to Triple Framebuffer
+	Since it do not support TRIPLE Framebuffer during Recovery; 
+	So,we made here to take Two Framebuffer during recovery, 
+	and in other case it will take three (Due to Triple Framebuffer 
 	in recovery mode,we got Black screen instead of Android image)
 	*/
 	if (recovery_mode == 1)
@@ -599,7 +631,7 @@ static int sprdfb_probe(struct platform_device *pdev)
 	dev->panel_reset_time = 0;
 #endif
 #ifdef CONFIG_LCD_ESD_RECOVERY
-	if (!lcd_is_dummy) {
+	if (!lcd_is_dummy && dev->panel->esd_info->mode != ESD_DET_NOT_REQUIRED) {
 		printk("enable esd %s, mode %d\n", dev->panel->esd_info->name, \
 		dev->panel->esd_info->mode);
 		dev->panel->esd_info->pdata = dev;
@@ -610,6 +642,13 @@ static int sprdfb_probe(struct platform_device *pdev)
 
 		INIT_DELAYED_WORK(&enable_esd_work, esd_enable_func);
 		schedule_delayed_work(&enable_esd_work, msecs_to_jiffies(5000));
+	}
+#endif
+#ifdef CONFIG_FB_LCD_HX8369B_MIPI_DTC
+	ret = register_reboot_notifier(&lcd_pcwd_notifier);
+	if (ret != 0) {
+		printk("sprdfb: cannot register reboot notifier (err=%d)\n", ret);
+		goto cleanup;
 	}
 #endif
 	return 0;

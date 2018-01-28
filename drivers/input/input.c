@@ -29,10 +29,6 @@
 #include <linux/rcupdate.h>
 #include "input-compat.h"
 
-#if defined(CONFIG_SPRD_DEBUG)
-	#include <mach/sprd_debug.h>
-#endif
-
 MODULE_AUTHOR("Vojtech Pavlik <vojtech@suse.cz>");
 MODULE_DESCRIPTION("Input core");
 MODULE_LICENSE("GPL");
@@ -295,21 +291,11 @@ static int input_get_disposition(struct input_dev *dev,
 
 				__change_bit(code, dev->key);
 
-				#if defined(CONFIG_SPRD_DEBUG)
-					if(code != BTN_TOUCH) {
-						sprd_debug_check_crash_key(code,value);
-					}
-				#endif
-
 				disposition = INPUT_PASS_TO_HANDLERS;
 			}
 		}
 		else {
-			#if defined(CONFIG_SPRD_DEBUG)
-				if(code != BTN_TOUCH && value == 0) {
-					sprd_debug_check_crash_key(code,value);
-				}
-			#endif
+
 		}
 		break;
 

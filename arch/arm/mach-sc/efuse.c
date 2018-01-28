@@ -389,7 +389,7 @@ int sci_efuse_get_cal(unsigned int * pdata, int num)
 
 	pr_info("%s efuse data: 0x%08x\n", __func__, efuse_data);
 
-	if (!(efuse_data & BIT(31)) || (!pdata)) {
+	if ((!pdata)) {
 		return -1;
 	}
 

@@ -136,6 +136,11 @@ config FB_LCD_HX8369B_MIPI
 	boolean "support hx8369b mipi panel"
 	depends on FB_SC8825 || FB_SCX35
 	default n
+	
+config FB_LCD_HX8369B_MIPI_DTC
+	boolean "support hx8369b dtc mipi panel"
+	depends on FB_SC8825 || FB_SCX35
+	default n
 
 config FB_LCD_RESERVE_MEM
         boolean "support FB reserve mem"

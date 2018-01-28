@@ -404,7 +404,7 @@ void print_tsp_event(finger_info *finger)
 						printk(KERN_ERR "[TSP] cannot get cpufreq_min lock %lu(%d)\n",
 						touch_cpufreq_lock, PTR_ERR(min_handle));
 						min_handle = NULL;
-					}
+						}
 					_store_cpu_num_min_limit(2);
 					tsp_info("cpu freq on\n");
 				}
@@ -1367,6 +1367,49 @@ static int __init ist30xx_probe(struct i2c_client *		client,
 		goto err_init_drv;
 	}
 
+
+	ret = request_threaded_irq(client->irq, NULL, ist30xx_irq_thread,
+				   IRQF_TRIGGER_FALLING | IRQF_ONESHOT, "ist30xx_ts", data);
+	if (unlikely(ret))
+		goto err_irq;
+	//sprd_i2c_ctl_chg_clk(1, 400000); // up h/w i2c 1 400k
+	ist30xx_disable_irq(data);
+
+	while ((data->chip_id != IST30XXB_CHIP_ID) &&
+	       (data->chip_id != IST3038_CHIP_ID)) {
+		ret = ist30xx_read_cmd(data->client, IST30XXB_REG_CHIPID, &data->chip_id);
+		if (unlikely(ret)) {
+			tsp_info("tspid: %x\n", data->chip_id);
+			ist30xx_reset();
+		}
+
+		if (data->chip_id == 0x3000B) data->chip_id = IST30XXB_CHIP_ID;
+
+		if (retry-- == 0)
+		{
+			goto err_init_drv;
+		}
+	}
+
+	retry = 3;
+	while (retry-- > 0) {
+		ret = ist30xx_read_cmd(data->client, IST30XXB_REG_TSPTYPE,
+				       &data->tsp_type);
+
+		tsp_info("tsptype: %x\n", data->tsp_type);
+		data->tsp_type = IST30XXB_PARSE_TSPTYPE(data->tsp_type);
+
+		if (likely(ret == 0))
+			break;
+
+		data->tsp_type = TSP_TYPE_UNKNOWN;
+	}
+
+	tsp_info("TSP IC: %x, TSP Vendor: %x\n", data->chip_id, data->tsp_type);
+
+	data->status.event_mode = false;
+
+	
 	ret = ist30xx_init_update_sysfs();
 	if (unlikely(ret))
 		goto err_init_drv;
@@ -1391,45 +1434,6 @@ static int __init ist30xx_probe(struct i2c_client *		client,
 	if (unlikely(ret))
 		goto err_init_drv;
 #endif
-
-	ret = request_threaded_irq(client->irq, NULL, ist30xx_irq_thread,
-				   IRQF_TRIGGER_FALLING | IRQF_ONESHOT, "ist30xx_ts", data);
-	if (unlikely(ret))
-		goto err_irq;
-	//sprd_i2c_ctl_chg_clk(1, 400000); // up h/w i2c 1 400k
-	ist30xx_disable_irq(data);
-
-	while ((data->chip_id != IST30XXB_CHIP_ID) &&
-	       (data->chip_id != IST3038_CHIP_ID)) {
-		ret = ist30xx_read_cmd(data->client, IST30XXB_REG_CHIPID, &data->chip_id);
-		if (unlikely(ret)) {
-			tsp_info("tspid: %x\n", data->chip_id);
-			ist30xx_reset();
-		}
-
-		if (data->chip_id == 0x3000B) data->chip_id = IST30XXB_CHIP_ID;
-
-		if (retry-- == 0)
-			break;
-	}
-
-	retry = 3;
-	while (retry-- > 0) {
-		ret = ist30xx_read_cmd(data->client, IST30XXB_REG_TSPTYPE,
-				       &data->tsp_type);
-
-		tsp_info("tsptype: %x\n", data->tsp_type);
-		data->tsp_type = IST30XXB_PARSE_TSPTYPE(data->tsp_type);
-
-		if (likely(ret == 0))
-			break;
-
-		data->tsp_type = TSP_TYPE_UNKNOWN;
-	}
-
-	tsp_info("TSP IC: %x, TSP Vendor: %x\n", data->chip_id, data->tsp_type);
-
-	data->status.event_mode = false;
 
 #if IST30XX_INTERNAL_BIN
 # if IST30XX_UPDATE_BY_WORKQUEUE
@@ -1488,7 +1492,6 @@ err_init_drv:
 	ist30xx_power_off();
 	input_unregister_device(input_dev);
 	kfree(data);
-	kfree(input_dev);
 	return 0;
 
 err_reg_dev:

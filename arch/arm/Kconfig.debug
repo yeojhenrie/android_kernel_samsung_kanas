@@ -766,6 +766,9 @@ config SEC_DEBUG_USER
         bool "Enable user options"
         default n
 
+config SEC_DEBUG_REG_ACCESS
+        bool "Samsung reg access debugging"
+        default n
 endif
 
 

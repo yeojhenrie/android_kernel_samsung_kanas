@@ -2076,7 +2076,11 @@ static struct spipe_init_data sprd_stty_wcdma_pdata = {
 	.channel	= SMSG_CH_TTY,
 	.ringnr		= 32,
 	.txbuf_size	= 2*1024,
+#if defined(CONFIG_NFC_PN547)
+	.rxbuf_size	= 8*1024,
+#else
 	.rxbuf_size	= 4*1024,
+#endif
 };
 struct platform_device sprd_stty_wcdma_device = {
 	.name           = "spipe",

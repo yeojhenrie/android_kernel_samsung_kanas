@@ -35,7 +35,7 @@
 #include <linux/kernel_stat.h>
 #include <linux/moduleparam.h>
 #include <asm/system_misc.h>
-
+#include <linux/dma-mapping.h>
 #include <mach/hardware.h>
 #include <mach/system.h>
 #include <mach/sec_debug.h>
@@ -273,6 +273,11 @@ module_param_named(enable_user, sec_debug_level.en.user_fault, ushort, 0644);
 module_param_named(level, sec_debug_level.uint_val, uint, 0644);
 
 static char gkernel_sec_build_info[100];
+
+#ifdef CONFIG_SEC_DEBUG_REG_ACCESS
+struct sec_debug_regs_access *sec_debug_last_regs_access;
+EXPORT_SYMBOL(sec_debug_last_regs_access);
+#endif
 
 /* klaatu - schedule log */
 #ifdef CONFIG_SEC_DEBUG_SCHED_LOG
@@ -968,6 +973,7 @@ static void sec_debug_set_build_info(void)
 
 __init int sec_debug_init(void)
 {
+	unsigned int addr;
 	if (!sec_debug_level.en.kernel_fault)
 		return -1;
 
@@ -987,9 +993,15 @@ __init int sec_debug_init(void)
 	register_reboot_notifier(&nb_reboot_block);
 
 	atomic_notifier_chain_register(&panic_notifier_list, &nb_panic_block);
-
+#ifdef CONFIG_SEC_DEBUG_REG_ACCESS
+	sec_debug_last_regs_access = (struct sec_debug_regs_access*)dma_alloc_coherent(
+		NULL, sizeof(struct sec_debug_regs_access)*NR_CPUS, &addr, GFP_KERNEL);
+	pr_info("*** %s, size:%u, sec_debug_last_regs_access:%p *** \n",
+		__func__, sizeof(struct sec_debug_regs_access)*NR_CPUS, sec_debug_last_regs_access);
+#endif
 	return 0;
 }
+device_initcall(sec_debug_init);
 
 int get_sec_debug_level(void)
 {

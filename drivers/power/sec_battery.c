@@ -30,6 +30,7 @@
  * 1. BATTERY_VOL_PATH	"/sys/class/power_supply/battery/real_time_voltage"
  * 2. BATTERY_ADC_PATH	"/sys/class/power_supply/battery/real_time_vbat_adc"
  */
+extern int system_rev;
 extern uint32_t sprdchg_read_vbat_vol(void);
 #else
 #error "please include sprd sc2713 interface"
@@ -2611,11 +2612,12 @@ ssize_t sec_bat_store_attrs(
 		break;
 	case BATT_EVENT:
 		if (sscanf(buf, "%d\n", &x) == 1) {
-			battery->pdata->temp_high_threshold_normal =
-				x == 0 ? 600 : 700;
-			pr_info("%s: high temp threshold : %d\n",
-				__func__, battery->pdata->temp_high_threshold_normal);
-
+			if (system_rev <= 0x05) {
+				battery->pdata->temp_high_threshold_normal =
+					x == 0 ? 600 : 700;
+				pr_info("%s: high temp threshold : %d\n",
+					__func__, battery->pdata->temp_high_threshold_normal);
+			}
 			ret = count;
 		}
 		break;

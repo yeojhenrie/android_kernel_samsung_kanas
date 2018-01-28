@@ -277,6 +277,24 @@ static int rt5033mfd_parse_dt(struct device *dev,
 	return 0;
 }
 
+static int rt5033_reset(struct i2c_client *i2c)
+{
+	int ret;
+	/* Force to enable OSC (Reg0x1a[5]) and then send CHG reset command */
+	rt5033_set_bits(i2c, 0x1a, 0x20);
+	ret = rt5033_reg_read(i2c, 0x19);
+	if ((ret & (~0x2)) != 0x45) {
+		/* Send RESET command to charger */
+		rt5033_set_bits(i2c, 0x08, 0x80);
+	}
+	/* Send RESET command to FLED */
+	rt5033_set_bits(i2c, 0x21, 0x80);
+	msleep(1);
+	/* Assign Force EN bit = 0 */
+	rt5033_clr_bits(i2c, 0x1a, 0x20);
+	return 0;
+}
+
 static int __init rt5033_mfd_probe(struct i2c_client *i2c,
 		const struct i2c_device_id *id)
 {
@@ -338,6 +356,7 @@ static int __init rt5033_mfd_probe(struct i2c_client *i2c,
 	wake_lock_init(&(chip->irq_wake_lock), WAKE_LOCK_SUSPEND,
 			"rt5033mfd_wakelock");
 
+	rt5033_reset(i2c);
 	/* To disable MRST function should be
 	finished before set any reg init-value*/
 	data = rt5033_reg_read(i2c, 0x47);
@@ -472,7 +491,7 @@ int rt5033_mfd_resume(struct device *dev)
 #define RT5033_REGULATOR_REG_OUTPUT_EN (0x41)
 #define RT5033_REGULATOR_EN_MASK_LDO_SAFE (1<<6)
 
-const static uint8_t rt5033_chg_group1_default[] = { 0x40, 0x58 };
+const static uint8_t rt5033_chg_group1_default[] = { 0x40 };
 const static uint8_t rt5033_chg_group2_default[] = {0x41, 0xAB, 0x35};
 
 static void rt5033_mfd_shutdown(struct i2c_client *client)

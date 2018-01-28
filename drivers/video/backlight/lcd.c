@@ -16,6 +16,7 @@
 #include <linux/err.h>
 #include <linux/fb.h>
 #include <linux/slab.h>
+extern uint32_t lcd_id_from_uboot;
 
 #if defined(CONFIG_FB) || (defined(CONFIG_FB_MODULE) && \
 			   defined(CONFIG_LCD_CLASS_DEVICE_MODULE))
@@ -277,8 +278,13 @@ static DEVICE_ATTR(lcd_line_inversion, S_IRUGO, lcd_line_inversion_mode_update, 
 
 static ssize_t show_lcd_info(struct device *dev, struct device_attribute *attr, char *buf)
 {
-#ifdef CONFIG_FB_LCD_NT35502_MIPI
-	return sprintf(buf, "%s","INH_5547C0\n" );
+#if defined(CONFIG_FB_LCD_NT35502_MIPI) || defined(CONFIG_FB_LCD_HX8369B_MIPI_DTC)
+if(lcd_id_from_uboot==0x554cc0)
+	return sprintf(buf, "%s","INH_554CC0\n" );
+else if(lcd_id_from_uboot==0x55c0c0)
+	return sprintf(buf, "%s","INH_55C0C0\n" );
+else
+	return sprintf(buf, "%s","INH_55C090\n" );
 #else
 	return sprintf(buf, "%s","INH_61BCD1\n" );
 #endif

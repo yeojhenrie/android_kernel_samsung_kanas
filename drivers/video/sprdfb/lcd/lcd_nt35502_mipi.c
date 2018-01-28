@@ -40,7 +40,7 @@ typedef struct LCM_force_cmd_code_tag{
 #ifdef CONFIG_LDI_SUPPORT_MDNIE
 #include "lcd_nt35502_mdnie_param.h"
 
-int isReadyTo_mDNIe = 1;
+static int isReadyTo_mDNIe = 1;
 static struct mdnie_config mDNIe_cfg;
 static void set_mDNIe_Mode(struct mdnie_config *mDNIeCfg);
 #ifdef ENABLE_MDNIE_TUNING
@@ -56,7 +56,7 @@ static LCM_Mdnie_Code video_display_mDNIe_cmds[] =
 };
 #endif	/* ENABLE_MDNIE_TUNING */
 #endif	/* CONFIG_LDI_SUPPORT_MDNIE */
-static LCM_Init_Code init_data[] = {
+static LCM_Init_Code auo_init_data[] = {
     //Power setting Sequence
 	{LCM_SEND(8),{6,0,0xF0,0x55,0xAA,0x52,0x08,0x01}},
 	 {LCM_SEND(4),{2,0,0xB0,0x08}},
@@ -135,7 +135,7 @@ static LCM_Init_Code init_data[] = {
 	
 };
 
-static LCM_Init_Code disp_on[] =  {  
+static LCM_Init_Code auo_disp_on[] =  {  
 	{LCM_SEND(1),{0x11}},
 	{LCM_SLEEP(120)},
 	{LCM_SEND(1),{0x29}},
@@ -143,15 +143,14 @@ static LCM_Init_Code disp_on[] =  {
 
 };
 
-static LCM_Init_Code sleep_in[] =  {
+static LCM_Init_Code auo_sleep_in[] =  {
 	{LCM_SEND(1), {0x28}},
 	
 	{LCM_SEND(1), {0x10}},
 	{LCM_SLEEP(70)},	//>150ms
 	{LCM_SEND(5),{3,0, 0x4F,0x01}}, 
 };
-
-static LCM_Init_Code sleep_out[] =  {
+static LCM_Init_Code auo_sleep_out[] =  {
 	{LCM_SEND(1), {0x11}},
 	{LCM_SLEEP(120)},//>120ms
 	{LCM_SEND(1), {0x29}},
@@ -169,10 +168,99 @@ static LCM_Force_Cmd_Code rd_prep_code_4[]={
 	{0x37, {LCM_SEND(2), {0x4, 0}}},
 };
 
-static int32_t nt35502_mipi_init(struct panel_spec *self)
+static LCM_Init_Code dtc_init_data[] = {
+    //Power setting Sequence
+	{LCM_SEND(8),{6,0,0xF0,0x55,0xAA,0x52,0x08,0x01}},
+	 {LCM_SEND(4),{2,0,0xB0,0x0C}},
+	 {LCM_SEND(4),{2,0,0xB2,0x41}},
+	 {LCM_SEND(4),{2,0,0xB3,0x1E}},
+	 {LCM_SEND(4),{2,0,0xB4,0x19}},
+	 {LCM_SEND(4),{2,0,0xB5,0x64}},
+	 {LCM_SEND(4),{2,0,0xB9,0x36}},
+	 {LCM_SEND(4),{2,0,0xBA,0x26}},
+	 {LCM_SEND(5),{3,0,0xBC,0x66,0x00}},
+	 {LCM_SEND(5),{3,0,0xBD,0x66,0x00}},
+	 {LCM_SEND(4),{2,0,0x6F,0x02}},
+	 {LCM_SEND(4),{2,0,0xC8,0xC0}},
+	
+	 //Gamma setting
+	{LCM_SEND(19),{17,0,0xD1,0x00,0x00,0x00,0x08,0x00,0x0C,0x00,0x52,0x00,0x81,0x00,0x91,0x00,0xA2,0x01,0x12}},//R+ SETTING
+	{LCM_SEND(19),{17,0,0xD2,0x01,0x44,0x01,0x8A,0x01,0xB5,0x01,0xF6,0x02,0x29,0x02,0x2A,0x02,0x51,0x02,0x78}},//R+ SETTING
+	{LCM_SEND(19),{17,0,0xD3,0x02,0x8C,0x02,0xA2,0x02,0xB2,0x02,0xC2,0x02,0xC4,0x02,0xD8,0x02,0xD9,0x02,0xDC}},//R+ SETTING
+	{LCM_SEND(7),{5,0,0xD4,0x02,0xF1,0x02,0xF4}},//R+ SETTING
+	{LCM_SEND(19),{17,0,0xE0,0x00,0x00,0x00,0x08,0x00,0x0C,0x00,0x52,0x00,0x81,0x00,0x91,0x00,0xA2,0x01,0x12}},//R- SETTING
+	{LCM_SEND(19),{17,0,0xE1,0x01,0x44,0x01,0x8A,0x01,0xB5,0x01,0xF6,0x02,0x29,0x02,0x2A,0x02,0x51,0x02,0x78}},//R- SETTING
+	{LCM_SEND(19),{17,0,0xE2,0x02,0x8C,0x02,0xA2,0x02,0xB2,0x02,0xC2,0x02,0xC4,0x02,0xD8,0x02,0xD9,0x02,0xDC}},//R- SETTING
+	{LCM_SEND(7),{5,0,0xE3,0x02,0xF1,0x02,0xF4}},//R- SETTING							
+	{LCM_SEND(19),{17,0,0xD5,0x00,0x00,0x00,0x06,0x00,0x08,0x00,0x5E,0x00,0x7D,0x00,0x9D,0x00,0xED,0x01,0x19}},//G+ SETTING
+	{LCM_SEND(19),{17,0,0xD6,0x01,0x57,0x01,0x96,0x01,0xBD,0x01,0xFC,0x02,0x2B,0x02,0x2D,0x02,0x53,0x02,0x78}},//G+ SETTING
+	{LCM_SEND(19),{17,0,0xD7,0x02,0x8E,0x02,0xA5,0x02,0xB2,0x02,0xC4,0x02,0xCC,0x02,0xD8,0x02,0xD9,0x02,0xF0}},//G+ SETTING
+	{LCM_SEND(7),{5,0,0xD8,0x02,0xF2,0x02,0xF6}},//G+ SETTING
+	{LCM_SEND(19),{17,0,0xE4,0x00,0x00,0x00,0x06,0x00,0x08,0x00,0x5E,0x00,0x7D,0x00,0x9D,0x00,0xED,0x01,0x19}},//G- SETTING
+	{LCM_SEND(19),{17,0,0xE5,0x01,0x57,0x01,0x96,0x01,0xBD,0x01,0xFC,0x02,0x2B,0x02,0x2D,0x02,0x53,0x02,0x78}},//G- SETTING
+	{LCM_SEND(19),{17,0,0xE6,0x02,0x8E,0x02,0xA5,0x02,0xB2,0x02,0xC4,0x02,0xCC,0x02,0xD8,0x02,0xD9,0x02,0xF0}},//G- SETTING
+	{LCM_SEND(7),{5,0,0xE7,0x02,0xF2,0x02,0xF6}},//G- SETTING
+	{LCM_SEND(19),{17,0,0xD9,0x00,0x00,0x00,0x03,0x00,0x0A,0x00,0x50,0x00,0x7F,0x00,0x92,0x00,0xC8,0x01,0x19}},//B+ SETTING
+	{LCM_SEND(19),{17,0,0xDD,0x01,0x57,0x01,0x99,0x01,0xC2,0x02,0x06,0x02,0x32,0x02,0x36,0x02,0x5D,0x02,0x86}},//B+ SETTING
+	{LCM_SEND(19),{17,0,0xDE,0x02,0x98,0x02,0xAE,0x02,0xBC,0x02,0xCE,0x02,0xD6,0x02,0xE1,0x02,0xE5,0x02,0xFA}},//B+ SETTING
+	{LCM_SEND(7),{5,0,0xDF,0x02,0xFC,0x02,0xFF}},//B+ SETTING
+	{LCM_SEND(19),{17,0,0xE8,0x00,0x00,0x00,0x03,0x00,0x0A,0x00,0x50,0x00,0x7F,0x00,0x92,0x00,0xC8,0x01,0x19}},//B- SETTING
+	{LCM_SEND(19),{17,0,0xE9,0x01,0x57,0x01,0x99,0x01,0xC2,0x02,0x06,0x02,0x32,0x02,0x36,0x02,0x5D,0x02,0x86}},//B- SETTING
+	{LCM_SEND(19),{17,0,0xEA,0x02,0x98,0x02,0xAE,0x02,0xBC,0x02,0xCE,0x02,0xD6,0x02,0xE1,0x02,0xE5,0x02,0xFA}},//B- SETTING
+	{LCM_SEND(7),{5,0,0xEB,0x02,0xFC,0x02,0xFF}},//B- SETTING
+	
+	//initializing sequence
+	
+	{LCM_SEND(8),{6,0,0xF0,0x55,0xAA,0x52,0x08,0x00}},//Enable CMD2 Page0
+	{LCM_SEND(5),{3,0,0xB1,0x16,0x08}},//Backward/Forward
+	{LCM_SEND(5),{3,0,0xB3,0x61,0x02}},//Error out for ESD recovery
+	{LCM_SEND(5),{3,0,0xB4,0x09,0x50}},//Resolution control
+	{LCM_SEND(4),{2,0,0xB6,0x03}},//Source output data hold time
+	{LCM_SEND(5),{3,0,0xB7,0x00,0x00}},//Gate EQ
+	{LCM_SEND(5),{3,0,0xB8,0x11,0x11}},//Source EQ
+	{LCM_SEND(6),{4,0,0xBB,0xFF,0xF5,0x00}},//Source Driver control
+	{LCM_SEND(4),{2,0,0xBC,0x00}},//Inversion
+	{LCM_SEND(13),{11,0,0xC9,0xD2,0x00,0x00,0x9A,0x00,0x80,0xC7,0x4A,0x41,0x04}},//GOA Timing
+	{LCM_SEND(39),{37,0,0xEC,0x10,0x10,0x10,0x10,0x04,0x0F,0x13,0x12,0x09,0x0A,0x0B,0x0C,0x05,0x06,0x07,0x08,0x0D,0x0E,0x03,0x04,0x09,0x0A,0x0B,0x0C,0x05,0x06,0x07,0x08,0x12,0x13,0x02,0x0D,0x10,0x10,0x10,0x10}},//GOA Timing
+	{LCM_SEND(39),{37,0,0xED,0x10,0x10,0x10,0x10,0x04,0x0F,0x13,0x12,0x09,0x0A,0x0B,0x0C,0x05,0x06,0x07,0x08,0x0D,0x0E,0x03,0x04,0x09,0x0A,0x0B,0x0C,0x05,0x06,0x07,0x08,0x12,0x13,0x02,0x0D,0x10,0x10,0x10,0x10}},//GOA Timing
+	{LCM_SEND(7),{5,0,0xFF,0xAA,0x55,0x25,0x01}},//Enable CMD2
+	{LCM_SEND(4),{2,0,0x6F,0x13}},//Set Parameter Index in MIPI
+	{LCM_SEND(4),{2,0,0xF2,0x16}},
+	{LCM_SEND(7),{5,0,0xFF,0xAA,0x55,0x25,0x00}},
+	{LCM_SEND(8),{6,0,0xF0,0x55,0xAA,0x52,0x00,0x00}},  
+	//Display on
+	{LCM_SEND(1),{0x11}},
+	{LCM_SLEEP(120)},
+	{LCM_SEND(1),{0x29}},
+	{LCM_SLEEP(10)},
+	
+};
+#if 0
+static LCM_Init_Code dtc_disp_on[] =  {  
+	{LCM_SEND(1),{0x11}},
+	{LCM_SLEEP(120)},
+	{LCM_SEND(1),{0x29}},
+};
+#endif
+// Sleep in same as auo
+static LCM_Init_Code dtc_sleep_in[] =  {
+	{LCM_SEND(1), {0x28}},
+
+	{LCM_SEND(1), {0x10}},
+	{LCM_SLEEP(70)},	//>150ms
+	{LCM_SEND(5),{3,0,0x4F,0x01}}, 
+};
+static LCM_Init_Code dtc_sleep_out[] =  {
+	{LCM_SEND(1), {0x11}},
+	{LCM_SLEEP(120)},//>120ms
+	{LCM_SEND(1), {0x29}},
+	{LCM_SLEEP(20)}, //>20ms
+};
+
+static int32_t nt35502_mipi_init_auo(struct panel_spec *self)
 {
 	int32_t i;
-	LCM_Init_Code *init = init_data;
+	LCM_Init_Code *init = auo_init_data;
 	unsigned int tag;
 #ifdef ENABLE_MDNIE_TUNING
 	LCM_Init_Code *tuning = video_display_mDNIe_cmds;
@@ -182,12 +270,61 @@ static int32_t nt35502_mipi_init(struct panel_spec *self)
 	mipi_dcs_write_t mipi_dcs_write = self->info.mipi->ops->mipi_dcs_write;
 	mipi_eotp_set_t mipi_eotp_set = self->info.mipi->ops->mipi_eotp_set;
 
-	printk("kernel nt35502_mipi_init\n");
+	printk("kernel nt35502_mipi_init_auo\n");
 
 	mipi_set_cmd_mode();
 	mipi_eotp_set(0,0);
 
-	for(i = 0; i < ARRAY_SIZE(init_data); i++){
+	for(i = 0; i < ARRAY_SIZE(auo_init_data); i++){
+		tag = (init->tag >>24);
+		if(tag & LCM_TAG_SEND){
+			mipi_dcs_write(init->data, (init->tag & LCM_TAG_MASK));
+		}else if(tag & LCM_TAG_SLEEP){
+			msleep(init->tag & LCM_TAG_MASK);
+		}
+		init++;
+	}
+#ifdef  CONFIG_LDI_SUPPORT_MDNIE
+	isReadyTo_mDNIe = 1;
+	set_mDNIe_Mode(&mDNIe_cfg);
+#ifdef ENABLE_MDNIE_TUNING
+	if (tuning_enable && mDNIe_data[3]) {
+		printk("%s, set mDNIe for tuning\n", __func__);
+    	for(i = 0; i < ARRAY_SIZE(video_display_mDNIe_cmds); i++){
+    		tag = (tuning->tag >>24);
+    		if(tag & LCM_TAG_SEND){
+    			mipi_dcs_write(tuning->data, (tuning->tag & LCM_TAG_MASK));
+    		}else if(tag & LCM_TAG_SLEEP){
+    			msleep(tuning->tag & LCM_TAG_MASK);
+    		}
+    		tuning++;
+    	}
+	}
+#endif	/* ENABLE_MDNIE_TUNING */
+#endif	/* CONFIG_LDI_SUPPORT_MDNIE */
+	mipi_eotp_set(1,1);
+	return 0;
+}
+
+static int32_t nt35502_mipi_init_dtc(struct panel_spec *self)
+{
+	int32_t i;
+	LCM_Init_Code *init = dtc_init_data;
+	unsigned int tag;
+#ifdef ENABLE_MDNIE_TUNING
+	LCM_Init_Code *tuning = video_display_mDNIe_cmds;
+#endif
+
+	mipi_set_cmd_mode_t mipi_set_cmd_mode = self->info.mipi->ops->mipi_set_cmd_mode;
+	mipi_dcs_write_t mipi_dcs_write = self->info.mipi->ops->mipi_dcs_write;
+	mipi_eotp_set_t mipi_eotp_set = self->info.mipi->ops->mipi_eotp_set;
+
+	printk("kernel nt35502_mipi_init_dtc\n");
+
+	mipi_set_cmd_mode();
+	mipi_eotp_set(0,0);
+
+	for(i = 0; i < ARRAY_SIZE(dtc_init_data); i++){
 		tag = (init->tag >>24);
 		if(tag & LCM_TAG_SEND){
 			mipi_dcs_write(init->data, (init->tag & LCM_TAG_MASK));
@@ -259,7 +396,7 @@ static uint32_t nt35502_readid(struct panel_spec *self)
 }
 
 
-static int32_t nt35502_enter_sleep(struct panel_spec *self, uint8_t is_sleep)
+static int32_t nt35502_enter_sleep_auo(struct panel_spec *self, uint8_t is_sleep)
 {
 	int32_t i;
 	LCM_Init_Code *sleep_in_out = NULL;
@@ -273,12 +410,50 @@ static int32_t nt35502_enter_sleep(struct panel_spec *self, uint8_t is_sleep)
 	printk("kernel nt35502_enter_sleep, is_sleep = %d\n", is_sleep);
 
 	if(is_sleep){
-		sleep_in_out = sleep_in;
-		size = ARRAY_SIZE(sleep_in);
+		sleep_in_out = auo_sleep_in;
+		size = ARRAY_SIZE(auo_sleep_in);
 		isReadyTo_mDNIe=0;
 	}else{
-		sleep_in_out = sleep_out;
-		size = ARRAY_SIZE(sleep_out);
+		sleep_in_out = auo_sleep_out;
+		size = ARRAY_SIZE(auo_sleep_out);
+	}
+
+	mipi_set_cmd_mode();
+	mipi_eotp_set(0,0);
+
+	for(i = 0; i <size ; i++){
+		tag = (sleep_in_out->tag >>24);
+		if(tag & LCM_TAG_SEND){
+			mipi_dcs_write(sleep_in_out->data, (sleep_in_out->tag & LCM_TAG_MASK));
+		}else if(tag & LCM_TAG_SLEEP){
+			msleep(sleep_in_out->tag & LCM_TAG_MASK);
+		}
+		sleep_in_out++;
+	}
+	mipi_eotp_set(0,0);
+
+	return 0;
+}
+static int32_t nt35502_enter_sleep_dtc(struct panel_spec *self, uint8_t is_sleep)
+{
+	int32_t i;
+	LCM_Init_Code *sleep_in_out = NULL;
+	unsigned int tag;
+	int32_t size = 0;
+
+	mipi_set_cmd_mode_t mipi_set_cmd_mode = self->info.mipi->ops->mipi_set_cmd_mode;
+	mipi_dcs_write_t mipi_dcs_write = self->info.mipi->ops->mipi_dcs_write;
+	mipi_eotp_set_t mipi_eotp_set = self->info.mipi->ops->mipi_eotp_set;
+
+	printk("kernel nt35502_enter_sleep, is_sleep = %d\n", is_sleep);
+
+	if(is_sleep){
+		sleep_in_out = dtc_sleep_in;
+		size = ARRAY_SIZE(dtc_sleep_in);
+		isReadyTo_mDNIe=0;
+	}else{
+		sleep_in_out = dtc_sleep_out;
+		size = ARRAY_SIZE(dtc_sleep_out);
 	}
 
 	mipi_set_cmd_mode();
@@ -389,10 +564,17 @@ struct esd_det_info nt35502_esd_info = {
 	.backlight_off = rt4502_backlight_off,
 };
 #endif
-static struct panel_operations lcd_nt35502_mipi_operations = {
-	.panel_init = nt35502_mipi_init,
+static struct panel_operations lcd_nt35502_mipi_operations_auo = {
+	.panel_init = nt35502_mipi_init_auo,
 	.panel_readid = nt35502_readid,
-	.panel_enter_sleep = nt35502_enter_sleep,
+	.panel_enter_sleep = nt35502_enter_sleep_auo,
+	.panel_esd_check = nt35502_check_esd,
+	.panel_after_suspend = nt35502_after_suspend,
+};
+static struct panel_operations lcd_nt35502_mipi_operations_dtc = {
+	.panel_init = nt35502_mipi_init_dtc,
+	.panel_readid = nt35502_readid,
+	.panel_enter_sleep = nt35502_enter_sleep_dtc,
 	.panel_esd_check = nt35502_check_esd,
 	.panel_after_suspend = nt35502_after_suspend,
 };
@@ -422,27 +604,51 @@ static struct info_mipi lcd_nt35502_mipi_info = {
 	.ops = NULL,
 };
 
-struct panel_spec lcd_nt35502_mipi_spec = {
+struct panel_spec lcd_nt35502_mipi_spec_auo = {
 	.width = 480,
 	.height = 800,
 	.fps	= 60,
+	.suspend_mode=SEND_SLEEP_CMD,
 	.type = LCD_MODE_DSI,
 	.direction = LCD_DIRECT_NORMAL,
 	.is_clean_lcd = true,
 	.info = {
 		.mipi = &lcd_nt35502_mipi_info
 	},
-	.ops = &lcd_nt35502_mipi_operations,
+	.ops = &lcd_nt35502_mipi_operations_auo,
 #ifdef CONFIG_LCD_ESD_RECOVERY
 	.esd_info = &nt35502_esd_info,
 #endif
 };
-struct panel_cfg lcd_nt35502_mipi = {
+struct panel_spec lcd_nt35502_mipi_spec_dtc = {
+	.width = 480,
+	.height = 800,
+	.fps	= 60,
+	.suspend_mode=SEND_SLEEP_CMD,
+	.type = LCD_MODE_DSI,
+	.direction = LCD_DIRECT_NORMAL,
+	.is_clean_lcd = true,
+	.info = {
+		.mipi = &lcd_nt35502_mipi_info
+	},
+	.ops = &lcd_nt35502_mipi_operations_dtc,
+#ifdef CONFIG_LCD_ESD_RECOVERY
+	.esd_info = &nt35502_esd_info,
+#endif
+};
+struct panel_cfg lcd_nt35502_mipi_auo = {
 	/* this panel can only be main lcd */
 	.dev_id = SPRDFB_MAINLCD_ID,
 	.lcd_id = 0x554cc0,
-	.lcd_name = "lcd_nt35502_mipi",
-	.panel = &lcd_nt35502_mipi_spec,
+	.lcd_name = "lcd_nt35502_mipi_auo",
+	.panel = &lcd_nt35502_mipi_spec_auo,
+};
+struct panel_cfg lcd_nt35502_mipi_dtc = {
+	/* this panel can only be main lcd */
+	.dev_id = SPRDFB_MAINLCD_ID,
+	.lcd_id = 0x55c0c0,
+	.lcd_name = "lcd_nt35502_mipi_dtc",
+	.panel = &lcd_nt35502_mipi_spec_dtc,
 };
 
 #ifdef CONFIG_LDI_SUPPORT_MDNIE
@@ -651,6 +857,7 @@ static void set_mDNIe_Mode(struct mdnie_config *mDNIeCfg)
 	int value;
 	int32_t i;
 	unsigned int tag;
+	mipi_dcs_write_t mdnie_mipi_dcs_write;
 	LCM_Init_Code *tuning_scenario;
 	LCM_Init_Code *tuning_negative = (LCM_Init_Code*)video_display_mDNIe_scenario_cmds[SCENARIO_MAX];
     
@@ -659,7 +866,10 @@ static void set_mDNIe_Mode(struct mdnie_config *mDNIeCfg)
     	printk("%s:[mDNIe] LCD ID=00, retrun!!\n", __func__);
 		return;
 	}
-	mipi_dcs_write_t mdnie_mipi_dcs_write = lcd_nt35502_mipi_spec.info.mipi->ops->mipi_dcs_write;
+	if(lcd_id_from_uboot==0x554cc0)
+	mdnie_mipi_dcs_write = lcd_nt35502_mipi_spec_auo.info.mipi->ops->mipi_dcs_write;
+	else
+	mdnie_mipi_dcs_write = lcd_nt35502_mipi_spec_dtc.info.mipi->ops->mipi_dcs_write;
 	if(!isReadyTo_mDNIe)
 		return;
 	if (mDNIe_cfg.negative)  {
@@ -806,6 +1016,7 @@ static DEVICE_ATTR(negative, 0664, mDNIeNegative_show, mDNIeNegative_store);
 
 static int __init lcd_nt35502_mipi_init(void)
 {
+	if(lcd_id_from_uboot == 0x554cc0 || lcd_id_from_uboot == 0x55c0c0) {
 #ifdef CONFIG_LDI_SUPPORT_MDNIE
     struct class *lcd_mDNIe_class;
 	struct device *dev_t;
@@ -830,8 +1041,11 @@ static int __init lcd_nt35502_mipi_init(void)
 		pr_err("Failed to create device file(%s)!\n", dev_attr_tuning.attr.name);
 #endif	/* ENABLE_MDNIE_TUNING */
 #endif	/* CONFIG_LDI_SUPPORT_MDNIE */
-
-	return sprdfb_panel_register(&lcd_nt35502_mipi);
+	}
+	printk(KERN_INFO "sprdfb: [%s]:  0x%x!\n", __FUNCTION__,lcd_nt35502_mipi_auo.lcd_id);
+	sprdfb_panel_register(&lcd_nt35502_mipi_auo);
+	printk(KERN_INFO "sprdfb: [%s]:  0x%x!\n", __FUNCTION__,lcd_nt35502_mipi_dtc.lcd_id);
+	return sprdfb_panel_register(&lcd_nt35502_mipi_dtc);
 }
 
 subsys_initcall(lcd_nt35502_mipi_init);

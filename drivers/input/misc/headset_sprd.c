@@ -840,6 +840,7 @@ int headset_gpio_2_button_state(int gpio_button_value_current)
         return button_state_current; //0==released, 1==pressed
 }
 
+static int adc_get_ideal(int adc_mic);
 static SPRD_HEADSET_TYPE headset_type_detect(int last_gpio_detect_value)
 {
         struct sprd_headset *ht = &headset;
@@ -847,7 +848,9 @@ static SPRD_HEADSET_TYPE headset_type_detect(int last_gpio_detect_value)
         int adc_mic_average = 0;
         int adc_left_average = 0;
         int retry_count = 2;
-
+		int adc_mic_ideal = 0;
+        int adc_left_ideal = 0;
+		
         ENTER
 
         if(0 != pdata->gpio_switch)
@@ -880,8 +883,16 @@ adc_mic_retry:
         if(-1 == adc_mic_average)
                 return HEADSET_TYPE_ERR;
 
-        PRINT_INFO("adc_mic_average = %d\n", adc_mic_average);
-        PRINT_INFO("adc_left_average = %d\n", adc_left_average);
+         adc_mic_ideal = adc_get_ideal(adc_mic_average);
+        adc_left_ideal = adc_get_ideal(adc_left_average);
+
+        PRINT_INFO("adc_mic_average=%d, adc_mic_ideal=%d\n", adc_mic_average, adc_mic_ideal);
+        PRINT_INFO("adc_left_average=%d, adc_left_ideal=%d\n", adc_left_average, adc_left_ideal);
+
+        if(adc_mic_ideal >= 0 && adc_left_ideal >= 0) {
+                adc_mic_average = adc_mic_ideal;
+                adc_left_average = adc_left_ideal;
+        }
 
         if((gpio_get_value(pdata->gpio_detect)) != last_gpio_detect_value) {
                 PRINT_INFO("software debance (gpio check)!!!(headset_type_detect)\n");
@@ -932,6 +943,7 @@ static void headset_button_work_func(struct work_struct *work)
         int gpio_button_value_current = 0;
         int button_state_current = 0;
         int adc_mic_average = 0;
+		int adc_ideal = 0;
         int i = 0;
 
         down(&headset_sem);
@@ -960,7 +972,13 @@ static void headset_button_work_func(struct work_struct *work)
                                 #endif
                                 goto out;
                         }
-                        PRINT_INFO("adc_mic_average = %d\n", adc_mic_average);
+						
+                        adc_ideal = adc_get_ideal(adc_mic_average);
+                        PRINT_INFO("adc_mic_average=%d, adc_ideal=%d\n", adc_mic_average, adc_ideal);
+
+                        if (adc_ideal >= 0)
+                                adc_mic_average = adc_ideal;
+						
                         for (i = 0; i < ht->platform_data->nbuttons; i++) {
                                 if (adc_mic_average >= ht->platform_data->headset_buttons[i].adc_min &&
                                     adc_mic_average < ht->platform_data->headset_buttons[i].adc_max) {
@@ -1429,6 +1447,7 @@ static irqreturn_t headset_button_irq_handler(int irq, void *dev)
                         ht->irq_button, ht->platform_data->gpio_button, gpio_button_value_last,
                         sci_adi_read(ANA_AUDCFGA_INT_BASE+ANA_STS0));
 				headset_button_hardware_bug_fix(ht);
+                headset_irq_button_enable(0, ht->irq_button);
                 return IRQ_HANDLED;
         }
 
@@ -1615,7 +1634,19 @@ static int headset_detect_probe(struct platform_device *pdev)
         PRINT_INFO("D-die chip id = 0x%08X\n", __raw_readl(REG_AON_APB_CHIP_ID));
         PRINT_INFO("A-die chip id HIGH = 0x%08X\n", adie_chip_id_high);
         PRINT_INFO("A-die chip id LOW = 0x%08X\n", adie_chip_id_low);
+		
+		PRINT_INFO("==========================\n");
+        PRINT_INFO("  code  type  adc_range\n");
+        for (i = 0; i < pdata->nbuttons; i++) {
+                struct headset_buttons *buttons = &pdata->headset_buttons[i];
+                PRINT_INFO("  %4d  %4d  %4d~%4d\n",
+                        buttons->code, buttons->type, buttons->adc_min, buttons->adc_max);
+        }
+        PRINT_INFO("==========================\n");
 
+        PRINT_INFO("HEADSET_ADC_THRESHOLD_3POLE_DETECT=%4d\n", pdata->adc_threshold_3pole_detect);
+      
+		
         if (1 == adie_type) {
                 pdata->gpio_detect -= 1;
                 PRINT_INFO("use EIC_AUD_HEAD_INST (EIC4, GPIO_%d) for insert detecting\n", pdata->gpio_detect);
@@ -1829,6 +1860,89 @@ static int headset_resume(struct platform_device *dev)
 #define headset_resume NULL
 #endif
 
+#define SPRD_HEADSET_AUXADC_CAL_NO         0
+#define SPRD_HEADSET_AUXADC_CAL_NV         1
+#define SPRD_HEADSET_AUXADC_CAL_CHIP       2
+
+struct sprd_headset_auxadc_cal {
+	uint16_t p0_vol;	//4200mV
+	uint16_t p0_adc;
+	uint16_t p1_vol;	//3600mV
+	uint16_t p1_adc;
+	uint16_t p2_vol;	//400mV
+	uint16_t p2_adc;
+	uint16_t cal_type;
+};
+
+static struct sprd_headset_auxadc_cal adc_cal = {
+        0, 0,
+        0, 0,
+        0, 0,
+        SPRD_HEADSET_AUXADC_CAL_NO,
+};
+
+static int adc_get_ideal(int adc_mic)
+{
+	int a = adc_cal.p2_adc;
+	int b = adc_cal.p1_adc;
+	int temp1 = 0;
+	int temp2 = 0;
+	int temp3 = 0;
+	int adc_ideal = 0;
+
+	if(((adc_cal.p0_adc - adc_cal.p1_adc) == 0) || ((adc_cal.p1_adc - adc_cal.p2_adc) == 0)) {
+		return -1;
+	}
+
+	temp1 =  (b - (9 * a)) / 8;
+	temp2 = b - a;
+	temp3 = 2528 * (adc_mic + temp1) ;
+	adc_ideal = temp3 / temp2;
+
+	adc_ideal = (adc_ideal <= 0) ? 0 : adc_ideal;
+
+	PRINT_INFO("adc_mic=%d, adc_ideal=%d\n", adc_mic, adc_ideal);
+	return adc_ideal;
+}
+
+extern int sci_efuse_get_cal(unsigned int * pdata, int num);
+
+static void adc_cal_from_efuse(void)
+{
+	int ret;
+	unsigned int efuse_cal_data[3] = {0};
+	PRINT_INFO("getting calibration data from efuse ...\n");
+
+	if (adc_cal.cal_type == SPRD_HEADSET_AUXADC_CAL_NO) {
+		if (!(sci_efuse_get_cal(efuse_cal_data,3))) {
+			adc_cal.p0_vol = efuse_cal_data[0] & 0xffff;
+			adc_cal.p0_adc = (efuse_cal_data[0] >> 16) & 0xffff;
+			adc_cal.p1_vol = efuse_cal_data[1] & 0xffff;
+			adc_cal.p1_adc = (efuse_cal_data[1] >> 16) & 0xffff;
+			adc_cal.p2_vol = efuse_cal_data[2] & 0xffff;
+			adc_cal.p2_adc = (efuse_cal_data[2] >> 16) & 0xffff;
+			adc_cal.cal_type = SPRD_HEADSET_AUXADC_CAL_CHIP;
+
+			PRINT_INFO("efuse_cal_data[0]=0x%08x\n", efuse_cal_data[0]);
+			PRINT_INFO("efuse_cal_data[1]=0x%08x\n", efuse_cal_data[1]);
+			PRINT_INFO("efuse_cal_data[2]=0x%08x\n", efuse_cal_data[2]);
+
+			PRINT_INFO("=================\n");
+			PRINT_INFO("    ADC     VOL\n");
+			PRINT_INFO("p0: %4d    %4d\n", adc_cal.p0_adc, adc_cal.p0_vol);
+			PRINT_INFO("p1: %4d    %4d\n", adc_cal.p1_adc, adc_cal.p1_vol);
+			PRINT_INFO("p2: %4d    %4d\n", adc_cal.p2_adc, adc_cal.p2_vol);
+			PRINT_INFO("=================\n");
+
+			PRINT_INFO("calibrate from efuse success!\n");
+		} else {
+			PRINT_ERR("calibrate from efuse failed!\n");
+		}
+	}else {
+		PRINT_INFO("no need to calibrate from efuse!\n");
+	}
+}
+
 static struct platform_driver headset_detect_driver = {
         .driver = {
                 .name = "headset-detect",
@@ -1842,6 +1956,7 @@ static struct platform_driver headset_detect_driver = {
 static int __init headset_init(void)
 {
         int ret;
+		adc_cal_from_efuse();
         ret = platform_driver_register(&headset_detect_driver);
         return ret;
 }

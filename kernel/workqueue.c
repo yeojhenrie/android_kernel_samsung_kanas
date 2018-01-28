@@ -48,10 +48,6 @@
 #include <linux/moduleparam.h>
 #include <linux/uaccess.h>
 
-#ifdef CONFIG_SPRD_DEBUG
-#include <mach/sprd_debug.h>
-#endif
-
 #ifdef CONFIG_SEC_DEBUG_SCHED_LOG
 #include <mach/sec_debug.h>
 #endif
@@ -2179,9 +2175,6 @@ __acquires(&pool->lock)
 	lock_map_acquire(&lockdep_map);
 	trace_workqueue_execute_start(work);
 
-#ifdef CONFIG_SPRD_DEBUG
-	sprd_debug_work_log(worker, work, worker->current_func);
-#endif
 #ifdef CONFIG_SEC_DEBUG_SCHED_LOG
 	sec_debug_work_log(worker, work, worker->current_func, 1);
 #endif

@@ -1598,7 +1598,8 @@ enum cmr_flash_status {
 LOCAL int _sensor_k_set_flash(uint32_t flash_mode)
 {
 	printk("_sensor_k_set_flash: flash_mode 0x%x  \n", flash_mode);
-
+if(!flash_status)
+{
 	switch (flash_mode)
 	{
 		case FLASH_OPEN:	/* Flash on */
@@ -1620,7 +1621,7 @@ LOCAL int _sensor_k_set_flash(uint32_t flash_mode)
 			printk("_sensor_k_set_flash unknow mode : flash_mode 0x%x\n", flash_mode);
 			break;
 	}
-
+}
 	return 0;
 }
 
@@ -1635,14 +1636,14 @@ LOCAL int _sensor_k_get_flash_level(SENSOR_FLASH_LEVEL_T *level)
 LOCAL int _Sensor_K_SetTorch(uint32_t flash_mode)
 {
 	printk("_Sensor_K_SetTorch mode %d	\n", flash_mode);
-
+   flash_status = flash_mode;
 	if(PNULL != s_sensor_project_func.SetFlash)
 	{
 		printk("_Sensor_K_SetTorch call s_sensor_project_func.SetFlash \n");
 		return s_sensor_project_func.SetFlash(flash_mode);
 	}
 
-	flash_status = flash_mode;
+	
 	printk("_Sensor_K_SetTorch: flash_mode 0x%x  \n", flash_mode);
 	return SENSOR_K_SUCCESS;
 }

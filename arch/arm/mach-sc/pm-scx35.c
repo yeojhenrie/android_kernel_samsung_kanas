@@ -1213,6 +1213,7 @@ static void dcdc_core_ds_config(void)
 		//unvalid value
 		break;
 	}
+	dcdc_core_ctl_ds = dcdc_core_ctl_adi;
 	printk("dcdc_core_ctl_adi = %d, dcdc_core_ctl_ds = %d\n", dcdc_core_ctl_adi, dcdc_core_ctl_ds);
 	/*valid value*/
 	if(dcdc_core_ctl_ds != -1) {

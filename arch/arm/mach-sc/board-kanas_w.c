@@ -664,6 +664,33 @@ static int sec_bat_adc_ic_read(unsigned int channel) { return 0; }
 	{3782 , -150}, /* -15 */
 	{3887, -200},    /* -20 */
  };
+  static const sec_bat_adc_table_data_t temp_table2[] = {
+	{894 , 700}, /* 70 */
+	{981 , 670}, /* 67 */
+	{1041 , 650}, /* 65 */
+	{1080 , 630}, /* 63 */
+	{1181 , 600}, /* 60 */
+	{1329 , 550}, /* 55 */
+	{1514 , 500}, /* 50 */
+	{1675 , 460}, /* 46 */
+	{1694 , 450}, /* 45 */
+	{1744 , 430}, /* 43 */
+	{1817 , 400}, /* 40 */
+	{1972 , 350}, /* 35 */
+	{2180 , 300}, /* 30 */
+	{2373 , 250}, /* 25 */
+	{2707 , 200}, /* 20 */
+	{2882 , 150}, /* 15 */
+	{3069 , 100}, /* 10 */
+	{3260 , 50}, /* 5 */
+	{3323 , 20}, /* 2 */
+	{3372 , 0}, /* 0 */
+	{3426 , -20}, /* -2 */
+	{3495 , -50}, /* -5 */
+	{3550 , -70}, /* -7 */
+	{3690 , -150}, /* -15 */
+	{3755, -200},    /* -20 */
+ };
 #else
 static const sec_bat_adc_table_data_t temp_table[] = {
                 { 159,   800 },
@@ -2009,6 +2036,27 @@ static int sc8810_add_i2c_devices(void)
 #ifdef CONFIG_MFD_RT8973
 	i2c_register_board_info(7, rtmuic_i2c_boardinfo, ARRAY_SIZE(rtmuic_i2c_boardinfo));
 #endif
+	if (system_rev >= 0x06) {
+		sec_battery_pdata.temp_adc_table = temp_table2;
+		sec_battery_pdata.temp_adc_table_size =
+			sizeof(temp_table2)/sizeof(sec_bat_adc_table_data_t);
+		sec_battery_pdata.temp_amb_adc_table = temp_table2;
+		sec_battery_pdata.temp_amb_adc_table_size =
+			sizeof(temp_table2)/sizeof(sec_bat_adc_table_data_t);
+
+		sec_battery_pdata.temp_high_threshold_event = 600;
+	       sec_battery_pdata.temp_high_recovery_event = 470;
+		sec_battery_pdata.temp_low_threshold_event = -50;
+		sec_battery_pdata.temp_low_recovery_event = 0;
+	       sec_battery_pdata.temp_high_threshold_normal = 600;
+	       sec_battery_pdata.temp_high_recovery_normal = 470;
+	       sec_battery_pdata.temp_low_threshold_normal = -50;
+	       sec_battery_pdata.temp_low_recovery_normal = 0;
+	       sec_battery_pdata.temp_high_threshold_lpm = 600;
+	       sec_battery_pdata.temp_high_recovery_lpm = 470;
+	       sec_battery_pdata.temp_low_threshold_lpm = -50;
+	       sec_battery_pdata.temp_low_recovery_lpm = 0;
+	}
 #endif
 	return 0;
 }
