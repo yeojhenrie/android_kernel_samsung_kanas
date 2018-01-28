@@ -949,6 +949,15 @@ config TOUCHSCREEN_IST3038
              To compile this driver as a module, choose M here: the
              module will be called ist3038.
 
+if TOUCHSCREEN_IST3038
+config TOUCHSCREEN_IST3038_TOUCHBOOST
+        boolean "enable Touch Boost feature"
+           help
+             Say Y here to use the Touch Boost feature to momentarily
+             speed/clock up the processor usually to increase
+             responsiveness.
+endif
+
 config TOUCHSCREEN_IST30XXB
         tristate "IST30XX I2C Touchscreen"
         depends on I2C

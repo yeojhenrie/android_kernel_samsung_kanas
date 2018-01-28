@@ -40,7 +40,11 @@ extern int sec_touch_sysfs(struct ist30xx_data *data);
 extern int sec_fac_cmd_init(struct ist30xx_data *data);
 #endif
 
+#ifdef CONFIG_TOUCHSCREEN_IST3038_TOUCHBOOST
 #define TOUCH_BOOSTER	1
+#else
+#define TOUCH_BOOSTER	0
+#endif
 #define MAX_ERR_CNT             (100)
 
 #if TOUCH_BOOSTER
@@ -968,22 +972,22 @@ static void ist30xx_early_suspend(struct early_suspend *h)
 	ist30xx_disable_irq(data);
 	ist30xx_internal_suspend(data);
 	clear_input_data(data);
-	
+
 #if TOUCH_BOOSTER
 	if(min_handle)
 	{
 		printk(KERN_ERR"[TSP] %s %d:: OOPs, Cpu was not in Normal Freq..\n", __func__, __LINE__);
-		
+
 		if (cpufreq_limit_put(min_handle) < 0) {
 			printk(KERN_ERR "[TSP] Error in scaling down cpu frequency\n");
 		}
-		
+
 		min_handle = NULL;
 		touch_booster_finger_cnt = 0;
 		tsp_info("cpu freq off\n");
 	}
 #endif
-	
+
 	mutex_unlock(&ist30xx_mutex);
 }
 static void ist30xx_late_resume(struct early_suspend *h)
@@ -1011,13 +1015,13 @@ static int ist30xx_suspend(struct device *dev)
 		if (cpufreq_limit_put(min_handle) < 0) {
 			printk(KERN_ERR "[TSP] Error in scaling down cpu frequency\n");
 		}
-		
+
 		min_handle = NULL;
 		touch_booster_finger_cnt = 0;
 		tsp_info("cpu freq off\n");
 	}
 #endif
-	
+
 	return 0;
 }
 static int ist30xx_resume(struct device *dev)
@@ -1114,8 +1118,8 @@ static void reset_work_func(struct work_struct *work)
 
 		ist30xx_enable_irq(ts_data);
 
+#if TOUCH_BOOSTER
 		// TOUCH BOSTER FIX AT RESET #FIXME
-		{
 		cpufreq_limit_put(min_handle);
 		_store_cpu_num_min_limit(1);
 
@@ -1123,7 +1127,7 @@ static void reset_work_func(struct work_struct *work)
 
 		min_handle = NULL;
 		touch_booster_finger_cnt = 0;
-		}
+#endif
 
 		mutex_unlock(&ist30xx_mutex);
 	}
@@ -1307,9 +1311,9 @@ static int __init ist30xx_probe(struct i2c_client *		client,
 	int retry = 3;
 	struct ist30xx_data *data;
 	struct input_dev *input_dev;
-	
+
 	tsp_info ("IST3038 Probe Called\n");
-	
+
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		printk(KERN_INFO "i2c_check_functionality error\n");
 		return -EIO;
@@ -1332,9 +1336,9 @@ static int __init ist30xx_probe(struct i2c_client *		client,
 	if (ret) {
 		tsp_err("unable to request gpio.(%s)\r\n",input_dev->name);
 		goto err_init_drv;
-	}	
+	}
 
-	client->irq = gpio_to_irq(82);	
+	client->irq = gpio_to_irq(82);
 	data->max_fingers = data->max_keys = IST30XX_MAX_MT_FINGERS;
 	data->irq_enabled = 1;
 	data->client = client;
@@ -1422,7 +1426,7 @@ static int __init ist30xx_probe(struct i2c_client *		client,
 
 	data->status.event_mode = false;
 
-	
+
 	ret = ist30xx_init_update_sysfs();
 	if (unlikely(ret))
 		goto err_init_drv;
@@ -1580,7 +1584,7 @@ static void __exit ist30xx_exit(void)
 {
 	if ( !lpm_charge)
 	i2c_del_driver(&ist30xx_i2c_driver);
-	
+
 }
 
 module_init(ist30xx_init);
