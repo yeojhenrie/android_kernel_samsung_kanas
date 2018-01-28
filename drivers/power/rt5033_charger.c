@@ -12,6 +12,7 @@
 
 #include <linux/battery/sec_charger.h>
 #include <linux/battery/sec_battery.h>
+#include <asm/system_info.h>
 #ifdef CONFIG_FLED_RT5033
 #include <linux/leds/rt5033_fled.h>
 #include <linux/leds/rtfled.h>
@@ -32,7 +33,7 @@
 #define EOC_DEBOUNCE_CNT 3
 #define EN_TEST_READ 1
 
-extern int system_rev;
+//extern int system_rev;
 static int rt5033_reg_map[] = {
 	RT5033_CHG_STAT_CTRL,
 	RT5033_CHG_CTRL1,
@@ -109,7 +110,7 @@ static void rt5033_test_read(struct i2c_client *i2c)
 	data = rt5033_reg_read(i2c, RT5033_CHG_STAT_CTRL);
 	if ((data & 0x82) != 0x02) {
 		pr_info("%s: SW_HW_CTRL is incorrect (0x%x)\n", __func__, data);
-		rt5033_assign_bits(i2c, RT5033_CHG_STAT_CTRL, 0x82, 0x02);	
+		rt5033_assign_bits(i2c, RT5033_CHG_STAT_CTRL, 0x82, 0x02);
 	}
 }
 

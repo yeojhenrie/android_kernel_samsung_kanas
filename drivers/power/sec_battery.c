@@ -12,6 +12,7 @@
 #include <linux/battery/sec_battery.h>
 #include <linux/battery/sec_fuelgauge.h>
 #include <linux/rtc.h>
+#include <asm/system_info.h>
 
 #if defined(CONFIG_MFD_88PM800)
 #include <linux/mfd/88pm80x.h>
@@ -30,7 +31,7 @@
  * 1. BATTERY_VOL_PATH	"/sys/class/power_supply/battery/real_time_voltage"
  * 2. BATTERY_ADC_PATH	"/sys/class/power_supply/battery/real_time_vbat_adc"
  */
-extern int system_rev;
+//extern int system_rev;
 extern uint32_t sprdchg_read_vbat_vol(void);
 #else
 #error "please include sprd sc2713 interface"
