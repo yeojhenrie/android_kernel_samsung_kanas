@@ -1,9 +1,9 @@
 #
 # Copyright (C) 2010-2011 ARM Limited. All rights reserved.
-# 
+#
 # This program is free software and is provided to you under the terms of the GNU General Public License version 2
 # as published by the Free Software Foundation, and any use by you of this program is subject to the terms of such GNU licence.
-# 
+#
 # A copy of the licence is included with the program, and can also be obtained from Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
@@ -20,9 +20,11 @@ MALI_PP_SCHEDULER_FORCE_NO_JOB_OVERLAP ?= 0
 MALI_PP_SCHEDULER_KEEP_SUB_JOB_STARTS_ALIGNED ?= 0
 MALI_PP_SCHEDULER_FORCE_NO_JOB_OVERLAP_BETWEEN_APPS ?= 0
 MALI_UPPER_HALF_SCHEDULING ?= 1
-USING_PP_CORE ?= 2
+USING_PP_CORE ?= 4
 MALI_ENABLE_CPU_CYCLES ?= 0
 MALI_ENABLE_GPU_CONTROL_IN_PARAM ?= 1
+DFS_MAX_FREQ ?= 312000
+DFS_MIN_FREQ ?= 64000
 
 ifeq ($(CONFIG_MALI400_UMP),y)
 EXTRA_DEFINES += -DCONFIG_MALI400_UMP=1
@@ -69,11 +71,14 @@ endif
 ifeq ($(CONFIG_MALI_PLATFORM_SCX15),y)
 MALI_PLATFORM := scx15
 TARGET_PLATFORM := scx15
+EXTRA_DEFINES += -DCONFIG_MALI_PLATFORM_SCX15=1
 endif
 
 ifeq ($(CONFIG_MALI_PLATFORM_SC8830),y)
 MALI_PLATFORM := sc8830
 TARGET_PLATFORM := sc8830
+EXTRA_DEFINES += -DCONFIG_MALI400=1
+EXTRA_DEFINES += -DCONFIG_MALI_PLATFORM_SC8830=1
 endif
 
 EXTRA_DEFINES += -DCONFIG_MALI400=1
@@ -191,6 +196,8 @@ ccflags-y += -DUSING_GPU_UTILIZATION=$(USING_GPU_UTILIZATION)
 ccflags-y += -DMALI_PP_CORE_NUMBER=$(USING_PP_CORE)
 ccflags-y += -DMALI_ENABLE_CPU_CYCLES=$(MALI_ENABLE_CPU_CYCLES)
 ccflags-y += -DMALI_ENABLE_GPU_CONTROL_IN_PARAM=$(MALI_ENABLE_GPU_CONTROL_IN_PARAM)
+ccflags-y += -DDFS_MAX_FREQ=$(DFS_MAX_FREQ)
+ccflags-y += -DDFS_MIN_FREQ=$(DFS_MIN_FREQ)
 
 ifeq ($(MALI_UPPER_HALF_SCHEDULING),1)
 ccflags-y += -DMALI_UPPER_HALF_SCHEDULING
