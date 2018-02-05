@@ -288,12 +288,12 @@ static ssize_t mem_free_percent(void)
 		meta = zram->meta;
 		if (meta && meta->mem_pool)
 		{
-			val += zs_get_total_size_bytes(meta->mem_pool);
+			val += zs_get_total_pages(meta->mem_pool);
 		}
 
 	}
 
-	mem_used_pages = val >> PAGE_SHIFT;
+	mem_used_pages = val;
 
 	pr_debug("ZRAM:totalram_pages:%lu,total_zram_pages:%lu,mem_used_pages:%lu\r\n", totalram_pages, total_zram_pages,mem_used_pages);
 
