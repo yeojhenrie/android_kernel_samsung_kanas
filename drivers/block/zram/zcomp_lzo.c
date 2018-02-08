@@ -29,7 +29,10 @@ static void *lzo_create(gfp_t flags)
 
 static void lzo_destroy(void *private)
 {
-	kvfree(private);
+	if (is_vmalloc_addr(private))
+		vfree(private);
+	else
+		kfree(private);
 }
 
 static int lzo_compress(const unsigned char *src, unsigned char *dst,

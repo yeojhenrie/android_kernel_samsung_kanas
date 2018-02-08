@@ -29,7 +29,10 @@ static void *zcomp_lz4_create(gfp_t flags)
 
 static void zcomp_lz4_destroy(void *private)
 {
-	kvfree(private);
+    if (is_vmalloc_addr(private))
+		vfree(private);
+	else
+		kfree(private);
 }
 
 static int zcomp_lz4_compress(const unsigned char *src, unsigned char *dst,
