@@ -67,6 +67,21 @@
 #include <linux/zpool.h>
 
 /*
+ * This is a backported macro from linux 3.16
+ */
+#ifdef CONFIG_DEBUG_VM
+#define VM_BUG_ON_PAGE(cond, page)					\
+	do {								\
+		if (unlikely(cond)) {					\
+			dump_page(page, "VM_BUG_ON_PAGE(" __stringify(cond)")");\
+			BUG();						\
+		}							\
+	} while (0)
+#else
+	#define VM_BUG_ON_PAGE(cond, page) VM_BUG_ON(cond)
+#endif
+
+/*
  * This must be power of 2 and greater than of equal to sizeof(link_free).
  * These two conditions ensure that any 'struct link_free' itself doesn't
  * span more than 1 page which avoids complex case of mapping 2 pages simply
