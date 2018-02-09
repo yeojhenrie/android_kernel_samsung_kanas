@@ -19,7 +19,8 @@
 
 #include <linux/types.h>
 
-struct ion_handle;
+typedef int ion_user_handle_t;
+
 /**
  * enum ion_heap_types - list of all possible types of heaps
  * @ION_HEAP_TYPE_SYSTEM:	 memory allocated via vmalloc
@@ -63,6 +64,7 @@ enum ion_heap_type {
 					   caches must be managed manually */
 
 #ifdef __KERNEL__
+struct ion_handle;
 struct ion_device;
 struct ion_heap;
 struct ion_mapper;
@@ -79,7 +81,7 @@ struct ion_buffer;
  * struct ion_platform_heap - defines a heap in the given platform
  * @type:	type of the heap from ion_heap_type enum
  * @id:		unique identifier for heap.  When allocating higher numbers
- * 		will be allocated from first.  At allocation these are passed
+ *		will be allocated from first.  At allocation these are passed
  *		as a bit mask and therefore can not exceed ION_NUM_HEAP_IDS.
  * @name:	used for debug purposes
  * @base:	base address of heap in physical memory if applicable
@@ -266,9 +268,9 @@ struct ion_handle *ion_import_dma_buf(struct ion_client *client, int fd);
 struct ion_allocation_data {
 	size_t len;
 	size_t align;
-	unsigned int heap_mask;
+	unsigned int heap_id_mask;
 	unsigned int flags;
-	struct ion_handle *handle;
+	ion_user_handle_t handle;
 };
 
 /**
@@ -282,7 +284,7 @@ struct ion_allocation_data {
  * provides the file descriptor and the kernel returns the handle.
  */
 struct ion_fd_data {
-	struct ion_handle *handle;
+	ion_user_handle_t handle;
 	int fd;
 };
 
@@ -291,7 +293,7 @@ struct ion_fd_data {
  * @handle:	a handle
  */
 struct ion_handle_data {
-	struct ion_handle *handle;
+	ion_user_handle_t handle;
 };
 
 /**

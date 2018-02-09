@@ -174,4 +174,6 @@ source "drivers/sipc/Kconfig"
 
 source "drivers/sensor/Kconfig"
 
+source "drivers/android/Kconfig"
+
 endmenu
