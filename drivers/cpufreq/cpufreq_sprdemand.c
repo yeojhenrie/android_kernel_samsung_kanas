@@ -73,6 +73,8 @@ struct unplug_work_info {
 };
 
 struct delayed_work plugin_work;
+struct delayed_work unplug_work;
+
 static DEFINE_PER_CPU(struct unplug_work_info, uwi);
 
 static DEFINE_SPINLOCK(g_lock);
@@ -238,10 +240,10 @@ static void dbs_freq_increase(struct cpufreq_policy *p, unsigned int freq)
 
 static void sprd_unplug_one_cpu(struct work_struct *work)
 {
-	struct unplug_work_info *puwi = container_of(work,
-		struct unplug_work_info, unplug_work.work);
-	struct dbs_data *dbs_data = puwi->dbs_data;
+	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
+	struct dbs_data *dbs_data = policy->governor_data;
 	struct sd_dbs_tuners *sd_tuners = NULL;
+	int cpuid;
 
 	if(NULL == dbs_data)
 	{
@@ -259,8 +261,9 @@ static void sprd_unplug_one_cpu(struct work_struct *work)
 #ifdef CONFIG_HOTPLUG_CPU
 	if (num_online_cpus() > 1) {
 		if (!sd_tuners->cpu_hotplug_disable) {
-			pr_info("!!  we gonna unplug cpu%d  !!\n", puwi->cpuid);
-			cpu_down(puwi->cpuid);
+			cpuid = cpumask_next(0, cpu_online_mask);
+			pr_info("!!  we gonna unplug cpu%d  !!\n", cpuid);
+			cpu_down(cpuid);
 		}
 	}
 #endif
@@ -758,6 +761,7 @@ static void sd_check_cpu(int cpu, unsigned int load)
 	unsigned int itself_avg_load = 0;
 	struct unplug_work_info *puwi;
 	int cpu_num_limit = 0;
+	int local_cpu = 0;
 
 	if (!dbs_info->cdbs.cur_policy
 		|| !dbs_info->cdbs.cur_policy->governor_data
@@ -769,6 +773,10 @@ static void sd_check_cpu(int cpu, unsigned int load)
 	policy = dbs_info->cdbs.cur_policy;
 	dbs_data = policy->governor_data;
 	sd_tuners = dbs_data->tuners;
+	local_cpu = smp_processor_id();
+
+	if(local_cpu)
+		return;
 
 	/* skip cpufreq adjustment if system enter into suspend */
 	if(true == sd_tuners->is_suspend) {
@@ -827,7 +835,7 @@ plug_check:
 	}
 	else
 	{
-		cpu_score += cpu_evaluate_score(policy->cpu,sd_tuners, load);
+		cpu_score += cpu_evaluate_score(local_cpu,sd_tuners, load);
 		if (cpu_score < 0)
 			cpu_score = 0;
 		if((cpu_score >= sd_tuners->cpu_score_up_threshold)
@@ -841,87 +849,80 @@ plug_check:
 	spin_unlock(&g_lock);
 
 	/* cpu unplug check */
-	puwi = &per_cpu(uwi, policy->cpu);
+	puwi = &per_cpu(uwi, local_cpu);
 	if((num_online_cpus() > 1) && (dvfs_unplug_select == 1)){
-		percpu_total_load[policy->cpu] += load;
-		percpu_check_count[policy->cpu]++;
-		if(percpu_check_count[policy->cpu] == sd_tuners->cpu_down_count) {
+		percpu_total_load[local_cpu] += load;
+		percpu_check_count[local_cpu]++;
+		if(percpu_check_count[local_cpu] == sd_tuners->cpu_down_count) {
 			/* calculate itself's average load */
-			itself_avg_load = percpu_total_load[policy->cpu]/sd_tuners->cpu_down_count;
-			pr_debug("check unplug: for cpu%u avg_load=%d\n", policy->cpu, itself_avg_load);
+			itself_avg_load = percpu_total_load[local_cpu]/sd_tuners->cpu_down_count;
+			pr_debug("check unplug: for cpu%u avg_load=%d\n", local_cpu, itself_avg_load);
 
 			cpu_num_limit = max(g_sd_tuners->cpu_num_min_limit,g_sd_tuners->cpu_num_limit);
 
-				if (policy->cpu) {
+				if (local_cpu) {
 				if((num_online_cpus() > cpu_num_limit)
 					|| ((itself_avg_load < sd_tuners->cpu_down_threshold)
 						&&(num_online_cpus() > g_sd_tuners->cpu_num_min_limit)))
 				{
 					pr_info("cpu%u's avg_load=%d,begin unplug cpu\n",
-						policy->cpu, itself_avg_load);
-					schedule_delayed_work_on(0, &puwi->unplug_work, 0);
+						local_cpu, itself_avg_load);
+					schedule_delayed_work_on(0, &unplug_work, 0);
 				}
 			}
-			percpu_check_count[policy->cpu] = 0;
-			percpu_total_load[policy->cpu] = 0;
+			percpu_check_count[local_cpu] = 0;
+			percpu_total_load[local_cpu] = 0;
 		}
 	}
 	else if(num_online_cpus() > 1 && (dvfs_unplug_select == 2))
 	{
 		/* calculate itself's average load */
-		itself_avg_load = sd_unplug_avg_load1(policy->cpu, sd_tuners, load);
-		pr_debug("check unplug: for cpu%u avg_load=%d\n", policy->cpu, itself_avg_load);
+		itself_avg_load = sd_unplug_avg_load1(local_cpu, sd_tuners, load);
+		pr_debug("check unplug: for cpu%u avg_load=%d\n", local_cpu, itself_avg_load);
 
 		cpu_num_limit = max(g_sd_tuners->cpu_num_min_limit,g_sd_tuners->cpu_num_limit);
 
-		if(policy->cpu)
+		if ((num_online_cpus() > cpu_num_limit)
+			|| ((itself_avg_load < sd_tuners->cpu_down_threshold)
+				&&(num_online_cpus() > g_sd_tuners->cpu_num_min_limit)))
 		{
-			if ((num_online_cpus() > cpu_num_limit)
-				|| ((itself_avg_load < sd_tuners->cpu_down_threshold)
-					&&(num_online_cpus() > g_sd_tuners->cpu_num_min_limit)))
-			{
 				pr_info("cpu%u's avg_load=%d,begin unplug cpu\n",
-						policy->cpu, itself_avg_load);
-				percpu_load[policy->cpu] = 0;
-				cur_window_size[policy->cpu] = 0;
-				cur_window_index[policy->cpu] = 0;
-				cur_window_cnt[policy->cpu] = 0;
-				prev_window_size[policy->cpu] = 0;
-				first_window_flag[policy->cpu] = 0;
-				sum_load[policy->cpu] = 0;
-				memset(&ga_percpu_total_load[policy->cpu][0],0,sizeof(int) * MAX_PERCPU_TOTAL_LOAD_WINDOW_SIZE);
-				schedule_delayed_work_on(0, &puwi->unplug_work, 0);
-			}
+						local_cpu, itself_avg_load);
+				percpu_load[local_cpu] = 0;
+				cur_window_size[local_cpu] = 0;
+				cur_window_index[local_cpu] = 0;
+				cur_window_cnt[local_cpu] = 0;
+				prev_window_size[local_cpu] = 0;
+				first_window_flag[local_cpu] = 0;
+				sum_load[local_cpu] = 0;
+				memset(&ga_percpu_total_load[local_cpu][0],0,sizeof(int) * MAX_PERCPU_TOTAL_LOAD_WINDOW_SIZE);
+				schedule_delayed_work_on(0, &unplug_work, 0);
 		}
 	}
 	else if(num_online_cpus() > 1 && (dvfs_unplug_select > 2))
 	{
 		/* calculate itself's average load */
-		itself_avg_load = sd_unplug_avg_load11(policy->cpu, sd_tuners, load);
-		pr_debug("check unplug: for cpu%u avg_load=%d\n", policy->cpu, itself_avg_load);
+		itself_avg_load = sd_unplug_avg_load11(local_cpu, sd_tuners, load);
+		pr_debug("check unplug: for cpu%u avg_load=%d\n", local_cpu, itself_avg_load);
 
 		cpu_num_limit = max(g_sd_tuners->cpu_num_min_limit,g_sd_tuners->cpu_num_limit);
 
-		if(policy->cpu)
+		if ((num_online_cpus() > cpu_num_limit)
+			|| ((itself_avg_load < sd_tuners->cpu_down_threshold)
+				&&(num_online_cpus() > g_sd_tuners->cpu_num_min_limit)))
 		{
-			if ((num_online_cpus() > cpu_num_limit)
-				|| ((itself_avg_load < sd_tuners->cpu_down_threshold)
-					&&(num_online_cpus() > g_sd_tuners->cpu_num_min_limit)))
-			{
 				pr_info("cpu%u's avg_load=%d,begin unplug cpu\n",
-						policy->cpu, itself_avg_load);
-				percpu_load[policy->cpu] = 0;
-				cur_window_size[policy->cpu] = 0;
-				cur_window_index[policy->cpu] = 0;
-				cur_window_cnt[policy->cpu] = 0;
-				prev_window_size[policy->cpu] = 0;
-				first_window_flag[policy->cpu] = 0;
-				sum_load[policy->cpu] = 0;
-				memset(&ga_percpu_total_load[policy->cpu][0],0,sizeof(int) * MAX_PERCPU_TOTAL_LOAD_WINDOW_SIZE);
+						local_cpu, itself_avg_load);
+				percpu_load[local_cpu] = 0;
+				cur_window_size[local_cpu] = 0;
+				cur_window_index[local_cpu] = 0;
+				cur_window_cnt[local_cpu] = 0;
+				prev_window_size[local_cpu] = 0;
+				first_window_flag[local_cpu] = 0;
+				sum_load[local_cpu] = 0;
+				memset(&ga_percpu_total_load[local_cpu][0],0,sizeof(int) * MAX_PERCPU_TOTAL_LOAD_WINDOW_SIZE);
 
-				schedule_delayed_work_on(0, &puwi->unplug_work, 0);
-			}
-
+				schedule_delayed_work_on(0, &unplug_work, 0);
 		}
 	}
 }
@@ -1615,6 +1616,8 @@ static int sd_init(struct dbs_data *dbs_data)
 	mutex_init(&dbs_data->mutex);
 
 	INIT_DELAYED_WORK(&plugin_work, sprd_plugin_one_cpu);
+	INIT_DELAYED_WORK(&unplug_work, sprd_unplug_one_cpu);
+
 	for_each_possible_cpu(i) {
 		puwi = &per_cpu(uwi, i);
 		puwi->cpuid = i;
