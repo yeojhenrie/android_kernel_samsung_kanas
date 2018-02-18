@@ -1841,50 +1841,6 @@ static struct early_suspend sprdemand_gov_earlysuspend_handler = {
 };
 #endif
 
-int _store_cpu_num_limit(unsigned int input)
-{
-	struct sd_dbs_tuners *sd_tuners = g_sd_tuners;
-
-	if(sd_tuners)
-	{
-		int cpu = smp_processor_id();
-
-		sd_tuners->cpu_num_limit = input;
-		sd_check_cpu(cpu, 50);
-	}
-	else
-	{
-		pr_info("[store_cpu_num_limit] current governor is not sprdemand\n");
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
-int _store_cpu_num_min_limit(unsigned int input)
-{
-	struct sd_dbs_tuners *sd_tuners = g_sd_tuners;
-
-    printk("%s: input = %d\n", __func__, input);
-
-	if(sd_tuners)
-	{
-		int cpu = smp_processor_id();
-
-		sd_tuners->cpu_num_min_limit = input;
-		/*sd_check_cpu(cpu, 50);*/
-
-	}
-	else
-	{
-		pr_info("[store_cpu_num_min_limit] current governor is not sprdemand\n");
-		return -EINVAL;
-	}
-
-	return 0;
-}
-
-
 /*
  * dbs_mutex protects dbs_enable in governor start/stop.
  */
@@ -1990,6 +1946,7 @@ static const struct input_device_id dbs_ids[] = {
 	{ },
 };
 
+#ifndef CONFIG_SPRD_CPU_DYNAMIC_HOTPLUG
 struct input_handler dbs_input_handler = {
 	.event		= dbs_input_event,
 	.connect	= dbs_input_connect,
@@ -1997,6 +1954,7 @@ struct input_handler dbs_input_handler = {
 	.name		= "cpufreq_ond",
 	.id_table	= dbs_ids,
 };
+#endif
 */
 static int __init cpufreq_gov_dbs_init(void)
 {

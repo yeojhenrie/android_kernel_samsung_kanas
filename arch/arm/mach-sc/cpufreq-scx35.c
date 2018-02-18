@@ -680,6 +680,7 @@ static ssize_t cpufreq_frequency_store(struct device *dev, struct device_attribu
 	return count;
 }
 
+#ifndef CONFIG_SPRD_CPU_DYNAMIC_HOTPLUG
 static ssize_t dvfs_score_store(struct device *dev, struct device_attribute *attr,const char *buf, size_t count)
 {
 	int ret;
@@ -780,6 +781,8 @@ static ssize_t dvfs_plug_show(struct device *dev, struct device_attribute *attr,
 
 	return strlen(buf) + 1;
 }
+#endif
+
 static ssize_t cpufreq_table_show(struct device *dev, struct device_attribute *attr,char *buf)
 {
 	memcpy(buf,sprd_cpufreq_conf->freq_tbl,sizeof(* sprd_cpufreq_conf->freq_tbl));
@@ -791,11 +794,15 @@ static DEVICE_ATTR(cpufreq_max_limit_sprd, 0660, cpufreq_max_limit_show, cpufreq
 static DEVICE_ATTR(cpufreq_min_limit_debug, 0440, cpufreq_min_limit_debug_show, NULL);
 static DEVICE_ATTR(cpufreq_max_limit_debug, 0440, cpufreq_max_limit_debug_show, NULL);
 static DEVICE_ATTR(cpufreq_table_sprd, 0440, cpufreq_table_show, NULL);
+
+#ifndef CONFIG_SPRD_CPU_DYNAMIC_HOTPLUG
 static DEVICE_ATTR(dvfs_score, 0660, dvfs_score_show, dvfs_score_store);
 static DEVICE_ATTR(dvfs_unplug, 0660, dvfs_unplug_show, dvfs_unplug_store);
 static DEVICE_ATTR(dvfs_score_sprd, 0660, dvfs_score_show, dvfs_score_store);
 static DEVICE_ATTR(dvfs_unplug_sprd, 0660, dvfs_unplug_show, dvfs_unplug_store);
 static DEVICE_ATTR(dvfs_plug_sprd, 0660, dvfs_plug_show, dvfs_plug_store);
+#endif
+
 static DEVICE_ATTR(cpufreq_frequency_sprd, 0220, NULL, cpufreq_frequency_store);
 static DEVICE_ATTR(cpufreq_voltage_sprd, 0220, NULL, cpufreq_voltage_store);
 
@@ -805,11 +812,13 @@ static struct attribute *g[] = {
 	&dev_attr_cpufreq_min_limit_debug.attr,
 	&dev_attr_cpufreq_max_limit_debug.attr,
 	&dev_attr_cpufreq_table_sprd.attr,
+#ifndef CONFIG_SPRD_CPU_DYNAMIC_HOTPLUG
 	&dev_attr_dvfs_score.attr,
 	&dev_attr_dvfs_unplug.attr,
 	&dev_attr_dvfs_score_sprd.attr,
 	&dev_attr_dvfs_unplug_sprd.attr,
 	&dev_attr_dvfs_plug_sprd.attr,
+#endif
 	&dev_attr_cpufreq_frequency_sprd.attr,
 	&dev_attr_cpufreq_voltage_sprd.attr,
 	NULL,
