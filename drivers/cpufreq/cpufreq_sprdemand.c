@@ -46,8 +46,8 @@
 /* whether plugin cpu according to this score up threshold */
 #define DEF_CPU_SCORE_UP_THRESHOLD		(100)
 /* whether unplug cpu according to this down threshold*/
-#define DEF_CPU_LOAD_DOWN_THRESHOLD		(20)
-#define DEF_CPU_DOWN_COUNT		(3)
+#define DEF_CPU_LOAD_DOWN_THRESHOLD		(30)
+#define DEF_CPU_DOWN_COUNT			(3)
 
 #define LOAD_CRITICAL 100
 #define LOAD_HI 90
