@@ -77,7 +77,6 @@ struct delayed_work unplug_work;
 
 static DEFINE_PER_CPU(struct unplug_work_info, uwi);
 
-static DEFINE_SPINLOCK(g_lock);
 static unsigned int percpu_total_load[CONFIG_NR_CPUS] = {0};
 static unsigned int percpu_check_count[CONFIG_NR_CPUS] = {0};
 static int cpu_score = 0;
@@ -826,7 +825,6 @@ plug_check:
 		return;
 
 	/* cpu plugin check */
-	spin_lock(&g_lock);
 	cpu_num_limit = min(g_sd_tuners->cpu_num_min_limit,g_sd_tuners->cpu_num_limit);
 	if(num_online_cpus() < cpu_num_limit)
 	{
@@ -846,7 +844,6 @@ plug_check:
 			schedule_delayed_work_on(0, &plugin_work, 0);
 		}
 	}
-	spin_unlock(&g_lock);
 
 	/* cpu unplug check */
 	puwi = &per_cpu(uwi, local_cpu);
