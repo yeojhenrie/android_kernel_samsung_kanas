@@ -130,7 +130,7 @@ static int should_io_be_busy(void)
 			boot_cpu_data.x86_model >= 15)
 		return 1;
 #endif
-	return 0;
+	return 1;
 }
 
 struct sd_dbs_tuners *g_sd_tuners = NULL;
