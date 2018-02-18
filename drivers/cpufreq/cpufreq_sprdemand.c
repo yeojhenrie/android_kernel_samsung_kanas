@@ -308,7 +308,7 @@ static void sprd_plugin_one_cpu(struct work_struct *work)
 
 unsigned int percpu_load[4] = {0};
 #define MAX_CPU_NUM  (4)
-#define MAX_PERCPU_TOTAL_LOAD_WINDOW_SIZE  (8)
+#define MAX_PERCPU_TOTAL_LOAD_WINDOW_SIZE  (10)
 #define MAX_PLUG_AVG_LOAD_SIZE (2)
 
 unsigned int ga_percpu_total_load[MAX_CPU_NUM][MAX_PERCPU_TOTAL_LOAD_WINDOW_SIZE] = {{0}};
