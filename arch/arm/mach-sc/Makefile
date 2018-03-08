@@ -1,3 +1,8 @@
+$(obj)/Makefile.sc8830:
+	$(Q)$(obj)/gen_sc8830 $@
+
+-include $(obj)/Makefile.sc8830
+
 obj-y += irq.o arch_init.o arch_lock.o \
          reserve.o efuse.o common.o glb.o
 

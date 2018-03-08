@@ -1,0 +1,88 @@
+#!/bin/bash
+
+table=(
+#      Hz  Norm V. Under V.
+    "100000 875000 875000"
+    "200000 950000 900000"
+    "300000 1000000 910000"
+    "400000 1050000 920000"
+    "500000 1075000 930000"
+    "600000 1100000 940000"
+    "700000 1125000 950000"
+    "768000 1150000 1000000"
+    "800000 1172500 1000000"
+    "900000 1172500  1050000"
+    "1000000 1200000 1100000"
+    "1100000 1250000 1150000"
+    "1200000 1300000 1200000"
+    "1300000 1350000 1250000"
+    "1400000 1350000 1300000"
+)
+
+( echo \####################################
+  echo \# Automatically Generated Makefile
+  echo \####################################
+  echo
+  echo i = 0
+  echo freq_tbl :=
+  echo vddarm_mv :=
+  echo new_line :=
+  echo
+  echo define add_entry
+  echo '	$(eval freq_tbl += $(value new_line)\t\t"{$(value i), $(1)},")'
+  echo '	$(eval vddarm_mv += $(value new_line)\t\t"$(2),")'
+  echo '	$(eval new_line := \n)'
+  echo '	$(eval i=$(shell echo $$(($(i)+1))))'
+  echo endef
+  echo
+  echo ifdef CONFIG_SC8830_CUSTOM_FREQ
+  echo '$(obj)/cpufreq-scx35.o: include/generated/freq_volt_table.h'
+  echo endif
+  echo generate_table:
+) > $1
+
+for ((j = ${#table[@]}; j--; )); do
+    table_elem=(${table[$j]})
+    freq_mhz=${table_elem[0]}
+    freq_volt=${table_elem[1]}
+    freq_undervolt=${table_elem[2]}
+    freq_conf="CONFIG_SC8830_CUSTOM_$freq_mhz"
+    (
+    echo "ifdef $freq_conf"
+    echo "ifdef "$freq_conf"_UV"
+    echo "	\$(call add_entry, $freq_mhz, $freq_undervolt)"
+    echo "else"
+    echo "	\$(call add_entry, $freq_mhz, $freq_volt)"
+    echo "endif"
+    echo "endif"
+    ) >> $1
+done
+
+(
+  echo
+  echo 'include/generated/freq_volt_table.h: FORCE generate_table'
+  echo '	@echo \'
+  echo '	"/*\n"\'
+  echo '	" * Automatically generated C header\n"\'
+  echo '	" */\n"\'
+  echo '	"\n"\'
+  echo '	"#ifndef __ARCH_ARM_MACH_CPUFREQ_SCX35_H\n"\'
+  echo '	"#define __ARCH_ARM_MACH_CPUFREQ_SCX35_H\n"\'
+  echo '	"#ifdef CONFIG_SC8830_CUSTOM_FREQ\n"\'
+  echo '	"\n"\'
+  echo '	"struct cpufreq_table_data sc8830_cpufreq_table_data_cs = {\n"\'
+  echo '	"	.freq_tbl = {\n"\'
+  echo '			"$(freq_tbl)\n"\'
+  echo '	"		{$(value i), CPUFREQ_TABLE_END},\n"\'
+  echo '	"	},\n"\'
+  echo '	"	.vddarm_mv = {\n"\'
+  echo '			"$(vddarm_mv)\n"\'
+  echo '	"		875000,\n"\'
+  echo '	"	},\n"\'
+  echo '	"};\n"\'
+  echo '	"\n"\'
+  echo '	"#endif /* CONFIG_SC8830_CUSTOM_FREQ */\n"\'
+  echo '	"#endif /* __ARCH_ARM_MACH_CPUFREQ_SCX35_H */"\n > $@'
+) >> $1
+
+
