@@ -61,6 +61,11 @@
 #define LOAD_LIGHT_SCORE -10
 #define LOAD_LO_SCORE -20
 
+#define DEF_CPU_UP_MID_THRESHOLD		(80)
+#define DEF_CPU_UP_HIGH_THRESHOLD		(90)
+#define DEF_CPU_DOWN_MID_THRESHOLD		(30)
+#define DEF_CPU_DOWN_HIGH_THRESHOLD		(40)
+
 #define GOVERNOR_BOOT_TIME	(50*HZ)
 static unsigned long boot_done;
 
@@ -746,6 +751,43 @@ static unsigned int sd_unplug_avg_load11(int cpu, struct sd_dbs_tuners *sd_tunne
 	return avg_load;
 }
 
+#define MAX_ARRAY_SIZE  (10)
+#define LOAD_WINDOW_SIZE  (3)
+unsigned int load_array[CONFIG_NR_CPUS][MAX_ARRAY_SIZE] = { {0} };
+unsigned int window_index[CONFIG_NR_CPUS] = {0};
+
+static unsigned int sd_avg_load(int cpu, struct sd_dbs_tuners *sd_tuners,
+			unsigned int load)
+{
+	unsigned int count;
+	unsigned int scale;
+	unsigned int sum_scale = 0;
+	unsigned int sum_load = 0;
+	unsigned int window_tail = 0, window_head = 0;
+
+	load_array[cpu][window_index[cpu]] = load;
+	window_index[cpu]++;
+	window_index[cpu] = mod(window_index[cpu], MAX_ARRAY_SIZE);
+	if(!window_index[cpu])
+		window_tail = MAX_ARRAY_SIZE - 1;
+	else
+		window_tail = window_index[cpu] - 1;
+
+	window_head = mod(MAX_ARRAY_SIZE + window_tail -
+			sd_tuners->window_size + 1, MAX_ARRAY_SIZE);
+	for (scale = 1, count = 0; count < sd_tuners->window_size;
+			scale += scale, count++) {
+		pr_debug("load_array[%d][%d]: %d, scale: %d\n",
+			cpu, window_head, load_array[cpu][window_head], scale);
+		sum_load += (load_array[cpu][window_head] * scale);
+		sum_scale += scale;
+		window_head++;
+		window_head = mod(window_head, MAX_ARRAY_SIZE);
+	}
+
+	return sum_load / sum_scale;
+}
+
 /*
  * Every sampling_rate, we check, if current idle time is less than 20%
  * (default), then we try to increase frequency. Else, we adjust the frequency
@@ -824,6 +866,37 @@ plug_check:
 	if (sd_tuners->cpu_hotplug_disable)
 		return;
 
+	/* cpu plugin check */
+	itself_avg_load = sd_avg_load(cpu, sd_tuners, load);
+	pr_debug(" itself_avg_load %d\n", itself_avg_load);
+	if (num_online_cpus() < sd_tuners->cpu_num_limit) {
+		int cpu_up_threshold;
+
+		if (num_online_cpus() == 1)
+			cpu_up_threshold = sd_tuners->cpu_up_mid_threshold;
+		else
+			cpu_up_threshold = sd_tuners->cpu_up_high_threshold;
+
+		if (itself_avg_load > cpu_up_threshold) {
+			schedule_delayed_work_on(0, &plugin_work, 0);
+			return;
+		}
+	}
+
+	/* cpu unplug check */
+	if (num_online_cpus() > 1) {
+		int cpu_down_threshold;
+
+		if (num_online_cpus() > 2)
+			cpu_down_threshold = sd_tuners->cpu_down_high_threshold;
+		else
+			cpu_down_threshold = sd_tuners->cpu_down_mid_threshold;
+
+		if (itself_avg_load < cpu_down_threshold)
+			schedule_delayed_work_on(0, &unplug_work, 0);
+	}
+
+#if 0
 	/* cpu plugin check */
 	cpu_num_limit = min(g_sd_tuners->cpu_num_min_limit,g_sd_tuners->cpu_num_limit);
 	if(num_online_cpus() < cpu_num_limit)
@@ -922,6 +995,7 @@ plug_check:
 				schedule_delayed_work_on(0, &unplug_work, 0);
 		}
 	}
+#endif
 }
 
 static void sd_dbs_timer(struct work_struct *work)
@@ -1432,6 +1506,83 @@ static ssize_t store_cpu_hotplug_disable(struct dbs_data *dbs_data, const char *
 	return count;
 }
 
+static ssize_t store_cpu_up_mid_threshold(struct dbs_data *dbs_data,
+		const char *buf, size_t count)
+{
+	struct sd_dbs_tuners *sd_tuners = dbs_data->tuners;
+	unsigned int input;
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+
+	if (ret != 1)
+		return -EINVAL;
+
+	sd_tuners->cpu_up_mid_threshold = input;
+	return count;
+}
+
+static ssize_t store_cpu_up_high_threshold(struct dbs_data *dbs_data,
+		const char *buf, size_t count)
+{
+	struct sd_dbs_tuners *sd_tuners = dbs_data->tuners;
+	unsigned int input;
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+
+	if (ret != 1)
+		return -EINVAL;
+
+	sd_tuners->cpu_up_high_threshold = input;
+	return count;
+}
+
+static ssize_t store_cpu_down_mid_threshold(struct dbs_data *dbs_data,
+		const char *buf, size_t count)
+{
+	struct sd_dbs_tuners *sd_tuners = dbs_data->tuners;
+	unsigned int input;
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+
+	if (ret != 1)
+		return -EINVAL;
+
+	sd_tuners->cpu_down_mid_threshold = input;
+	return count;
+}
+
+static ssize_t store_cpu_down_high_threshold(struct dbs_data *dbs_data,
+		const char *buf, size_t count)
+{
+	struct sd_dbs_tuners *sd_tuners = dbs_data->tuners;
+	unsigned int input;
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+
+	if (ret != 1)
+		return -EINVAL;
+
+	sd_tuners->cpu_down_high_threshold = input;
+	return count;
+}
+
+static ssize_t store_window_size(struct dbs_data *dbs_data,
+		const char *buf, size_t count)
+{
+	struct sd_dbs_tuners *sd_tuners = dbs_data->tuners;
+	unsigned int input;
+	int ret;
+	ret = sscanf(buf, "%u", &input);
+
+	if (ret != 1)
+		return -EINVAL;
+
+	if (input > MAX_ARRAY_SIZE || input < 1)
+		return -EINVAL;
+
+	sd_tuners->window_size = input;
+	return count;
+}
 
 show_store_one(sd, sampling_rate);
 show_store_one(sd, io_is_busy);
@@ -1456,6 +1607,11 @@ show_store_one(sd, cpu_down_count);
 show_store_one(sd, cpu_hotplug_disable);
 show_store_one(sd, cpu_num_limit);
 show_store_one(sd, cpu_num_min_limit);
+show_store_one(sd, cpu_up_mid_threshold);
+show_store_one(sd, cpu_up_high_threshold);
+show_store_one(sd, cpu_down_mid_threshold);
+show_store_one(sd, cpu_down_high_threshold);
+show_store_one(sd, window_size);
 
 gov_sys_pol_attr_rw(sampling_rate);
 gov_sys_pol_attr_rw(io_is_busy);
@@ -1480,6 +1636,11 @@ gov_sys_pol_attr_rw(cpu_down_count);
 gov_sys_pol_attr_rw(cpu_hotplug_disable);
 gov_sys_pol_attr_rw(cpu_num_limit);
 gov_sys_pol_attr_rw(cpu_num_min_limit);
+gov_sys_pol_attr_rw(cpu_up_mid_threshold);
+gov_sys_pol_attr_rw(cpu_up_high_threshold);
+gov_sys_pol_attr_rw(cpu_down_mid_threshold);
+gov_sys_pol_attr_rw(cpu_down_high_threshold);
+gov_sys_pol_attr_rw(window_size);
 
 static struct attribute *dbs_attributes_gov_sys[] = {
 	&sampling_rate_min_gov_sys.attr,
@@ -1505,6 +1666,11 @@ static struct attribute *dbs_attributes_gov_sys[] = {
 	&cpu_hotplug_disable_gov_sys.attr,
 	&cpu_num_limit_gov_sys.attr,
 	&cpu_num_min_limit_gov_sys.attr,
+	&cpu_up_mid_threshold_gov_sys.attr,
+	&cpu_up_high_threshold_gov_sys.attr,
+	&cpu_down_mid_threshold_gov_sys.attr,
+	&cpu_down_high_threshold_gov_sys.attr,
+	&window_size_gov_sys.attr,
 	NULL
 };
 
@@ -1536,6 +1702,11 @@ static struct attribute *dbs_attributes_gov_pol[] = {
 	&cpu_down_count_gov_pol.attr,
 	&cpu_hotplug_disable_gov_pol.attr,
 	&cpu_num_limit_gov_pol.attr,
+	&cpu_up_mid_threshold_gov_pol.attr,
+	&cpu_up_high_threshold_gov_pol.attr,
+	&cpu_down_mid_threshold_gov_pol.attr,
+	&cpu_down_high_threshold_gov_pol.attr,
+	&window_size_gov_pol.attr,
 	NULL
 };
 
@@ -1600,6 +1771,11 @@ static int sd_init(struct dbs_data *dbs_data)
 	tuners->load_lo_score = LOAD_LO_SCORE;
 	tuners->cpu_down_threshold = DEF_CPU_LOAD_DOWN_THRESHOLD;
 	tuners->cpu_down_count = DEF_CPU_DOWN_COUNT;
+	tuners->cpu_up_mid_threshold = DEF_CPU_UP_MID_THRESHOLD;
+	tuners->cpu_up_high_threshold = DEF_CPU_UP_HIGH_THRESHOLD;
+	tuners->cpu_down_mid_threshold = DEF_CPU_DOWN_MID_THRESHOLD;
+	tuners->cpu_down_high_threshold = DEF_CPU_DOWN_HIGH_THRESHOLD;
+	tuners->window_size = LOAD_WINDOW_SIZE;
 	tuners->cpu_num_limit = nr_cpu_ids;
 	tuners->cpu_num_min_limit = 1;
 
