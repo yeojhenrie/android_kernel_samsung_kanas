@@ -99,16 +99,16 @@ static __init void __irq_init(void)
 	sci_glb_set(REG_AON_APB_APB_EB0, BIT_INTC_EB);
 
 	/*disable default for startup*/
-	__raw_writel(~0, SPRD_INTC0_BASE + INTC_IRQ_DIS);
-	__raw_writel(~0, SPRD_INTC0_BASE + INTC_FIQ_DIS);
-	__raw_writel(~0, SPRD_INTC1_BASE + INTC_IRQ_DIS);
-	__raw_writel(~0, SPRD_INTC1_BASE + INTC_FIQ_DIS);
-	__raw_writel(~0, SPRD_INTC2_BASE + INTC_IRQ_DIS);
-	__raw_writel(~0, SPRD_INTC2_BASE + INTC_FIQ_DIS);
-	__raw_writel(~0, SPRD_INTC3_BASE + INTC_IRQ_DIS);
-	__raw_writel(~0, SPRD_INTC3_BASE + INTC_FIQ_DIS);
-	__raw_writel(~0, SPRD_INT_BASE + INTC_IRQ_DIS);
-	__raw_writel(~0, SPRD_INT_BASE + INTC_FIQ_DIS);
+	__raw_writel(~0, (void *)(SPRD_INTC0_BASE + INTC_IRQ_DIS));
+	__raw_writel(~0, (void *)(SPRD_INTC0_BASE + INTC_FIQ_DIS));
+	__raw_writel(~0, (void *)(SPRD_INTC1_BASE + INTC_IRQ_DIS));
+	__raw_writel(~0, (void *)(SPRD_INTC1_BASE + INTC_FIQ_DIS));
+	__raw_writel(~0, (void *)(SPRD_INTC2_BASE + INTC_IRQ_DIS));
+	__raw_writel(~0, (void *)(SPRD_INTC2_BASE + INTC_FIQ_DIS));
+	__raw_writel(~0, (void *)(SPRD_INTC3_BASE + INTC_IRQ_DIS));
+	__raw_writel(~0, (void *)(SPRD_INTC3_BASE + INTC_FIQ_DIS));
+	__raw_writel(~0, (void *)(SPRD_INT_BASE + INTC_IRQ_DIS));
+	__raw_writel(~0, (void *)(SPRD_INT_BASE + INTC_FIQ_DIS));
 }
 
 #else
@@ -172,7 +172,7 @@ static inline void __mux_irq(u32 irq, u32 offset, u32 is_unmask)
 		_mux[index].is_unmask = !!is_unmask;
 
 		if (is_unmask) {/*if any one need unmask(wakeup source), let the irq mux bit enable*/
-			__raw_writel(1 << bit, base + offset);
+			__raw_writel(1 << bit, (void *)(base + offset));
 		} else {/*maybe mask*/
 			s = ARRAY_SIZE(_mux);
 			while (s--) {
@@ -182,7 +182,7 @@ static inline void __mux_irq(u32 irq, u32 offset, u32 is_unmask)
 				}
 			}
 			if (!dont_mask)
-				__raw_writel(1 << bit, base + offset);
+				__raw_writel(1 << bit, (void *)(base + offset));
 		}
 	}
 }
@@ -199,7 +199,7 @@ void sci_intc_mask(u32 __irq)
 #endif
 	__mux_irq(irq, offset, 0);
 	if (!__irq_find_base(irq, &base, &bit))
-		__raw_writel(1 << bit, base + offset);
+		__raw_writel(1 << bit, (void *)(base + offset));
 }
 EXPORT_SYMBOL(sci_intc_mask);
 
@@ -215,7 +215,7 @@ void sci_intc_unmask(u32 __irq)
 #endif
 	__mux_irq(irq, offset, 1);
 	if (!__irq_find_base(irq, &base, &bit))
-		__raw_writel(1 << bit, base + offset);
+		__raw_writel(1 << bit, (void *)(base + offset));
 }
 
 EXPORT_SYMBOL(sci_intc_unmask);
@@ -248,9 +248,9 @@ void __init sci_init_irq(void)
 
 	/*disable legacy interrupt*/
 #if (LEGACY_FIQ_BIT < 32)
-	__raw_writel(1<<LEGACY_FIQ_BIT, CORE_GIC_DIS_VA + GIC_DIST_ENABLE_CLEAR);
+	__raw_writel(1<<LEGACY_FIQ_BIT, (void *)(CORE_GIC_DIS_VA + GIC_DIST_ENABLE_CLEAR));
 #endif
-	__raw_writel(1<<LEGACY_IRQ_BIT, CORE_GIC_DIS_VA + GIC_DIST_ENABLE_CLEAR);
+	__raw_writel(1<<LEGACY_IRQ_BIT, (void *)(CORE_GIC_DIS_VA + GIC_DIST_ENABLE_CLEAR));
 
 	__irq_init();
 }

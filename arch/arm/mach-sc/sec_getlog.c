@@ -30,7 +30,7 @@ void sec_getlog_supply_fbinfo(void *p_fb, u32 xres, u32 yres, u32 bpp,
 	if (p_fb) {
 		pr_info("%s: 0x%p %d %d %d %d\n", __func__, p_fb, xres, yres,
 			bpp, frames);
-		if(CONFIG_DEFAULT_HOSTNAME=="vlx")
+		if(strcmp(CONFIG_DEFAULT_HOSTNAME,"vlx") == 0)
 		frame_buf_mark.p_fb = (p_fb - 0x012c2000);
 		else
                 frame_buf_mark.p_fb = p_fb;
@@ -88,7 +88,7 @@ void sec_getlog_supply_loggerinfo(void *p_main,
 {
 	pr_info("%s: 0x%p 0x%p 0x%p 0x%p\n", __func__, p_main, p_radio,
 		p_events, p_system);
-	if(CONFIG_DEFAULT_HOSTNAME=="vlx")
+	if(strcmp(CONFIG_DEFAULT_HOSTNAME,"vlx") == 0)
 	{
 		plat_log_mark.p_main = p_main-0x012c2000;  // 0x2500000 means CONFIG_TEXT_OFFSET
 		plat_log_mark.p_radio = p_radio-0x012c2000;
@@ -122,7 +122,7 @@ static struct {
 void sec_getlog_supply_kloginfo(void *klog_buf)
 {
 	pr_info("%s: 0x%p\n", __func__, klog_buf);
-	if(CONFIG_DEFAULT_HOSTNAME=="vlx")
+	if(strcmp(CONFIG_DEFAULT_HOSTNAME,"vlx") == 0)
 	kernel_log_mark.klog_buf = klog_buf-0x012c2000; // for SPRD
 	else
 	kernel_log_mark.klog_buf = klog_buf;

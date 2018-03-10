@@ -30,7 +30,7 @@ static void sec_power_off(void)
 			    ("%s: charger connected(%d) or power"
 			     "off failed(%d), reboot!\n",
 			     __func__, is_cable_attached, poweroff_try);
-			writel(0x0, S5P_INFORM2);	/* To enter LP charging */
+			writel(0x0, (void __iomem *)S5P_INFORM2);	/* To enter LP charging */
 
 			flush_cache_all();
 			outer_flush_all();
@@ -49,7 +49,7 @@ static void sec_power_off(void)
 			 * Low PS_HOLD_CONTROL, R/W, 0x1002_330C
 			 */
 			writel(readl(S5P_PS_HOLD_CONTROL) & 0xFFFFFEFF,
-			       S5P_PS_HOLD_CONTROL);
+			       (void __iomem *)S5P_PS_HOLD_CONTROL);
 
 			++poweroff_try;
 			pr_emerg
@@ -88,42 +88,43 @@ static int sec_reboot_notifier(struct notifier_block *nb,
 	char *cmd = buf;
 
 
-	pr_emerg("%s (%d, %s)\n", __func__, l, cmd ? cmd : "(null)");
+	pr_emerg("%s (%lu, %s)\n", __func__, l, cmd ? cmd : "(null)");
 
-	writel(0x12345678,SPRD_INFORM2);	/* Don't enter lpm mode */
+	writel(0x12345678,(void __iomem *)SPRD_INFORM2);	/* Don't enter lpm mode */
 
 	if (!cmd) {
-		writel(REBOOT_MODE_PREFIX | REBOOT_MODE_NONE, SPRD_INFORM3);
+		writel(REBOOT_MODE_PREFIX | REBOOT_MODE_NONE, (void __iomem *)SPRD_INFORM3);
 	} else {
 		if (!strcmp(cmd, "fota"))
 			writel(REBOOT_MODE_PREFIX | REBOOT_MODE_ARM11_FOTA,
-			       SPRD_INFORM3);
+			       (void __iomem *)SPRD_INFORM3);
 		else if (!strcmp(cmd, "recovery"))
 			writel(REBOOT_MODE_PREFIX | REBOOT_MODE_RECOVERY,
-			       SPRD_INFORM3);
+			       (void __iomem *)SPRD_INFORM3);
 		else if (!strcmp(cmd, "download"))
 			writel(REBOOT_MODE_PREFIX | REBOOT_MODE_DOWNLOAD,
-			       SPRD_INFORM3);
+			       (void __iomem *)SPRD_INFORM3);
 		else if (!strcmp(cmd, "upload")) {
 			writel(REBOOT_MODE_PREFIX | REBOOT_MODE_UPLOAD,
-			       SPRD_INFORM3);
+			       (void __iomem *)SPRD_INFORM3);
 		}
 		else if (!strncmp(cmd, "debug", 5)
 			 && !kstrtoul(cmd + 5, 0, &value))
 			writel(REBOOT_SET_PREFIX | REBOOT_SET_DEBUG | value,
-			       SPRD_INFORM3);
+			       (void __iomem *)SPRD_INFORM3);
 		else if (!strncmp(cmd, "swsel", 5)
 			 && !kstrtoul(cmd + 5, 0, &value))
 			writel(REBOOT_SET_PREFIX | REBOOT_SET_SWSEL | value,
-			       SPRD_INFORM3);
+			       (void __iomem *)SPRD_INFORM3);
 		else if (!strncmp(cmd, "sud", 3)
 			 && !kstrtoul(cmd + 3, 0, &value))
 			writel(REBOOT_SET_PREFIX | REBOOT_SET_SUD | value,
-			       SPRD_INFORM3);
+			       (void __iomem *)SPRD_INFORM3);
 		else
 			writel(REBOOT_MODE_PREFIX | REBOOT_MODE_NONE,
-			       SPRD_INFORM3);
+			       (void __iomem *)SPRD_INFORM3);
 	}
+	flush_cache_all();
 	return NOTIFY_DONE; 
 
 }

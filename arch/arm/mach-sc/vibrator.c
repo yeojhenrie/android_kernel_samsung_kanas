@@ -99,14 +99,14 @@ static void set_vibrator(int on)
 	if (on)
 	{
 		printk("###############vibrator on##################\n");
-		sci_adi_set(ANA_REG_GLB_BA_CTRL3, VIBR_PULLDOWN_EN);
-		sci_adi_clr(ANA_REG_GLB_BA_CTRL2, LDO_VIBR_PD);
+		sci_adi_set((unsigned long)ANA_REG_GLB_BA_CTRL3, VIBR_PULLDOWN_EN);
+		sci_adi_clr((unsigned long)ANA_REG_GLB_BA_CTRL2, LDO_VIBR_PD);
 	}
 	else
 	{
 		printk("###############vibrator off##################\n");
-		sci_adi_set(ANA_REG_GLB_BA_CTRL2, LDO_VIBR_PD);
-		sci_adi_clr(ANA_REG_GLB_BA_CTRL3, VIBR_PULLDOWN_EN);
+		sci_adi_set((unsigned long)ANA_REG_GLB_BA_CTRL2, LDO_VIBR_PD);
+		sci_adi_clr((unsigned long)ANA_REG_GLB_BA_CTRL3, VIBR_PULLDOWN_EN);
 	}
 #endif
 
@@ -140,18 +140,18 @@ static void set_vibrator(int on)
 	sci_adi_write(ANA_VIBR_WR_PROT, VIBRATOR_REG_UNLOCK, 0xffff);
 #ifdef CONFIG_ARCH_SCX35
 	if (on)
-		sci_adi_write(ANA_VIBRATOR_CTRL0, BIT_VIBR_PON, BIT_VIBR_PON);
+		sci_adi_write((unsigned long)ANA_VIBRATOR_CTRL0, BIT_VIBRATOR_PD, BIT_VIBRATOR_PD);
 	else
-		sci_adi_write(ANA_VIBRATOR_CTRL0, 0, BIT_VIBR_PON);
+		sci_adi_write((unsigned long)ANA_VIBRATOR_CTRL0, 0, BIT_VIBRATOR_PD);
 #else
-	sci_adi_clr(ANA_VIBRATOR_CTRL0, VIBR_PD_SET | VIBR_PD_RST);
+	sci_adi_clr((unsigned long)ANA_VIBRATOR_CTRL0, VIBR_PD_SET | VIBR_PD_RST);
 	if (on)
-		sci_adi_set(ANA_VIBRATOR_CTRL0, VIBR_PD_RST);
+		sci_adi_set((unsigned long)ANA_VIBRATOR_CTRL0, VIBR_PD_RST);
 	else
-		sci_adi_set(ANA_VIBRATOR_CTRL0, VIBR_PD_SET);
+		sci_adi_set((unsigned long)ANA_VIBRATOR_CTRL0, VIBR_PD_SET);
 #endif
 	/* lock vibrator registor */
-	sci_adi_write(ANA_VIBR_WR_PROT, VIBRATOR_REG_LOCK, 0xffff);
+	sci_adi_write((unsigned long)ANA_VIBR_WR_PROT, VIBRATOR_REG_LOCK, 0xffff);
 #else
        gpio_set_value(GPIO_VIBRATOR_INT, on);
 #endif
@@ -192,23 +192,23 @@ static void vibrator_hw_init(void)
 	regulator_set_voltage(vibrator_regulator, 3300000, 3300000);
 #else
 */
-	sci_adi_write(ANA_VIBR_WR_PROT, VIBRATOR_REG_UNLOCK, 0xffff);
+	sci_adi_write((unsigned long)ANA_VIBR_WR_PROT, VIBRATOR_REG_UNLOCK, 0xffff);
 #ifdef CONFIG_ARCH_SCX35
-	sci_adi_write(ANA_REG_GLB_RTC_CLK_EN, BIT_RTC_VIBR_EN, BIT_RTC_VIBR_EN);
+	sci_adi_write((unsigned long)ANA_REG_GLB_RTC_CLK_EN, BIT_RTC_VIBR_EN, BIT_RTC_VIBR_EN);
 #else
-	sci_adi_set(ANA_VIBRATOR_CTRL0, VIBR_RTC_EN);
-	sci_adi_clr(ANA_VIBRATOR_CTRL0, VIBR_BP_EN);
+	sci_adi_set((unsigned long)ANA_VIBRATOR_CTRL0, VIBR_RTC_EN);
+	sci_adi_clr((unsigned long)ANA_VIBRATOR_CTRL0, VIBR_BP_EN);
 #endif
 	/* set init current level */
-	sci_adi_write(ANA_VIBRATOR_CTRL0,
+	sci_adi_write((unsigned long)ANA_VIBRATOR_CTRL0,
 		      (VIBRATOR_INIT_LEVEL << VIBR_INIT_V_SHIFT),
 		      VIBR_INIT_V_MSK);
-	sci_adi_write(ANA_VIBRATOR_CTRL0,
+	sci_adi_write((unsigned long)ANA_VIBRATOR_CTRL0,
 		      (VIBRATOR_STABLE_LEVEL << VIBR_STABLE_V_SHIFT),
 		      VIBR_STABLE_V_MSK);
 	/* set stable current level */
-	sci_adi_write(ANA_VIBRATOR_CTRL1, VIBRATOR_INIT_STATE_CNT, 0xffff);
-	sci_adi_write(ANA_VIBR_WR_PROT, VIBRATOR_REG_LOCK, 0xffff);
+	sci_adi_write((unsigned long)ANA_VIBRATOR_CTRL1, VIBRATOR_INIT_STATE_CNT, 0xffff);
+	sci_adi_write((unsigned long)ANA_VIBR_WR_PROT, VIBRATOR_REG_LOCK, 0xffff);
 #else
         gpio_request(GPIO_VIBRATOR_INT, "vibrator");
         gpio_direction_output(GPIO_VIBRATOR_INT, 0);

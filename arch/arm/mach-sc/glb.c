@@ -24,21 +24,21 @@
 #include <mach/sci_glb_regs.h>
 #include <mach/arch_lock.h>
 
-u32 sci_glb_read(u32 reg, u32 msk)
+u32 sci_glb_read(unsigned long reg, u32 msk)
 {
-	return __raw_readl(reg) & msk;
+	return __raw_readl((void *)reg) & msk;
 }
 
-int sci_glb_write(u32 reg, u32 val, u32 msk)
+int sci_glb_write(unsigned long reg, u32 val, u32 msk)
 {
 	unsigned long flags;
 	__arch_default_lock(HWLOCK_GLB, &flags);
-	__raw_writel((__raw_readl(reg) & ~msk) | val, reg);
+	__raw_writel((__raw_readl((void *)reg) & ~msk) | val, (void *)reg);
 	__arch_default_unlock(HWLOCK_GLB, &flags);
 	return 0;
 }
 
-static int __is_glb(u32 reg)
+static int __is_glb(unsigned long reg)
 {
 #if	defined (CONFIG_ARCH_SCX35)
 	return 0;
@@ -53,27 +53,27 @@ static int __is_glb(u32 reg)
 #endif
 }
 
-int sci_glb_set(u32 reg, u32 bit)
+int sci_glb_set(unsigned long reg, u32 bit)
 {
 	if (__is_glb(reg)) {
-		__raw_writel(bit, REG_GLB_SET(reg));
+		__raw_writel(bit, (void *)REG_GLB_SET(reg));
 	} else {
 		unsigned long flags;
 		__arch_default_lock(HWLOCK_GLB, &flags);
-		__raw_writel(__raw_readl(reg) | bit, reg);
+		__raw_writel(__raw_readl((void *)reg) | bit, (void *)reg);
 		__arch_default_unlock(HWLOCK_GLB, &flags);
 	}
 	return 0;
 }
 
-int sci_glb_clr(u32 reg, u32 bit)
+int sci_glb_clr(unsigned long reg, u32 bit)
 {
 	if (__is_glb(reg)) {
-		__raw_writel(bit, REG_GLB_CLR(reg));
+		__raw_writel(bit, (void *)REG_GLB_CLR(reg));
 	} else {
 		unsigned long flags;
 		__arch_default_lock(HWLOCK_GLB, &flags);
-		__raw_writel((__raw_readl(reg) & ~bit), reg);
+		__raw_writel((__raw_readl((void *)reg) & ~bit), (void *)reg);
 		__arch_default_unlock(HWLOCK_GLB, &flags);
 	}
 	return 0;

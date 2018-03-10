@@ -123,7 +123,7 @@ int sprd_cpu_kill(unsigned int cpu)
  *
  * Called with IRQs disabled
  */
-void sprd_cpu_die(unsigned int cpu)
+void __cpuinit sprd_cpu_die(unsigned int cpu)
 {
 	int spurious = 0;
 
