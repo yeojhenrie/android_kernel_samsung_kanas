@@ -103,6 +103,10 @@ static void unlock_policy_rwsem_##mode(int cpu)				\
 unlock_policy_rwsem(read, cpu);
 unlock_policy_rwsem(write, cpu);
 
+#ifdef CONFIG_CPU_FREQ_LIMIT
+static atomic_t wait_cpufreq = ATOMIC_INIT(0); /*add atomic wait_cpufreq variable to prevent cpufreq_policy_cpu value being setting to -1*/
+#endif
+
 /* internal prototypes */
 static int __cpufreq_governor(struct cpufreq_policy *policy,
 		unsigned int event);
@@ -1875,9 +1879,18 @@ error_out:
  */
 int cpufreq_update_policy(unsigned int cpu)
 {
+#ifdef CONFIG_CPU_FREQ_LIMIT
+	struct cpufreq_policy *data = NULL;
+#else
 	struct cpufreq_policy *data = cpufreq_cpu_get(cpu);
+#endif
 	struct cpufreq_policy policy;
 	int ret;
+
+#ifdef CONFIG_CPU_FREQ_LIMIT
+	atomic_inc(&wait_cpufreq);
+	data = cpufreq_cpu_get(cpu);
+#endif
 
 	if (!data) {
 		ret = -ENODEV;
@@ -1917,6 +1930,11 @@ int cpufreq_update_policy(unsigned int cpu)
 fail:
 	cpufreq_cpu_put(data);
 no_policy:
+
+#ifdef CONFIG_CPU_FREQ_LIMIT
+	atomic_dec(&wait_cpufreq);
+#endif
+
 	return ret;
 }
 EXPORT_SYMBOL(cpufreq_update_policy);
