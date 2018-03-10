@@ -54,6 +54,10 @@ static DEFINE_MUTEX(cpufreq_governor_lock);
 /* Flag to suspend/resume CPUFreq governors */
 static bool cpufreq_suspended;
 
+static inline bool has_target(void)
+{
+	return cpufreq_driver->target;
+}
 
 /*
  * cpu_policy_rwsem is a per CPU reader-writer semaphore designed to cure
