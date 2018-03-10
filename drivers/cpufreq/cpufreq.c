@@ -1365,15 +1365,15 @@ void cpufreq_suspend(void)
 
 	pr_debug("%s: Suspending Governors\n", __func__);
 
-	list_for_each_entry(policy, &cpufreq_policy_list, policy_list) {
-		if (__cpufreq_governor(policy, CPUFREQ_GOV_STOP))
-			pr_err("%s: Failed to stop governor for policy: %p\n",
-				__func__, policy);
-		else if (cpufreq_driver->suspend
-		    && cpufreq_driver->suspend(policy))
-			pr_err("%s: Failed to suspend driver: %p\n", __func__,
-				policy);
-	}
+	policy = cpufreq_cpu_get(0);
+
+	if (__cpufreq_governor(policy, CPUFREQ_GOV_STOP))
+		pr_err("%s: Failed to stop governor for policy: %p\n",
+			__func__, policy);
+	else if (cpufreq_driver->suspend
+	    && cpufreq_driver->suspend(policy))
+		pr_err("%s: Failed to suspend driver: %p\n", __func__,
+			policy);
 
 	cpufreq_suspended = true;
 }
@@ -1398,24 +1398,18 @@ void cpufreq_resume(void)
 
 	cpufreq_suspended = false;
 
-	list_for_each_entry(policy, &cpufreq_policy_list, policy_list) {
-		if (__cpufreq_governor(policy, CPUFREQ_GOV_START)
-		    || __cpufreq_governor(policy, CPUFREQ_GOV_LIMITS))
-			pr_err("%s: Failed to start governor for policy: %p\n",
-				__func__, policy);
-		else if (cpufreq_driver->resume
-		    && cpufreq_driver->resume(policy))
-			pr_err("%s: Failed to resume driver: %p\n", __func__,
-				policy);
+	policy = cpufreq_cpu_get(0);
 
-		/*
-		 * schedule call cpufreq_update_policy() for boot CPU, i.e. last
-		 * policy in list. It will verify that the current freq is in
-		 * sync with what we believe it to be.
-		 */
-		if (list_is_last(&policy->policy_list, &cpufreq_policy_list))
-			schedule_work(&policy->update);
-	}
+	if (__cpufreq_governor(policy, CPUFREQ_GOV_START)
+	    || __cpufreq_governor(policy, CPUFREQ_GOV_LIMITS))
+		pr_err("%s: Failed to start governor for policy: %p\n",
+			__func__, policy);
+	else if (cpufreq_driver->resume
+	    && cpufreq_driver->resume(policy))
+		pr_err("%s: Failed to resume driver: %p\n", __func__,
+			policy);
+
+	schedule_work(&policy->update);
 }
 
 /**
