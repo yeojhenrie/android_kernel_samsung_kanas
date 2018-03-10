@@ -66,10 +66,10 @@
 #define GPU_150M_FREQ_INDEX 	5
 #else
 /*shark 40nm*/
-#define DFS_FREQ_NUM			6
+#define DFS_FREQ_NUM			11
 
 #define GPU_MAX_FREQ			312000
-#define GPU_MIN_FREQ			64000
+#define GPU_MIN_FREQ			52000
 
 #define GPU_150M_FREQ_INDEX 	3
 #endif
@@ -297,10 +297,20 @@ static struct gpu_dfs_context gpu_dfs_ctx=
 		&dfs_freq_full_list[8],
 		/*index:  3 freq:156000 freq_select:  3  div_select:  2 up:140400  down:109200*/
 		&dfs_freq_full_list[1],
-		/*index:  4 freq:104000 freq_select:  0  div_select:  2 up: 93600  down: 72800*/
+		/*index:  4 freq:128000 freq_select:  1  div_select:  2 up:115200  down: 89600*/
+		&dfs_freq_full_list[5],
+		/*index:  5 freq:104000 freq_select:  0  div_select:  2 up: 93600  down: 72800*/
 		&dfs_freq_full_list[9],
-		/*index:  5 freq: 64000 freq_select:  1  div_select:  4 up: 57600  down: 44800*/
+		/*index:  6 freq: 85333 freq_select:  1  div_select:  3 up: 76800  down: 59733*/
+		&dfs_freq_full_list[6],
+		/*index:  7 freq: 78000 freq_select:  3  div_select:  4 up: 70200  down: 54600*/
+		&dfs_freq_full_list[3],
+		/*index:  8 freq: 69333 freq_select:  0  div_select:  3 up: 62400  down: 48533*/
+		&dfs_freq_full_list[10],
+		/*index:  9 freq: 64000 freq_select:  1  div_select:  4 up: 57600  down: 44800*/
 		&dfs_freq_full_list[7],
+		/*index: 10 freq: 52000 freq_select:  0  div_select:  4 up: 46800  down: 36400*/
+		&dfs_freq_full_list[11],
 	},
 #endif
 	.sem=&gpu_dfs_sem,
@@ -309,7 +319,7 @@ static struct gpu_dfs_context gpu_dfs_ctx=
 extern int gpu_cur_freq;
 extern int gpu_level;
 int gpufreq_min_limit=-1;
-int gpufreq_max_limit=-1;
+int gpufreq_max_limit=64000;
 char * gpufreq_table=NULL;
 
 static void gpu_change_freq_div(void);
@@ -831,7 +841,7 @@ void mali_platform_power_mode_change(int power_mode)
 		{
 			gpu_dfs_ctx.gpu_power_on=1;
 			gpu_dfs_ctx.gpu_clock_on=1;
-			gpu_dfs_ctx.cur_freq_p=gpu_dfs_ctx.dfs_max_freq_p;
+			gpu_dfs_ctx.cur_freq_p=gpu_dfs_ctx.dfs_min_freq_p;
 			gpu_cur_freq = gpu_dfs_ctx.cur_freq_p->freq;
 			sci_glb_clr(REG_PMU_APB_PD_GPU_TOP_CFG, BIT_PD_GPU_TOP_FORCE_SHUTDOWN);
 			udelay(100);
@@ -855,8 +865,8 @@ void mali_platform_power_mode_change(int power_mode)
 			clk_set_parent(gpu_dfs_ctx.gpu_clock,gpu_clk_src[1].clk_src);
 	#endif
 #endif
-			clk_set_parent(gpu_dfs_ctx.gpu_clock,gpu_dfs_ctx.dfs_max_freq_p->clk_src);
-			mali_set_div(gpu_dfs_ctx.dfs_max_freq_p->div_select);
+			clk_set_parent(gpu_dfs_ctx.gpu_clock,gpu_dfs_ctx.dfs_min_freq_p->clk_src);
+			mali_set_div(gpu_dfs_ctx.dfs_min_freq_p->div_select);
 
 #ifdef CONFIG_COMMON_CLK
 			clk_prepare_enable(gpu_dfs_ctx.gpu_clock);
@@ -1088,7 +1098,7 @@ void mali_platform_utilization(struct mali_gpu_utilization_data *data)
 	}
 	else
 	{
-		target_freq=gpu_dfs_ctx.cur_freq_p->freq*gpu_dfs_ctx.cur_load/256;
+		target_freq=gpu_dfs_ctx.default_max_freq_p->freq*gpu_dfs_ctx.cur_load/256;
 		next_freq_index=get_next_freq(gpu_dfs_ctx.dfs_freq_list,gpu_dfs_ctx.dfs_min_freq_p,
 										gpu_dfs_ctx.dfs_max_freq_p,target_freq);
 		gpu_dfs_ctx.next_freq_p=gpu_dfs_ctx.dfs_freq_list[next_freq_index];
