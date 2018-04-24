@@ -1413,18 +1413,6 @@ static inline bool __exist_node_summaries(struct f2fs_sb_info *sbi)
 			is_set_ckpt_flags(sbi, CP_FASTBOOT_FLAG));
 }
 
-/*
- * Check whether the given nid is within node id range.
- */
-static inline int check_nid_range(struct f2fs_sb_info *sbi, nid_t nid)
-{
-	if (unlikely(nid < F2FS_ROOT_INO(sbi)))
-		return -EINVAL;
-	if (unlikely(nid >= NM_I(sbi)->max_nid))
-		return -EINVAL;
-	return 0;
-}
-
 #define F2FS_DEFAULT_ALLOCATED_BLOCKS	1
 
 /*
@@ -2314,6 +2302,7 @@ f2fs_hash_t f2fs_dentry_hash(const struct qstr *name_info,
 struct dnode_of_data;
 struct node_info;
 
+int check_nid_range(struct f2fs_sb_info *sbi, nid_t nid);
 bool available_free_memory(struct f2fs_sb_info *sbi, int type);
 int need_dentry_mark(struct f2fs_sb_info *sbi, nid_t nid);
 bool is_checkpointed_node(struct f2fs_sb_info *sbi, nid_t nid);
