@@ -2026,7 +2026,7 @@ static struct cproc_init_data sprd_cproc_wcdma_pdata = {
 #else
 			.base  = CPW_START_ADDR + 0x300000,
 #endif
-			.maxsz = 0x00800000,
+			.maxsz = 0x00C00000,
 		},
 		{
 			.name  = "dsp",
@@ -2047,8 +2047,8 @@ static struct spipe_init_data sprd_spipe_wcdma_pdata = {
 	.dst		= SIPC_ID_CPW,
 	.channel	= SMSG_CH_PIPE,
 	.ringnr		= 9,
-	.txbuf_size	= 4096,
-	.rxbuf_size	= 4096,
+	.txbuf_size	= 12288,
+	.rxbuf_size	= 12288,
 };
 struct platform_device sprd_spipe_wcdma_device = {
 	.name           = "spipe",
