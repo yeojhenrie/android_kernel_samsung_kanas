@@ -79,11 +79,9 @@ int __init __sipc_reserve_memblock(void)
 #endif
 
 #ifdef CONFIG_SIPC_WCDMA
-	if (memblock_reserve(CPW_START_ADDR, CPW_TOTAL_SIZE))
+	if (memblock_remove(CPW_START_ADDR, CPW_TOTAL_SIZE))
 		return -ENOMEM;
 	smem_size += CPW_SMEM_SIZE;
-	memblock_free(CPW_START_ADDR, CPW_TOTAL_SIZE);
-	memblock_remove(CPW_START_ADDR, CPW_TOTAL_SIZE);
 #endif
 
 #ifdef CONFIG_SIPC_WCN
