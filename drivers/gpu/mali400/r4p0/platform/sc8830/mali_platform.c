@@ -319,7 +319,7 @@ static struct gpu_dfs_context gpu_dfs_ctx=
 extern int gpu_cur_freq;
 extern int gpu_level;
 int gpufreq_min_limit=-1;
-int gpufreq_max_limit=64000;
+int gpufreq_max_limit=-1;
 char * gpufreq_table=NULL;
 
 static void gpu_change_freq_div(void);
