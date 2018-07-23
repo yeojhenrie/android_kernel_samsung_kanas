@@ -31,12 +31,7 @@
 
 #define GET_WIFI_MAC_ADDR_FROM_NV_ITEM	        1
 
-#define WLAN_STATIC_SCAN_BUF0		5
-#define WLAN_STATIC_SCAN_BUF1		6
-#define WLAN_STATIC_DHD_INFO_BUF	7
-#define WLAN_SCAN_BUF_SIZE		(64 * 1024)
-#define WLAN_DHD_INFO_BUF_SIZE	(16 * 1024)
-#define PREALLOC_WLAN_SEC_NUM		4
+#define PREALLOC_WLAN_NUMBER_OF_SECTIONS	4
 #define PREALLOC_WLAN_NUMBER_OF_BUFFERS		160
 #define PREALLOC_WLAN_SECTION_HEADER		24
 
@@ -45,12 +40,7 @@
 #define WLAN_SECTION_SIZE_2	(PREALLOC_WLAN_NUMBER_OF_BUFFERS * 512)
 #define WLAN_SECTION_SIZE_3	(PREALLOC_WLAN_NUMBER_OF_BUFFERS * 1024)
 
-#define DHD_SKB_HDRSIZE			336
-#define DHD_SKB_1PAGE_BUFSIZE	((PAGE_SIZE*1)-DHD_SKB_HDRSIZE)
-#define DHD_SKB_2PAGE_BUFSIZE	((PAGE_SIZE*2)-DHD_SKB_HDRSIZE)
-#define DHD_SKB_4PAGE_BUFSIZE	((PAGE_SIZE*4)-DHD_SKB_HDRSIZE)
-
-#define WLAN_SKB_BUF_NUM	17
+#define WLAN_SKB_BUF_NUM	16
 #define IFHWADDRLEN        	6
 
 #define CUSTOMER_MAC_FILE "/data/wifimac.txt"
@@ -79,16 +69,12 @@ typedef struct wifi_mem_prealloc_struct {
 	unsigned long size;
 } wifi_mem_prealloc_t;
 
-static wifi_mem_prealloc_t wlan_mem_array[PREALLOC_WLAN_SEC_NUM] = {
+static wifi_mem_prealloc_t wifi_mem_array[PREALLOC_WLAN_NUMBER_OF_SECTIONS] = {
 	{ NULL, (WLAN_SECTION_SIZE_0 + PREALLOC_WLAN_SECTION_HEADER) },
 	{ NULL, (WLAN_SECTION_SIZE_1 + PREALLOC_WLAN_SECTION_HEADER) },
 	{ NULL, (WLAN_SECTION_SIZE_2 + PREALLOC_WLAN_SECTION_HEADER) },
 	{ NULL, (WLAN_SECTION_SIZE_3 + PREALLOC_WLAN_SECTION_HEADER) }
 };
-
-void *wlan_static_scan_buf0;
-void *wlan_static_scan_buf1;
-void *wlan_static_dhd_info_buf;
 
 static void * open_image(char *filename)
 {
@@ -130,89 +116,32 @@ static void close_image(void *image)
 
 static void *wlan_device_mem_prealloc(int section, unsigned long size)
 {
-	if (section == PREALLOC_WLAN_SEC_NUM)
+	if (section == PREALLOC_WLAN_NUMBER_OF_SECTIONS)
 		return wlan_static_skb;
-
-	if (section == WLAN_STATIC_SCAN_BUF0)
-		return wlan_static_scan_buf0;
-
-	if (section == WLAN_STATIC_SCAN_BUF1)
-		return wlan_static_scan_buf1;
-
-	if (section == WLAN_STATIC_DHD_INFO_BUF) {
-		if (size > WLAN_DHD_INFO_BUF_SIZE) {
-			pr_err("request DHD_INFO size(%lu) is bigger than static size(%d).\n", size, WLAN_DHD_INFO_BUF_SIZE);
-			return NULL;
-		}
-		return wlan_static_dhd_info_buf;
-	}
-
-	if ((section < 0) || (section > PREALLOC_WLAN_SEC_NUM))
+	if ((section < 0) || (section > PREALLOC_WLAN_NUMBER_OF_SECTIONS))
 		return NULL;
-
-	if (wlan_mem_array[section].size < size)
+	if (wifi_mem_array[section].size < size)
 		return NULL;
-
-	return wlan_mem_array[section].mem_ptr;
+	return wifi_mem_array[section].mem_ptr;
 }
 
 int __init init_wifi_mem(void)
 {
 	int i;
-	int j;
 
-	for (i = 0; i < 8; i++) {
-		wlan_static_skb[i] = dev_alloc_skb(DHD_SKB_1PAGE_BUFSIZE);
-		if (!wlan_static_skb[i])
-			goto err_skb_alloc;
+	for(i=0;( i < WLAN_SKB_BUF_NUM );i++) {
+		if (i < (WLAN_SKB_BUF_NUM/2))
+			wlan_static_skb[i] = dev_alloc_skb(4096);
+		else
+			wlan_static_skb[i] = dev_alloc_skb(8192);
 	}
-
-	for (; i < 16; i++) {
-		wlan_static_skb[i] = dev_alloc_skb(DHD_SKB_2PAGE_BUFSIZE);
-		if (!wlan_static_skb[i])
-			goto err_skb_alloc;
+	for(i=0;( i < PREALLOC_WLAN_NUMBER_OF_SECTIONS );i++) {
+		wifi_mem_array[i].mem_ptr = kmalloc(wifi_mem_array[i].size,
+				GFP_KERNEL);
+		if (wifi_mem_array[i].mem_ptr == NULL)
+			return -ENOMEM;
 	}
-
-	wlan_static_skb[i] = dev_alloc_skb(DHD_SKB_4PAGE_BUFSIZE);
-	if (!wlan_static_skb[i])
-		goto err_skb_alloc;
-
-	for (i = 0 ; i < PREALLOC_WLAN_SEC_NUM ; i++) {
-		wlan_mem_array[i].mem_ptr =
-				kmalloc(wlan_mem_array[i].size, GFP_KERNEL);
-
-		if (!wlan_mem_array[i].mem_ptr)
-			goto err_mem_alloc;
-	}
-
-	wlan_static_scan_buf0 = kmalloc(WLAN_SCAN_BUF_SIZE, GFP_KERNEL);
-	if (!wlan_static_scan_buf0)
-		goto err_mem_alloc;
-
-	wlan_static_scan_buf1 = kmalloc(WLAN_SCAN_BUF_SIZE, GFP_KERNEL);
-	if (!wlan_static_scan_buf1)
-		goto err_mem_alloc;
-
-	wlan_static_dhd_info_buf = kmalloc(WLAN_DHD_INFO_BUF_SIZE, GFP_KERNEL);
-	if (!wlan_static_dhd_info_buf)
-		goto err_mem_alloc;
-
-	printk(KERN_INFO"%s: WIFI MEM Allocated\n", __func__);
 	return 0;
-
- err_mem_alloc:
-	pr_err("Failed to mem_alloc for WLAN\n");
-	for (j = 0 ; j < i ; j++)
-		kfree(wlan_mem_array[j].mem_ptr);
-
-	i = WLAN_SKB_BUF_NUM;
-
- err_skb_alloc:
-	pr_err("Failed to skb_alloc for WLAN\n");
-	for (j = 0 ; j < i ; j++)
-		dev_kfree_skb(wlan_static_skb[j]);
-
-	return -ENOMEM;
 }
 
 /* Control the BT_VDDIO and WLAN_VDDIO
@@ -224,8 +153,7 @@ static int wlan_ldo_enable(void)
 
 #ifdef CONFIG_ARCH_SCX35
 	/*temp config for clk_aux0, waiting for SC8830 pin config*/
-//	pinmap_set(0x400, 0x0101);
-
+	__raw_writel(0x0101, SPRD_PIN_BASE + 0x0400);
 	wlan_regulator_18 = regulator_get(NULL, "vdd18");
 #else
 	wlan_regulator_18 = regulator_get(NULL, "vddsd1");
@@ -270,7 +198,7 @@ static void wlan_clk_init(void)
 
 	clk_set_parent(wlan_clk, clk_parent);
 	clk_set_rate(wlan_clk, 32000);
-	clk_prepare_enable(wlan_clk);   
+	clk_enable(wlan_clk);
 }
 
 int wlan_device_power(int on)
@@ -286,8 +214,8 @@ int wlan_device_power(int on)
 			msleep(100);
 		}
 	#else
-//		if(wlan_mmc)
-//		flush_delayed_work(&wlan_mmc->detect);
+		if(wlan_mmc)
+		flush_delayed_work(&wlan_mmc->detect);
 	#endif
 		printk("%s after delay %d times (100ms)\n", __func__, i);
 	/* enable SDIO clock */
@@ -297,7 +225,7 @@ int wlan_device_power(int on)
 		gpio_direction_output(GPIO_WIFI_SHUTDOWN, 0);
 		mdelay(10);
 		gpio_direction_output(GPIO_WIFI_SHUTDOWN, 1);
-//		mdelay(200);
+		mdelay(200);
 	}
 	else {
 	/* disale SDIO clock */
@@ -457,17 +385,10 @@ static struct platform_device sprd_wlan_device = {
 
 void wlan_host_get(void) {
 	struct sdhci_host *host;
-#ifndef CONFIG_OF
 	extern struct platform_device sprd_sdio1_device;
 	host = platform_get_drvdata(&sprd_sdio1_device);
-#else
-	struct platform_device * sdio1_device = to_platform_device(bus_find_device_by_name(&platform_bus_type, NULL, "sdio_wifi"));
-	host = platform_get_drvdata(sdio1_device);
-#endif
-//	BUG_ON(!host->mmc);
-//	wlan_mmc = host->mmc;
-	wlan_mmc = container_of(host, struct mmc_host, private);
-	BUG_ON(!wlan_mmc);
+	BUG_ON(!host->mmc);
+       wlan_mmc = host->mmc;
 }
 
 static int __init wlan_device_init(void)
@@ -475,7 +396,7 @@ static int __init wlan_device_init(void)
 	int ret;
 	wlan_host_get();
 	init_wifi_mem();
-//	wlan_ldo_enable();//NOTE:check this function!If enble this, it cause V2.8 jump from 2.6v to 2.8v when sleep!
+	wlan_ldo_enable();
 	wlan_clk_init();
 	gpio_request(GPIO_WIFI_IRQ, "oob_irq");
 	gpio_direction_input(GPIO_WIFI_IRQ);

@@ -22,7 +22,7 @@
  *
  * Return read value and mask.
  */
-u32 sci_glb_read(unsigned long reg, u32 msk);
+u32 sci_glb_read(u32 reg, u32 msk);
 
 /**
  * sci_glb_write - safely write value to d-die global register
@@ -34,7 +34,7 @@ u32 sci_glb_read(unsigned long reg, u32 msk);
  *
  * Returns success (0) or negative errno.
  */
-int sci_glb_write(unsigned long reg, u32 val, u32 msk);
+int sci_glb_write(u32 reg, u32 val, u32 msk);
 
 /**
  * sci_glb_set - force set bit to d-die global register
@@ -46,7 +46,7 @@ int sci_glb_write(unsigned long reg, u32 val, u32 msk);
  *
  * Returns success (0) or negative errno.
  */
-int sci_glb_set(unsigned long reg, u32 bit);
+int sci_glb_set(u32 reg, u32 bit);
 
 /**
  * sci_glb_clr - force clr bit to d-die gglobal register
@@ -58,7 +58,7 @@ int sci_glb_set(unsigned long reg, u32 bit);
  *
  * Returns success (0) or negative errno.
  */
-int sci_glb_clr(unsigned long reg, u32 bit);
+int sci_glb_clr(u32 reg, u32 bit);
 
 #define sci_glb_raw_read(reg)           sci_glb_read(reg, -1UL)
 #define sci_glb_raw_write(reg, val)     sci_glb_write(reg, val, -1UL)

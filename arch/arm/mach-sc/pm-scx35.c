@@ -1277,7 +1277,7 @@ static void sc8830_power_off(void)
 	BUG();
 }
 
-void sc8830_machine_restart(char mode, const char *cmd)
+static void sc8830_machine_restart(char mode, const char *cmd)
 {
 	local_irq_disable();
 	local_fiq_disable();
