@@ -170,7 +170,7 @@ static void set_vibrator(int on)
     }
     if (on) 
 	{
-            regulator_set_voltage(mot_vdd, 3000000, 3000000);
+            regulator_set_voltage(mot_vdd, 2800000, 3000000);
             regulator_enable(mot_vdd);
     }
     else if (regulator_is_enabled(mot_vdd)) 
