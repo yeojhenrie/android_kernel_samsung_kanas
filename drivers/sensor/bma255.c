@@ -52,7 +52,7 @@
 
 #define SLOPE_DURATION_VALUE            2
 #define SLOPE_THRESHOLD_VALUE           0x0A
-
+#define CONFIG_SIG_MOTION
 enum {
 	OFF = 0,
 	ON = 1
@@ -89,6 +89,13 @@ struct bma255_p {
 	int acc_int1;
 	int acc_int2;
 	int time_count;
+
+#ifdef CONFIG_SIG_MOTION
+	struct class *g_sensor_class;
+	struct device *g_sensor_dev;
+
+	atomic_t en_sig_motion;
+#endif
 };
 
 static int bma255_open_calibration(struct bma255_p *);
@@ -347,7 +354,12 @@ static void bma255_set_enable(struct bma255_p *data, int enable)
 		}
 	} else {
 		if (pre_enable == ON) {
+#ifdef CONFIG_SIG_MOTION
+			if (data->recog_flag == ON ||
+			    atomic_read(&data->en_sig_motion) == ON)
+#else
 			if (data->recog_flag == ON)
+#endif
 				bma255_set_mode(data, BMA255_MODE_NORMAL);
 			else
 				bma255_set_mode(data, BMA255_MODE_SUSPEND);
@@ -412,14 +424,83 @@ static ssize_t bma255_delay_store(struct device *dev,
 	return size;
 }
 
+#ifdef CONFIG_SIG_MOTION
+static void bma255_slope_enable(struct i2c_client *, int, int, unsigned char,
+		                unsigned char);
+
+static ssize_t bma255_en_sig_motion_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct bma255_p *data = dev_get_drvdata(dev);
+
+	return sprintf(buf, "%d\n", atomic_read(&data->en_sig_motion));
+}
+
+static int bma255_sig_motion_enable(struct bma255_p *data, int en)
+{
+	int err = 0;
+
+	en = (en >= 1) ? 1 : 0;  /* set sig motion sensor status */
+
+	if (atomic_read(&data->en_sig_motion) != en) {
+		if (en) {
+			if (atomic_read(&data->enable) == OFF)
+				err = bma255_set_mode(data, BMA255_MODE_NORMAL);
+
+			bma255_slope_enable(data->client, en, 0, 0x02, 0x40);
+			pr_info("[SENSOR] %s - enable\n", __func__);
+			enable_irq(data->irq1);
+			enable_irq_wake(data->irq1);
+		} else {
+			disable_irq_wake(data->irq1);
+			disable_irq_nosync(data->irq1);
+			bma255_slope_enable(data->client, en, 0, 0x02, 0x40);
+
+			if (atomic_read(&data->enable) == OFF)
+				err += bma255_set_mode(data, BMA255_MODE_SUSPEND);
+
+			pr_info("[SENSOR] %s - disable\n", __func__);
+		}
+		atomic_set(&data->en_sig_motion, en);
+	}
+	return err;
+}
+
+static ssize_t bma255_en_sig_motion_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	unsigned long data;
+	int error;
+	struct i2c_client *client = to_i2c_client(dev);
+	struct bma255_p *data_p = i2c_get_clientdata(client);
+
+	error = kstrtoul(buf, 10, &data);
+	if (error)
+		return error;
+
+	if ((data == 0) || (data == 1))
+		bma255_sig_motion_enable(data_p, data);
+
+	return count;
+}
+#endif
+
 static DEVICE_ATTR(poll_delay, S_IRUGO | S_IWUSR | S_IWGRP,
 		bma255_delay_show, bma255_delay_store);
 static DEVICE_ATTR(enable, S_IRUGO | S_IWUSR | S_IWGRP,
 		bma255_enable_show, bma255_enable_store);
+#ifdef CONFIG_SIG_MOTION
+static DEVICE_ATTR(en_sig_motion, S_IRUGO | S_IWUSR | S_IWGRP,
+	bma255_en_sig_motion_show, bma255_en_sig_motion_store);
+#endif
 
 static struct attribute *bma255_attributes[] = {
 	&dev_attr_poll_delay.attr,
 	&dev_attr_enable.attr,
+#ifdef CONFIG_SIG_MOTION
+	&dev_attr_en_sig_motion.attr,
+#endif
 	NULL
 };
 
@@ -647,7 +728,8 @@ static void bma255_set_int_enable(struct i2c_client *client,
 }
 
 static void bma255_slope_enable(struct i2c_client *client,
-		int enable, int factory_mode)
+		int enable, int factory_mode, unsigned char
+		duration, unsigned char threshold)
 {
 	unsigned char reg;
 
@@ -663,11 +745,11 @@ static void bma255_slope_enable(struct i2c_client *client,
 		bma255_smbus_write_byte(client, BMA255_INT_MODE_SEL__REG, &reg);
 
 		if (factory_mode == OFF) {
-			reg = SLOPE_THRESHOLD_VALUE;
+			reg = threshold;
 			bma255_smbus_write_byte(client,
 					BMA255_SLOPE_THRES__REG, &reg);
 			/* 0x02: Count3(three slope data above the slope interrupt threshold ) */
-			reg = 0x02;
+			reg = duration/*0x02*/;
 			bma255_smbus_write_byte(client, BMA255_SLOPE_DUR__REG, &reg);
 
 			bma255_set_int_enable(client, SLOPE_X_INT, ON);
@@ -727,7 +809,7 @@ static ssize_t bma255_reactive_alert_store(struct device *dev,
 		pr_info("[SENSOR] %s - reactive alert is on!\n", __func__);
 		data->irq_state = 0;
 
-		bma255_slope_enable(data->client, ON, factory_mode);
+		bma255_slope_enable(data->client, ON, factory_mode, 0x02, SLOPE_THRESHOLD_VALUE);
 		enable_irq(data->irq1);
 		enable_irq_wake(data->irq1);
 
@@ -739,7 +821,7 @@ static ssize_t bma255_reactive_alert_store(struct device *dev,
 		pr_info("[SENSOR] %s - reactive alert is off! irq = %d\n",
 			__func__, data->irq_state);
 
-		bma255_slope_enable(data->client, OFF, factory_mode);
+		bma255_slope_enable(data->client, OFF, factory_mode, 0x02, SLOPE_THRESHOLD_VALUE);
 
 		disable_irq_wake(data->irq1);
 		disable_irq_nosync(data->irq1);
@@ -778,18 +860,50 @@ static struct device_attribute *sensor_attrs[] = {
 	NULL,
 };
 
+static int bma255_get_interruptstatus1(struct i2c_client *client,
+		unsigned char *intstatus)
+{
+	int comres = 0;
+	unsigned char data;
+
+	comres = bma255_smbus_read_byte(client, BMA255_STATUS1_REG, &data);
+	*intstatus = data;
+
+	return comres;
+}
+
 static irqreturn_t bma255_irq_thread(int irq, void *bma255_data_p)
 {
 	struct bma255_p *data = bma255_data_p;
+	unsigned char status = 0;
 
-	pr_info("[SENSOR] %s reactive irq\n", __func__);
+	bma255_get_interruptstatus1(data->client, &status);
+	pr_info("[SENSOR] %s - status = 0x%x\n", __func__, status);
 
-	bma255_set_int_enable(data->client, SLOPE_X_INT, OFF);
-	bma255_set_int_enable(data->client, SLOPE_Y_INT, OFF);
-	bma255_set_int_enable(data->client, SLOPE_Z_INT, OFF);
+	if (status & 0x04)	{
+#ifdef CONFIG_SIG_MOTION
+		if (atomic_read(&data->en_sig_motion) == 1) {
+			pr_info("[SENSOR] %s - Significant motion interrupt happened\n", __func__);
+			/* Significant motion Sensor is a one-shot sensor
+			we need to turn this off before we send the event */
+			bma255_sig_motion_enable(data, 0);
 
-	data->irq_state = 1;
-	wake_lock_timeout(&data->reactive_wake_lock, msecs_to_jiffies(2000));
+			input_event(data->input, EV_MSC, MSC_GESTURE, 1);
+			input_sync(data->input);
+		}
+#endif
+		if (data->recog_flag == 1) {
+			pr_info("[SENSOR] %s reactive irq\n", __func__);
+
+			bma255_set_int_enable(data->client, SLOPE_X_INT, OFF);
+			bma255_set_int_enable(data->client, SLOPE_Y_INT, OFF);
+			bma255_set_int_enable(data->client, SLOPE_Z_INT, OFF);
+
+			data->irq_state = 1;
+			wake_lock_timeout(&data->reactive_wake_lock, msecs_to_jiffies(2000));
+		}
+	}
+
 
 	return IRQ_HANDLED;
 }
@@ -835,6 +949,9 @@ static int bma255_setup_pin(struct bma255_p *data)
 	data->irq1 = gpio_to_irq(data->acc_int1);
 	ret = request_threaded_irq(data->irq1, NULL, bma255_irq_thread,
 		IRQF_TRIGGER_RISING | IRQF_ONESHOT, "bma255_accel", data);
+#ifdef CONFIG_SIG_MOTION
+	enable_irq_wake(data->irq1);
+#endif
 	if (ret < 0) {
 		pr_err("[SENSOR] %s - can't allocate irq.\n", __func__);
 		goto exit_reactive_irq;
@@ -871,6 +988,7 @@ static int bma255_input_init(struct bma255_p *data)
 	input_set_capability(dev, EV_REL, REL_X);
 	input_set_capability(dev, EV_REL, REL_Y);
 	input_set_capability(dev, EV_REL, REL_Z);
+	input_set_capability(dev, EV_MSC, MSC_GESTURE);
 	input_set_drvdata(dev, data);
 
 	ret = input_register_device(dev);
@@ -993,6 +1111,9 @@ static int bma255_probe(struct i2c_client *client,
 
 	atomic_set(&data->delay, BMA255_DEFAULT_DELAY);
 	atomic_set(&data->enable, OFF);
+#ifdef CONFIG_SIG_MOTION
+	atomic_set(&data->en_sig_motion, 0);
+#endif
 	data->time_count = 0;
 	data->irq_state = 0;
 	data->recog_flag = OFF;
@@ -1028,7 +1149,9 @@ static void bma255_shutdown(struct i2c_client *client)
 {
 	struct bma255_p *data = (struct bma255_p *)i2c_get_clientdata(client);
 
-	pr_info("[SENSOR] %s\n", __func__);
+	pr_info("[SENSOR] %s (deep suspend)\n", __func__);
+	bma255_set_mode(data, BMA255_MODE_DEEP_SUSPEND);
+
 	if (atomic_read(&data->enable) == ON)
 		cancel_delayed_work_sync(&data->work);
 }
@@ -1065,15 +1188,23 @@ static int bma255_suspend(struct device *dev)
 	struct bma255_p *data = dev_get_drvdata(dev);
 
 	if (atomic_read(&data->enable) == ON) {
+#ifdef CONFIG_SIG_MOTION
+		if (data->recog_flag == ON || atomic_read(&data->en_sig_motion) == ON)
+#else
 		if (data->recog_flag == ON)
+#endif
 			bma255_set_mode(data, BMA255_MODE_NORMAL);
 		else
-			bma255_set_mode(data, BMA255_MODE_SUSPEND);
+			bma255_set_mode(data, BMA255_MODE_DEEP_SUSPEND);
 
 		cancel_delayed_work_sync(&data->work);
 	}
 
+#ifdef CONFIG_SIG_MOTION
+	if (data->recog_flag == ON && atomic_read(&data->en_sig_motion) == OFF)
+#else
 	if (data->recog_flag == ON)
+#endif
 		disable_irq(data->irq1);
 
 	return 0;
@@ -1089,7 +1220,11 @@ static int bma255_resume(struct device *dev)
 			msecs_to_jiffies(atomic_read(&data->delay)));
 	}
 
+#ifdef CONFIG_SIG_MOTION
+	if (data->recog_flag == ON && atomic_read(&data->en_sig_motion) == OFF)
+#else
 	if (data->recog_flag == ON)
+#endif
 		enable_irq(data->irq1);
 
 	return 0;
