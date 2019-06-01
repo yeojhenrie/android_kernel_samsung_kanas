@@ -1039,7 +1039,7 @@ int deep_sleep(int from_idle)
 #if defined(CONFIG_ARCH_SCX15)
 		bak_restore_mm_scx15(1);
 #endif
-		show_pin_reg();
+// 		show_pin_reg();
 		enable_mcu_deep_sleep();
 		configure_for_deepsleep(0);
 		disable_ahb_module();

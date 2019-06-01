@@ -205,7 +205,7 @@ static inline int sprd_wait_trx_done(struct sprd_i2c *pi2c)
 	rc = sprd_i2c_wait_int(pi2c);
 	if (rc < 0) {
 		dev_err(&pi2c->adap.dev, "%s() err! rc=%d\n", __func__, rc);
-		dump_i2c_reg(pi2c);
+// 		dump_i2c_reg(pi2c);
 		return rc;
 	}
 
@@ -347,7 +347,7 @@ sprd_i2c_handle_msg(struct i2c_adapter *i2c_adap, struct i2c_msg *pmsg,
 	rc = sprd_i2c_send_target_addr(pi2c, pmsg);
 	if (rc < 0) {
 		dev_err(&i2c_adap->dev, "%s() rc=%d\n", __func__, rc);
-		dump_i2c_reg(pi2c);
+// 		dump_i2c_reg(pi2c);
 		return rc;
 	}
 
@@ -572,9 +572,9 @@ static int i2c_controller_suspend(struct platform_device *pdev,
 	struct sprd_i2c *pi2c = platform_get_drvdata(pdev);
 
 	if (pi2c && (pi2c->adap.nr < ARRAY_SIZE(l2c_saved_regs))) {
-		printk(KERN_ERR ":===dump i2c-%d reg when suspend\n", pi2c->adap.nr);
-		dump_i2c_reg(pi2c);
-
+// 		printk(KERN_ERR ":===dump i2c-%d reg when suspend\n", pi2c->adap.nr);
+// 		dump_i2c_reg(pi2c);
+//
 		l2c_saved_regs[pi2c->adap.nr].ctl = __raw_readl(pi2c->membase + I2C_CTL);
 		l2c_saved_regs[pi2c->adap.nr].cmd = __raw_readl(pi2c->membase + I2C_CMD);
 		l2c_saved_regs[pi2c->adap.nr].div0 = __raw_readl(pi2c->membase + I2C_CLKD0);
@@ -612,7 +612,7 @@ static int i2c_controller_resume(struct platform_device *pdev)
 		__raw_writel(l2c_saved_regs[pi2c->adap.nr].rst, pi2c->membase + I2C_RST);
 		__raw_writel(l2c_saved_regs[pi2c->adap.nr].cmd_buf, pi2c->membase + I2C_CMD_BUF);
 		__raw_writel(l2c_saved_regs[pi2c->adap.nr].cmd_buf_ctl, pi2c->membase + I2C_CMD_BUF_CTL);
-		dump_i2c_reg(pi2c);
+// 		dump_i2c_reg(pi2c);
 
 	}
 	return 0;
