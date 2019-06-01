@@ -565,11 +565,14 @@ static void emc_late_resume(struct early_suspend *h)
 	emc_clk_set(max_clk, EMC_FREQ_NORMAL_SCENE);
 #endif
 }
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static struct early_suspend emc_early_suspend_desc = {
 	.level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 100,
 	.suspend = emc_earlysuspend,
 	.resume = emc_late_resume,
 };
+#endif
 #ifdef EMC_FREQ_AUTO_TEST
 #ifdef CONFIG_SCX35_DMC_FREQ_DDR3
 static u32 emc_freq_valid_array[] = {

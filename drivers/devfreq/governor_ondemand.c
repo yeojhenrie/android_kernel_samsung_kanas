@@ -248,7 +248,7 @@ EXPORT_SYMBOL(dfs_freq_raise_quirk);
 
 
 /************ early suspend  *****************/
-
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static void devfreq_early_suspend(struct early_suspend *h)
 {
 	dfs_set_freq(192000);
@@ -274,6 +274,7 @@ static struct early_suspend devfreq_enable_desc = {
         .level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
         .resume = devfreq_enable_late_resume,
 };
+#endif
 /************ userspace interface *****************/
 
 static ssize_t store_upthreshold(struct device *dev, struct device_attribute *attr,
@@ -497,11 +498,15 @@ static int devfreq_ondemand_start(struct devfreq *devfreq)
 	devfreq->data = data;
 	g_devfreq = devfreq;
 	err = sysfs_create_group(&devfreq->dev.kobj, &dev_attr_group);
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	register_early_suspend(&devfreq_early_suspend_desc);
+#endif
 	/*
 	* disable DFS before DISPC late resume
 	*/
+#ifdef CONFIG_HAS_EARLYSUSPEND
 	register_early_suspend(&devfreq_enable_desc);
+#endif
 
 	spin_lock(&dfs_req_lock);
 	dfs_req_timeout = REQ_TIMEOUT_DEF;
