@@ -68,6 +68,9 @@
 #define DEF_CPU_DOWN_MID_THRESHOLD		(30)
 #define DEF_CPU_DOWN_HIGH_THRESHOLD		(40)
 
+/* default boost pulse time, us */
+#define DEF_BOOSTPULSE_DURATION		(500 * USEC_PER_MSEC)
+
 #define GOVERNOR_BOOT_TIME	(50*HZ)
 static unsigned long boot_done;
 
@@ -81,6 +84,7 @@ struct unplug_work_info {
 
 struct delayed_work plugin_work;
 struct delayed_work unplug_work;
+struct work_struct plugin_request_work;
 
 static DEFINE_PER_CPU(struct unplug_work_info, uwi);
 
@@ -306,6 +310,50 @@ static void sprd_plugin_one_cpu(struct work_struct *work)
 			for (i = 0; i < 5; i++) {
 				ret = cpu_up(cpuid);
 				if (ret != -ENOSYS)
+					break;
+			}
+		}
+	}
+#endif
+	return;
+}
+
+static void sprd_plugin_cpus(struct work_struct *work)
+{
+	int cpu;
+	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
+	struct dbs_data *dbs_data = policy->governor_data;
+	struct sd_dbs_tuners *sd_tuners = NULL;
+	int max_num;
+	int be_online_num = 0;
+
+	if (NULL == dbs_data) {
+		pr_info("sprd_plugin_cpus return\n");
+		if (g_sd_tuners == NULL)
+			return ;
+		sd_tuners = g_sd_tuners;
+	} else {
+		sd_tuners = dbs_data->tuners;
+	}
+
+#ifdef CONFIG_HOTPLUG_CPU
+	if (sd_tuners->cpu_hotplug_disable) {
+		max_num = sd_tuners->cpu_num_limit;
+	} else {
+		if (sd_tuners->boost_cpu > sd_tuners->cpu_num_limit)
+			max_num = sd_tuners->cpu_num_limit;
+		else
+			max_num = sd_tuners->boost_cpu;
+	}
+
+	if (num_online_cpus() < max_num) {
+		be_online_num = max_num - num_online_cpus();
+		for_each_possible_cpu(cpu) {
+			if (!cpu_online(cpu)) {
+				pr_info("!! all gonna plugin cpu%d  !!\n",
+						cpu);
+				cpu_up(cpu);
+				if (--be_online_num <= 0)
 					break;
 			}
 		}
@@ -1602,6 +1650,80 @@ static ssize_t store_window_size(struct dbs_data *dbs_data,
 	return count;
 }
 
+static ssize_t store_boostpulse_duration(struct dbs_data *dbs_data,
+		const char *buf, size_t count)
+{
+	struct sd_dbs_tuners *sd_tuners = dbs_data->tuners;
+	int ret;
+	unsigned long val;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	sd_tuners->boostpulse_duration = val;
+	return count;
+}
+
+static ssize_t store_boost(struct dbs_data *dbs_data,
+		const char *buf, size_t count)
+{
+	struct sd_dbs_tuners *sd_tuners = dbs_data->tuners;
+	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
+	int ret;
+	unsigned long val;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	if (val < 0 || val > sd_tuners->cpu_num_limit)
+		return -EINVAL;
+
+	sd_tuners->boost = val;
+	sd_tuners->boost_cpu = val;
+	if (sd_tuners->boost) {
+		if (!sd_tuners->boosted) {
+			sd_tuners->boosted = true;
+			dbs_freq_increase(policy, policy->max - 1);
+			if (!sd_tuners->cpu_hotplug_disable &&
+				val > num_online_cpus())
+				schedule_work_on(0, &plugin_request_work);
+		}
+	} else {
+		sd_tuners->boostpulse_endtime = ktime_to_us(ktime_get());
+	}
+	return count;
+}
+
+static ssize_t store_boostpulse(struct dbs_data *dbs_data,
+		const char *buf, size_t count)
+{
+	struct sd_dbs_tuners *sd_tuners = dbs_data->tuners;
+	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
+	int ret;
+	unsigned long val;
+
+	ret = kstrtoul(buf, 0, &val);
+	if (ret < 0)
+		return ret;
+
+	if (val <= 0 || val > sd_tuners->cpu_num_limit)
+		return -EINVAL;
+
+	sd_tuners->boost_cpu = val;
+	sd_tuners->boostpulse_endtime = ktime_to_us(ktime_get()) +
+		sd_tuners->boostpulse_duration;
+	if (!sd_tuners->boosted) {
+		sd_tuners->boosted = true;
+		dbs_freq_increase(policy, policy->max - 1);
+		if (!sd_tuners->cpu_hotplug_disable &&
+				val > num_online_cpus())
+			schedule_work_on(0, &plugin_request_work);
+	}
+	return count;
+}
+
 show_store_one(sd, sampling_rate);
 show_store_one(sd, io_is_busy);
 show_store_one(sd, up_threshold);
@@ -1630,6 +1752,9 @@ show_store_one(sd, cpu_up_high_threshold);
 show_store_one(sd, cpu_down_mid_threshold);
 show_store_one(sd, cpu_down_high_threshold);
 show_store_one(sd, window_size);
+show_store_one(sd, boostpulse_duration);
+show_store_one(sd, boost);
+store_one(sd, boostpulse);
 
 gov_sys_pol_attr_rw(sampling_rate);
 gov_sys_pol_attr_rw(io_is_busy);
@@ -1659,6 +1784,14 @@ gov_sys_pol_attr_rw(cpu_up_high_threshold);
 gov_sys_pol_attr_rw(cpu_down_mid_threshold);
 gov_sys_pol_attr_rw(cpu_down_high_threshold);
 gov_sys_pol_attr_rw(window_size);
+gov_sys_pol_attr_rw(boostpulse_duration);
+gov_sys_pol_attr_rw(boost);
+
+static struct global_attr boostpulse_gov_sys =
+	__ATTR(boostpulse, 0200, NULL, store_boostpulse_gov_sys);
+
+static struct freq_attr boostpulse_gov_pol =
+	__ATTR(boostpulse, 0200, NULL, store_boostpulse_gov_pol);
 
 static struct attribute *dbs_attributes_gov_sys[] = {
 	&sampling_rate_min_gov_sys.attr,
@@ -1689,6 +1822,9 @@ static struct attribute *dbs_attributes_gov_sys[] = {
 	&cpu_down_mid_threshold_gov_sys.attr,
 	&cpu_down_high_threshold_gov_sys.attr,
 	&window_size_gov_sys.attr,
+	&boostpulse_duration_gov_sys.attr,
+	&boost_gov_sys.attr,
+	&boostpulse_gov_sys.attr,
 	NULL
 };
 
@@ -1725,6 +1861,9 @@ static struct attribute *dbs_attributes_gov_pol[] = {
 	&cpu_down_mid_threshold_gov_pol.attr,
 	&cpu_down_high_threshold_gov_pol.attr,
 	&window_size_gov_pol.attr,
+	&boostpulse_duration_gov_pol.attr,
+	&boost_gov_pol.attr,
+	&boostpulse_gov_pol.attr,
 	NULL
 };
 
@@ -1811,6 +1950,10 @@ static int sd_init(struct dbs_data *dbs_data)
 	tuners->cpu_down_mid_threshold = DEF_CPU_DOWN_MID_THRESHOLD;
 	tuners->cpu_down_high_threshold = DEF_CPU_DOWN_HIGH_THRESHOLD;
 	tuners->window_size = LOAD_WINDOW_SIZE;
+	tuners->boostpulse_duration = DEF_BOOSTPULSE_DURATION;
+	tuners->boostpulse_endtime = ktime_to_us(ktime_get());
+	tuners->boost = 0;
+	tuners->boosted = false;
 	tuners->cpu_num_limit = nr_cpu_ids;
 	tuners->cpu_num_min_limit = 1;
 
@@ -1830,6 +1973,7 @@ static int sd_init(struct dbs_data *dbs_data)
 
 	INIT_DELAYED_WORK(&plugin_work, sprd_plugin_one_cpu);
 	INIT_DELAYED_WORK(&unplug_work, sprd_unplug_one_cpu);
+	INIT_WORK(&plugin_request_work, sprd_plugin_cpus);
 
 	for_each_possible_cpu(i) {
 		puwi = &per_cpu(uwi, i);
@@ -1845,6 +1989,10 @@ static void sd_exit(struct dbs_data *dbs_data)
 {
 	g_sd_tuners = NULL;
 	kfree(dbs_data->tuners);
+	cancel_delayed_work_sync(&plugin_work);
+	cancel_delayed_work_sync(&unplug_work);
+	cancel_work_sync(&plugin_request_work);
+
 }
 
 define_get_cpu_dbs_routines(sd_cpu_dbs_info);
