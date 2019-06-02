@@ -1051,6 +1051,8 @@ source "arch/arm/mach-zynq/Kconfig"
 
 source "arch/arm/mach-sc/Kconfig"
 
+source "arch/arm/hotplug/Kconfig"
+
 # Definitions to make life easier
 config ARCH_ACORN
 	bool
