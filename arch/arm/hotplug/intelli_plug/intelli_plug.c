@@ -41,7 +41,7 @@
 struct cpufreq_limit_handle *screen_off_limit_handle = NULL;
 #endif
 
-//#define DEBUG_INTELLI_PLUG
+// #define DEBUG_INTELLI_PLUG
 #undef DEBUG_INTELLI_PLUG
 
 #define INTELLI_PLUG_MAJOR_VERSION	4
@@ -66,7 +66,7 @@ static struct workqueue_struct *intelliplug_boost_wq;
 static struct hotplugger_driver intelli_plug_hotplug_handler;
 #endif
 
-static unsigned int intelli_plug_active = 0;
+static unsigned int intelli_plug_active = 1;
 #ifdef CONFIG_HOTPLUGGER_INTERFACE
 is_enabled_func(intelli_plug_active);
 static int change_state(bool state) {
@@ -99,7 +99,7 @@ module_param_cb(intelli_plug_active, &param_ops_intelli_plug_active, &intelli_pl
 module_param(intelli_plug_active, uint, 0664);
 #endif
 
-static unsigned int touch_boost_active = 1;
+static unsigned int touch_boost_active = 0;
 module_param(touch_boost_active, uint, 0664);
 
 static unsigned int nr_run_profile_sel = 0;
@@ -134,7 +134,7 @@ defined(CONFIG_ARCH_MSM8974)
 defined (CONFIG_ARCH_MSM8610) || defined (CONFIG_ARCH_MSM8228)
 #define THREAD_CAPACITY (190 - CAPACITY_RESERVE)
 #else
-#define THREAD_CAPACITY	(250 - CAPACITY_RESERVE)
+#define THREAD_CAPACITY (430 - CAPACITY_RESERVE)
 #endif
 
 #define MULT_FACTOR	4
@@ -240,8 +240,12 @@ static unsigned int calculate_thread_stats(void)
 		if (avg_nr_run <= (nr_threshold << (FSHIFT - nr_fshift)))
 			break;
 	}
+	if ((nr_run > nr_run_last) && (nr_run_last != 4)) {
+		nr_run = nr_run_last + 1;
+	} else if ((nr_run < nr_run_last) && (nr_run_last != 1)) {
+		nr_run = nr_run_last - 1;
+	}
 	nr_run_last = nr_run;
-
 	return nr_run;
 }
 
