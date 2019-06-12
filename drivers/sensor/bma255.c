@@ -447,14 +447,14 @@ static int bma255_sig_motion_enable(struct bma255_p *data, int en)
 			if (atomic_read(&data->enable) == OFF)
 				err = bma255_set_mode(data, BMA255_MODE_NORMAL);
 
-			bma255_slope_enable(data->client, en, 0, 0x02, 0x40);
+			bma255_slope_enable(data->client, en, 0, 0xc0, 0x16);
 			pr_info("[SENSOR] %s - enable\n", __func__);
 			enable_irq(data->irq1);
 			enable_irq_wake(data->irq1);
 		} else {
 			disable_irq_wake(data->irq1);
 			disable_irq_nosync(data->irq1);
-			bma255_slope_enable(data->client, en, 0, 0x02, 0x40);
+			bma255_slope_enable(data->client, en, 0, 0xc0, 0x16);
 
 			if (atomic_read(&data->enable) == OFF)
 				err += bma255_set_mode(data, BMA255_MODE_SUSPEND);
