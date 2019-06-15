@@ -214,7 +214,14 @@ static unsigned int calculate_thread_stats(void)
 		if (avg_nr_run <= (nr_threshold << (FSHIFT - nr_fshift)))
 			break;
 	}
-	dprintk("%s: nr_run_last=%d nr_run=%d ",INTELLI_PLUG, nr_run_last, nr_run);
+
+	// Prevent jumps
+	if ((nr_run > nr_run_last) && (nr_run_last != 4)) {
+		nr_run = nr_run_last + 1;
+	} else if ((nr_run < nr_run_last) && (nr_run_last != 1)) {
+		nr_run = nr_run_last - 1;
+	}
+
 	nr_run_last = nr_run;
 
 	return nr_run;
