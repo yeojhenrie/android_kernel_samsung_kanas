@@ -21,6 +21,10 @@
 #include <linux/fb.h>
 #include <linux/cpufreq.h>
 
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+#include <linux/hotplugger.h>
+#endif
+
 extern unsigned long avg_nr_running(void);
 extern unsigned long avg_cpu_nr_running(unsigned int cpu);
 
@@ -64,6 +68,9 @@ static struct work_struct up_down_work;
 static struct workqueue_struct *intelliplug_wq;
 static struct mutex intelli_plug_mutex;
 static struct notifier_block notif;
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+static struct hotplugger_driver intelli_plug_hotplug_handler;
+#endif
 
 struct ip_cpu_info {
 	unsigned long cpu_nr_running;
@@ -503,7 +510,9 @@ static int __ref intelli_plug_start(void)
 		cpu_up(cpu);
 		apply_down_lock(cpu);
 	}
-
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+	hotplugger_disable_conflicts(&intelli_plug_hotplug_handler);
+#endif
 	queue_delayed_work_on(0, intelliplug_wq, &intelli_plug_work,
 			      START_DELAY_MS);
 
@@ -744,6 +753,32 @@ static struct attribute_group intelli_plug_attr_group = {
 	.name = "intelli_plug",
 };
 
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+static int intelli_plug_active_eval_fn_wrapper(bool state)
+{
+	// Assume that _Bool is not castable to an unsigned int.
+	unsigned int status = state == true ? 1 : 0;
+
+	intelli_plug_active_eval_fn(status);
+
+	if (atomic_read(&intelli_plug_active) != status)
+		return 1;
+
+	return 0;
+}
+
+static bool intelli_plug_is_active_wrapper(void)
+{
+	return atomic_read(&intelli_plug_active);
+}
+
+static struct hotplugger_driver intelli_plug_hotplug_handler = {
+	.name = "intelli_plug",
+	.change_state = &intelli_plug_active_eval_fn_wrapper,
+	.is_enabled = &intelli_plug_is_active_wrapper,
+};
+#endif
+
 static int __init intelli_plug_init(void)
 {
 	int rc;
@@ -753,6 +788,10 @@ static int __init intelli_plug_init(void)
 	pr_info("intelli_plug: version %d.%d\n",
 		 INTELLI_PLUG_MAJOR_VERSION,
 		 INTELLI_PLUG_MINOR_VERSION);
+
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+       hotplugger_register_driver(&intelli_plug_hotplug_handler);
+#endif
 
 	if (atomic_read(&intelli_plug_active) == 1)
 		intelli_plug_start();
@@ -765,6 +804,11 @@ static void __exit intelli_plug_exit(void)
 
 	if (atomic_read(&intelli_plug_active) == 1)
 		intelli_plug_stop();
+
+#ifdef CONFIG_HOTPLUGGER_INTERFACE
+       hotplugger_unregister_driver(&intelli_plug_hotplug_handler);
+#endif
+
 	sysfs_remove_group(kernel_kobj, &intelli_plug_attr_group);
 }
 
