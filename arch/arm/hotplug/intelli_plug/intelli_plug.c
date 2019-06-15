@@ -21,10 +21,6 @@
 #include <linux/fb.h>
 #include <linux/cpufreq.h>
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-#include <linux/earlysuspend.h>
-#endif
-
 extern unsigned long avg_nr_running(void);
 extern unsigned long avg_cpu_nr_running(unsigned int cpu);
 
@@ -385,17 +381,6 @@ static int fb_notifier_callback(struct notifier_block *self,
 	return 0;
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void intelli_plug_earlysuspend(struct early_suspend *handler)
-{
-	intelli_plug_suspend();
-}
-static void __ref intelli_plug_lateresume(struct early_suspend *handler)
-{
-	intelli_plug_resume();
-}
-#endif /* CONFIG_HAS_EARLYSUSPEND */
-
 static void intelli_plug_input_event(struct input_handle *handle,
 		unsigned int type, unsigned int code, int value)
 {
@@ -486,15 +471,6 @@ static struct input_handler intelli_plug_input_handler = {
 	.id_table       = intelli_plug_ids,
 };
 
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static struct early_suspend intelli_plug_early_suspend_driver = {
-	.level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 10,
-	.suspend = intelli_plug_suspend,
-	.resume = intelli_plug_resume,
-};
-#endif /* CONFIG_HAS_EARLYSUSPEND */
-
 static int __ref intelli_plug_start(void)
 {
 	int cpu, ret = 0;
@@ -508,16 +484,12 @@ static int __ref intelli_plug_start(void)
 		goto err_out;
 	}
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	register_early_suspend(&intelli_plug_early_suspend_driver);
-#else
 	notif.notifier_call = fb_notifier_callback;
 	if (fb_register_client(&notif)) {
 		pr_warning("%s: Failed to register fb notifier callback."
 			"Suspend/Resume features may not work.",
 			INTELLI_PLUG);
 	}
-#endif /* CONFIG_HAS_EARLYSUSPEND */
 
 	ret = input_register_handler(&intelli_plug_input_handler);
 	if (ret) {
@@ -567,12 +539,8 @@ static void intelli_plug_stop(void)
 	cancel_work_sync(&up_down_work);
 	cancel_delayed_work_sync(&intelli_plug_work);
 	mutex_destroy(&intelli_plug_mutex);
-#ifdef CONFIG_HAS_EARLYSUSPEND
-	unregister_early_suspend(&intelli_plug_early_suspend_driver);
-#else
 	fb_unregister_client(&notif);
 	notif.notifier_call = NULL;
-#endif /* CONFIG_HAS_EARLYSUSPEND */
 
 	input_unregister_handler(&intelli_plug_input_handler);
 	destroy_workqueue(intelliplug_wq);
