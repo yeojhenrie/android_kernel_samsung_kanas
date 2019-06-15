@@ -36,13 +36,13 @@ extern unsigned long avg_cpu_nr_running(unsigned int cpu);
 #define DEF_SAMPLING_MS			268
 #define RESUME_SAMPLING_MS		HZ / 10
 #define START_DELAY_MS			HZ * 20
-#define MIN_INPUT_INTERVAL		150 * 1000L
-#define BOOST_LOCK_DUR			2500 * 1000L
+#define MIN_INPUT_INTERVAL		(DEF_SAMPLING_MS + 150) * 1000L
+#define BOOST_LOCK_DUR			DEF_SAMPLING_MS * 2 * 1000L
 #define DEFAULT_NR_CPUS_BOOSTED		1
 #define DEFAULT_MIN_CPUS_ONLINE		1
 #define DEFAULT_MAX_CPUS_ONLINE		NR_CPUS
 #define DEFAULT_NR_FSHIFT		DEFAULT_MAX_CPUS_ONLINE - 1
-#define DEFAULT_DOWN_LOCK_DUR		2500
+#define DEFAULT_DOWN_LOCK_DUR		DEF_SAMPLING_MS * 2
 #define DEFAULT_MAX_CPUS_ONLINE_SUSP	1
 
 #define CAPACITY_RESERVE		50
@@ -54,13 +54,14 @@ defined(CONFIG_ARCH_MSM8974)
 #elif defined(CONFIG_ARCH_MSM8226) || defined (CONFIG_ARCH_MSM8926) || \
 defined (CONFIG_ARCH_MSM8610) || defined (CONFIG_ARCH_MSM8228)
 #define THREAD_CAPACITY			(190 - CAPACITY_RESERVE)
+#elif defined(CONFIG_MACH_KANAS_W)
+#define THREAD_CAPACITY			(275 - CAPACITY_RESERVE)
 #else
 #define THREAD_CAPACITY			(250 - CAPACITY_RESERVE)
 #endif
 #define CPU_NR_THRESHOLD		((THREAD_CAPACITY << 1) + (THREAD_CAPACITY / 2))
 #define MULT_FACTOR			4
 #define DIV_FACTOR			100000
-
 static u64 last_boost_time, last_input;
 
 static struct delayed_work intelli_plug_work;
@@ -78,7 +79,7 @@ struct ip_cpu_info {
 static DEFINE_PER_CPU(struct ip_cpu_info, ip_info);
 
 /* HotPlug Driver controls */
-static atomic_t intelli_plug_active = ATOMIC_INIT(0);
+static atomic_t intelli_plug_active = ATOMIC_INIT(1);
 static unsigned int cpus_boosted = DEFAULT_NR_CPUS_BOOSTED;
 static unsigned int min_cpus_online = DEFAULT_MIN_CPUS_ONLINE;
 static unsigned int max_cpus_online = DEFAULT_MAX_CPUS_ONLINE;
@@ -96,7 +97,7 @@ static u64 boost_lock_duration = BOOST_LOCK_DUR;
 static unsigned int def_sampling_ms = DEF_SAMPLING_MS;
 static unsigned int nr_fshift = DEFAULT_NR_FSHIFT;
 static unsigned int nr_run_hysteresis = DEFAULT_MAX_CPUS_ONLINE * 2;
-static unsigned int debug_intelli_plug = 0;
+static unsigned int debug_intelli_plug = 1;
 
 #define dprintk(msg...)		\
 do { 				\
@@ -105,9 +106,15 @@ do { 				\
 } while (0)
 
 static unsigned int nr_run_thresholds_balance[] = {
+#if defined(CONFIG_MACH_KANAS_W)
+	(THREAD_CAPACITY * 1820 * MULT_FACTOR) / DIV_FACTOR,
+	(THREAD_CAPACITY * 4096 * MULT_FACTOR) / DIV_FACTOR,
+	(THREAD_CAPACITY * 6314 * MULT_FACTOR) / DIV_FACTOR,
+#else
 	(THREAD_CAPACITY * 625 * MULT_FACTOR) / DIV_FACTOR,
 	(THREAD_CAPACITY * 875 * MULT_FACTOR) / DIV_FACTOR,
 	(THREAD_CAPACITY * 1125 * MULT_FACTOR) / DIV_FACTOR,
+#endif
 	UINT_MAX
 };
 
@@ -196,6 +203,7 @@ static unsigned int calculate_thread_stats(void)
 	nr_run_hysteresis = max_cpus_online * 2;
 	nr_fshift = max_cpus_online - 1;
 
+	dprintk("%s: avg_nr_run=%u", INTELLI_PLUG, avg_nr_run);
 	if (max_cpus_online >= 4)
 		current_profile = nr_run_profiles[full_mode_profile];
 	else if (max_cpus_online == 3)
@@ -222,6 +230,7 @@ static unsigned int calculate_thread_stats(void)
 	}
 
 	nr_run_last = nr_run;
+	dprintk("%s: nr_run_last=%u nr_run=%u", INTELLI_PLUG, nr_run_last, nr_run);
 
 	return nr_run;
 }
@@ -234,6 +243,7 @@ static void update_per_cpu_stat(void)
 	for_each_online_cpu(cpu) {
 		l_ip_info = &per_cpu(ip_info, cpu);
 		l_ip_info->cpu_nr_running = avg_cpu_nr_running(cpu);
+		dprintk("%s: cpu%u: cpu_nr_running=%lu", INTELLI_PLUG, cpu, l_ip_info->cpu_nr_running);
 	}
 }
 
