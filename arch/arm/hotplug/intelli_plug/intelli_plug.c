@@ -358,26 +358,15 @@ static void __ref intelli_plug_resume(void)
 static int fb_notifier_callback(struct notifier_block *self,
 				unsigned long event, void *data)
 {
-	struct fb_event *evdata = data;
-	int *blank;
-
-	if (evdata && evdata->data && event == FB_EVENT_BLANK) {
-		blank = evdata->data;
-		switch (*blank) {
-			case FB_BLANK_UNBLANK:
-				//display on
-				intelli_plug_resume();
-				break;
-			case FB_BLANK_POWERDOWN:
-			case FB_BLANK_HSYNC_SUSPEND:
-			case FB_BLANK_VSYNC_SUSPEND:
-			case FB_BLANK_NORMAL:
-				//display off
-				intelli_plug_suspend();
-				break;
-		}
+	switch(event) {
+		case FB_EVENT_SUSPEND:
+			intelli_plug_suspend();
+			break;
+		case FB_EVENT_RESUME:
+			intelli_plug_resume();
+		default:
+			break;
 	}
-
 	return 0;
 }
 
