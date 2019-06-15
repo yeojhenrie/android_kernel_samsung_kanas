@@ -196,18 +196,17 @@ static unsigned int calculate_thread_stats(void)
 	nr_run_hysteresis = max_cpus_online * 2;
 	nr_fshift = max_cpus_online - 1;
 
-	for (nr_run = 1; nr_run < threshold_size; nr_run++) {
-		unsigned int nr_threshold;
-		if (max_cpus_online >= 4)
-			current_profile = nr_run_profiles[full_mode_profile];
-		else if (max_cpus_online == 3)
-			current_profile = nr_run_profiles[4];
-		else if (max_cpus_online == 2)
-			current_profile = nr_run_profiles[5];
-		else
-			current_profile = nr_run_profiles[6];
+	if (max_cpus_online >= 4)
+		current_profile = nr_run_profiles[full_mode_profile];
+	else if (max_cpus_online == 3)
+		current_profile = nr_run_profiles[4];
+	else if (max_cpus_online == 2)
+		current_profile = nr_run_profiles[5];
+	else
+		current_profile = nr_run_profiles[6];
 
-		nr_threshold = current_profile[nr_run - 1];
+	for (nr_run = 1; nr_run < threshold_size; nr_run++) {
+		unsigned int nr_threshold = current_profile[nr_run - 1];
 
 		if (nr_run_last <= nr_run)
 			nr_threshold += nr_run_hysteresis;
