@@ -17,6 +17,10 @@
 #include <linux/backing-dev.h>
 #include "internal.h"
 
+#ifdef CONFIG_DYNAMIC_FSYNC
+#include <linux/dyn_sync_cntrl.h>
+#endif
+
 #define VALID_FLAGS (SYNC_FILE_RANGE_WAIT_BEFORE|SYNC_FILE_RANGE_WRITE| \
 			SYNC_FILE_RANGE_WAIT_AFTER)
 
@@ -143,6 +147,18 @@ void emergency_sync(void)
 	}
 }
 
+#ifdef CONFIG_DYNAMIC_FSYNC
+/*
+ * DYNAMIC_FSYNC only blocks the fsync() calls which just works for
+ * a specific file. Then, on suspend, it will effectively "call"
+ * sync syscall at least once.
+ */
+void sync_filesystems()
+{
+	sys_sync();
+}
+#endif
+
 /*
  * sync a single super
  */
@@ -179,6 +195,10 @@ int vfs_fsync_range(struct file *file, loff_t start, loff_t end, int datasync)
 {
 	if (!file->f_op || !file->f_op->fsync)
 		return -EINVAL;
+#ifdef CONFIG_DYNAMIC_FSYNC
+	if (likely(dyn_fsync_active && suspend_active))
+		return 0;
+#endif
 	return file->f_op->fsync(file, start, end, datasync);
 }
 EXPORT_SYMBOL(vfs_fsync_range);
@@ -344,6 +364,11 @@ SYSCALL_DEFINE4(sync_file_range, int, fd, loff_t, offset, loff_t, nbytes,
 		ret = -EINVAL;
 		goto out_put;
 	}
+
+#ifdef CONFIG_DYNAMIC_FSYNC
+	if (likely(dyn_fsync_active && suspend_active))
+		return 0;
+#endif
 
 	ret = 0;
 	if (flags & SYNC_FILE_RANGE_WAIT_BEFORE) {
