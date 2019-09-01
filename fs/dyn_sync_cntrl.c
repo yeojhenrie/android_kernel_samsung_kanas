@@ -3,8 +3,9 @@
  *
  * by andip71 (alias Lord Boeffla)
  *
- * All credits for original implemenation to faux123
+ * All credits for original implementation to faux123
  *
+ * Generalized by impasta for most android devices.
  */
 
 #include <linux/fs.h>
@@ -16,23 +17,45 @@
 #include <linux/reboot.h>
 #include <linux/writeback.h>
 #include <linux/dyn_sync_cntrl.h>
-// #include <linux/lcd_notify.h>
 
-// fsync_mutex protects dyn_fsync_active during suspend / late resume transitions
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#elif defined CONFIG_POWERSUSPEND
+#include <linux/powersuspend.h>
+#elif defined CONFIG_FB_MSM_MDSS // a check from lcd_notify.h
+#include <linux/lcd_notify.h>
+static struct notifier_block lcd_notif;
+#else
+#error dyn_fsync will not work without a power event trigger
+#endif
+
+
+// fsync_mutex protects dyn_fsync_active during transitions
 static DEFINE_MUTEX(fsync_mutex);
-
 
 // Declarations
 
 bool suspend_active __read_mostly = false;
 bool dyn_fsync_active __read_mostly = DYN_FSYNC_ACTIVE_DEFAULT;
-
-// static struct notifier_block lcd_notif;
-
 extern void sync_filesystems(void);
 
-
 // Functions
+
+static void dyn_fsync_enable(bool state)
+{
+	mutex_lock(&fsync_mutex);
+
+	/*
+	 * Call sync() when transitioning from on to off
+	 * as a good measure
+	 */
+	if (!state && dyn_fsync_active != state)
+		sync_filesystems();
+
+	dyn_fsync_active = state;
+
+	mutex_unlock(&fsync_mutex);
+}
 
 static ssize_t dyn_fsync_active_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
@@ -49,10 +72,11 @@ static ssize_t dyn_fsync_active_store(struct kobject *kobj,
 	if(sscanf(buf, "%u\n", &data) == 1) {
 		if (data == 1) {
 			pr_info("%s: dynamic fsync enabled\n", __FUNCTION__);
-			dyn_fsync_active = true;
+			dyn_fsync_enable(true);
+
 		} else if (data == 0) {
 			pr_info("%s: dynamic fsync disabled\n", __FUNCTION__);
-			dyn_fsync_active = false;
+			dyn_fsync_enable(false);
 		} else {
 			pr_info("%s: bad value: %u\n", __FUNCTION__, data);
 		}
@@ -79,19 +103,12 @@ static ssize_t dyn_fsync_suspend_show(struct kobject *kobj,
 	return sprintf(buf, "suspend active: %u\n", suspend_active);
 }
 
-
-static void dyn_fsync_force_flush(void)
-{
-	sync_filesystems(); // does a sync() syscall
-}
-
-
 static int dyn_fsync_panic_event(struct notifier_block *this,
 		unsigned long event, void *ptr)
 {
 	suspend_active = false;
-	dyn_fsync_force_flush();
 	pr_warn("dynamic fsync: panic - force flush!\n");
+	emergency_sync();
 
 	return NOTIFY_DONE;
 }
@@ -102,39 +119,83 @@ static int dyn_fsync_notify_sys(struct notifier_block *this, unsigned long code,
 {
 	if (code == SYS_DOWN || code == SYS_HALT) {
 		suspend_active = false;
-		dyn_fsync_force_flush();
 		pr_warn("dynamic fsync: reboot - force flush!\n");
+		emergency_sync();
 	}
 	return NOTIFY_DONE;
 }
 
-// static int lcd_notifier_callback(struct notifier_block *this,
-// 				unsigned long event, void *data)
-// {
-// 	switch (event) {
-// 		case LCD_EVENT_OFF_START:
-// 			mutex_lock(&fsync_mutex);
-//
-// 			suspend_active = false;
-//
-// 			if (dyn_fsync_active)
-// 				dyn_fsync_force_flush();
-//
-// 			mutex_unlock(&fsync_mutex);
-// 			break;
-//
-// 		case LCD_EVENT_ON_END:
-// 			mutex_lock(&fsync_mutex);
-// 			suspend_active = true;
-// 			mutex_unlock(&fsync_mutex);
-// 			break;
-//
-// 		default:
-// 			break;
-// 	}
-//
-// 	return 0;
-// }
+/*
+ * Call this function when triggering a FB blank event, generally.
+ * Or, just shove it up in a wrapper function for either
+ * powersuspend, earlysuspend or the pm system of your FB device.
+ *
+ * The bool suspend, tells whether it blanked (usually called as,
+ * screen off) or unblanked (screen on).
+ */
+static void dyn_fsync_switch(bool suspend)
+{
+	mutex_lock(&fsync_mutex);
+
+	if (suspend == false && dyn_fsync_active)
+		sync_filesystems();
+
+	suspend_active = suspend;
+
+	mutex_unlock(&fsync_mutex);
+}
+
+// Power event triggers and handlers
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void dyn_fsync_suspend(struct early_suspend *h)
+{
+	dyn_fsync_switch(true);
+}
+static void dyn_fsync_resume(struct early_suspend *h)
+{
+	dyn_fsync_switch(false);
+}
+static struct early_suspend dyn_fsync_early_suspend_handler =
+{
+	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
+	.suspend = dyn_fsync_suspend,
+	.resume = dyn_fsync_resume,
+};
+#include <linux/earlysuspend.h>
+#elif defined CONFIG_POWERSUSPEND
+static void dyn_fsync_suspend(struct power_suspend *h)
+{
+	dyn_fsync_switch(true);
+}
+static void dyn_fsync_resume(struct power_suspend *h)
+{
+	dyn_fsync_switch(false);
+}
+
+static struct power_suspend dyn_fsync_power_suspend_handler =
+{
+	.suspend = dyn_fsync_suspend,
+	.resume = dyn_fsync_resume,
+};
+#elif defined CONFIG_FB_MSM_MDSS // LCD Notifier
+static int lcd_notifier_callback(struct notifier_block *this,
+				unsigned long event, void *data)
+{
+	switch (event) {
+		case LCD_EVENT_OFF_START:
+			dyn_fsync_switch(false);
+			break;
+		case LCD_EVENT_ON_END:
+			dyn_fsync_switch(true);
+		default:
+			break;
+	}
+
+	return 0;
+}
+#endif
+
 
 // Module structures
 
@@ -180,7 +241,7 @@ static struct kobject *dyn_fsync_kobj;
 
 static int dyn_fsync_init(void)
 {
-	int sysfs_result;
+	int ret;
 
 	register_reboot_notifier(&dyn_fsync_notifier);
 
@@ -191,35 +252,52 @@ static int dyn_fsync_init(void)
 
 	if (!dyn_fsync_kobj) {
 		pr_err("%s dyn_fsync_kobj create failed!\n", __FUNCTION__);
-		return -ENOMEM;
+		ret = -ENOMEM;
+		goto err;
 	}
 
-	sysfs_result = sysfs_create_group(dyn_fsync_kobj,
+	ret = sysfs_create_group(dyn_fsync_kobj,
 			&dyn_fsync_active_attr_group);
 
-	if (sysfs_result) {
+	if (ret) {
 		pr_err("%s dyn_fsync sysfs create failed!\n", __FUNCTION__);
 		kobject_put(dyn_fsync_kobj);
+		goto err_sysfs;
 	}
 
-// 	lcd_notif.notifier_call = lcd_notifier_callback;
-// 	if (lcd_register_client(&lcd_notif) != 0) {
-// 		pr_err("%s: Failed to register lcd callback\n", __func__);
-//
-// 		unregister_reboot_notifier(&dyn_fsync_notifier);
-//
-// 		atomic_notifier_chain_unregister(&panic_notifier_list,
-// 			&dyn_fsync_panic_block);
-//
-// 		if (dyn_fsync_kobj != NULL)
-// 			kobject_put(dyn_fsync_kobj);
-//
-// 		return -EFAULT;
-// 	}
+	/*
+	 * Register the suspend/resume handlers
+	 * Earlysuspend and powersuspend register and
+	 * unregister will never fail.
+	 * */
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	register_early_suspend(&dyn_fsync_early_suspend_handler);
+#elif defined CONFIG_POWERSUSPEND
+	register_power_suspend(&dyn_fsync_power_suspend_handler);
+#elif defined CONFIG_FB_MSM_MDSS
+	lcd_notif.notifier_call = lcd_notifier_callback;
+	if (lcd_register_client(&lcd_notif) != 0) {
+		pr_err("%s: Failed to register lcd callback\n", __func__);
+		ret = -EFAULT;
+	}
+#endif
+
+	if (ret)
+		goto err_sysfs;
+
 
 	pr_info("%s dynamic fsync initialisation complete\n", __FUNCTION__);
 
-	return sysfs_result;
+	return 0;
+
+err_sysfs:
+	kobject_put(dyn_fsync_kobj);
+err:
+	unregister_reboot_notifier(&dyn_fsync_notifier);
+	atomic_notifier_chain_unregister(&panic_notifier_list,
+		&dyn_fsync_panic_block);
+	pr_err("%s dynamic fsync initialisation failed\n", __FUNCTION__);
+	return ret;
 }
 
 
@@ -233,7 +311,14 @@ static void dyn_fsync_exit(void)
 	if (dyn_fsync_kobj != NULL)
 		kobject_put(dyn_fsync_kobj);
 
-// 	lcd_unregister_client(&lcd_notif);
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	unregister_early_suspend(&dyn_fsync_early_suspend_handler);
+#elif defined CONFIG_POWERSUSPEND
+	unregister_power_suspend(&dyn_fsync_power_suspend_handler);
+#elif defined CONFIG_FB_MSM_MDSS
+	lcd_unregister_client(&lcd_notif);
+#endif
 
 	pr_info("%s dynamic fsync unregistration complete\n", __FUNCTION__);
 }
@@ -242,5 +327,6 @@ module_init(dyn_fsync_init);
 module_exit(dyn_fsync_exit);
 
 MODULE_AUTHOR("andip71");
-MODULE_DESCRIPTION("dynamic fsync - automatic fs sync optimization for msm8974");
+MODULE_AUTHOR("impasta");
+MODULE_DESCRIPTION("dynamic fsync - automatic fs sync optimization");
 MODULE_LICENSE("GPL v2");
