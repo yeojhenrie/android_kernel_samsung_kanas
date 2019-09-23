@@ -240,7 +240,13 @@ static int lowmem_oom_score_adj_to_oom_adj(int oom_score_adj);
 
 #ifdef CONFIG_ZRAM
 extern ssize_t zram_mem_free_percent(void);
+
+#ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_ZRAM_OOM_SCORE_ADJ
+static uint lmk_lowmem_threshold_adj = 200;
+#else
 static uint lmk_lowmem_threshold_adj = 2;
+#endif
+
 module_param_named(lmk_lowmem_threshold_adj, lmk_lowmem_threshold_adj, uint, S_IRUGO | S_IWUSR);
 
 static uint zone_wmark_ok_safe_gap = 256;
@@ -263,7 +269,11 @@ short cacl_zram_score_adj(void)
 
 	ret = (swap_free_percent <  zram_free_percent) ?  swap_free_percent :  zram_free_percent;
 
+#ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_ZRAM_OOM_SCORE_ADJ
+    return ((ret*OOM_SCORE_ADJ_MAX)/100);
+#else
 	return OOM_ADJ_TO_OOM_SCORE_ADJ(ret*OOM_ADJUST_MAX/100);
+#endif
 }
 #endif
 

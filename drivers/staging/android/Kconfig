@@ -72,6 +72,19 @@ config ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
 	  does use oom_score_adj right of the bat, it's highly unlikely
 	  that it will use the values from -17 to 16.
 
+config ANDROID_LOW_MEMORY_KILLER_ZRAM_OOM_SCORE_ADJ
+	bool "Android Low Memory Killer: zram_score_adj in terms of oom_score_adj not oom_adj"
+	depends on !ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
+	default y
+	help
+	  On newer android versions, it the values written to
+	  /sys/module/lowmemorykiller/parameters/adj may be of oom_score_adj
+	  not oom_adj.
+
+	  If that's the case, you may want to say Y to have the
+	  zram adj calculation be in oom_score_adj instead of oom_adj.
+
+
 config ANDROID_INTF_ALARM_DEV
 	bool "Android alarm driver"
 	depends on RTC_CLASS
