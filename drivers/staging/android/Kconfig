@@ -61,6 +61,17 @@ config ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
 	  /sys/module/lowmemorykiller/parameters/adj and convert them
 	  to oom_score_adj values.
 
+	  Enable this if lmkd sets the adj values from -17 to 16 instead of
+	  the -1000 to 1000 scores. This tells lmk that the values has to be
+	  converted whenever. This should also allow setting using the
+	  oom_score_adj but values from -17 to 16 would cause some inaccuracies.
+
+	  Say Y when in Android 4 and below.
+
+	  It's still safe to say Y otherwise provided that if the system
+	  does use oom_score_adj right of the bat, it's highly unlikely
+	  that it will use the values from -17 to 16.
+
 config ANDROID_INTF_ALARM_DEV
 	bool "Android alarm driver"
 	depends on RTC_CLASS
