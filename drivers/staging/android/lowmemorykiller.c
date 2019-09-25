@@ -104,7 +104,18 @@ static unsigned long lowmem_deathpending_timeout;
 	} while (0)
 
 static atomic_t shift_adj = ATOMIC_INIT(0);
+
+/*
+ * When adaptive lmk is enabled and received a vmpressure event
+ * ticking shift_adj to 1, regardless of the minfree the shrinker
+ * has settled on, the lmk will decide to kill processes with
+ * a score_adj of 'adj_max_shift' which is *usually* 353.
+ * This parameter can be increased to reduce the likeliness of lmk
+ * killing vital user applications such as the virtual keyboard
+ * when undergoing such memory pressure.
+ */
 static short adj_max_shift = 353;
+module_param_named(adj_max_shift, adj_max_shift, int, S_IRUGO | S_IWUSR);
 
 /* User knob to enable/disable adaptive lmk feature */
 static int enable_adaptive_lmk;
