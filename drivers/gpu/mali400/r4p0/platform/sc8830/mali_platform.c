@@ -39,6 +39,7 @@
 #include <linux/workqueue.h>
 #include <linux/semaphore.h>
 #include "mali_kernel_common.h"
+#include "arm_core_scaling.h"
 #include "base.h"
 
 #define GPU_GLITCH_FREE_DFS		0
@@ -1106,6 +1107,9 @@ void mali_platform_utilization(struct mali_gpu_utilization_data *data)
 	}
 	MALI_DEBUG_PRINT(3,("GPU_DFS gpu util %3d: target_freq:%6d cur_freq %6d-> next_freq %6d\n",
 		gpu_dfs_ctx.cur_load,target_freq,gpu_dfs_ctx.cur_freq_p->freq, gpu_dfs_ctx.next_freq_p->freq));
+
+	mali_core_scaling_update(data, gpu_dfs_ctx.cur_freq_p->freq, gpu_dfs_ctx.next_freq_p->freq, gpu_dfs_ctx.dfs_max_freq_p->freq);
+
 	if(gpu_dfs_ctx.next_freq_p->freq!=gpu_dfs_ctx.cur_freq_p->freq)
 	{
 #if !GPU_GLITCH_FREE_DFS
