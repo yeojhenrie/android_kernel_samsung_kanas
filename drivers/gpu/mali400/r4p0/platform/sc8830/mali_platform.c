@@ -38,7 +38,9 @@
 #endif
 #include <linux/workqueue.h>
 #include <linux/semaphore.h>
+#include <linux/moduleparam.h>
 #include "mali_kernel_common.h"
+#include "mali_pp_scheduler.h"
 #include "arm_core_scaling.h"
 #include "base.h"
 
@@ -408,6 +410,53 @@ static int get_next_freq(struct gpu_freq_info* freq_list[],
 	}
 	return mid;
 }
+
+#ifdef MALI_CORE_SCALING
+/*
+ * Find lowest freq at or above target in a table in descending order
+ * Code based from cpufreq.c
+ *
+ * Requires that the table is sorted in descending order.
+ * Note: that min_freq_ind refers to the index of the minimum frequency
+ * but no necessarily the minimum index. On the contrary, this index
+ * is often LARGER than the index of the maximum frequency.
+ *
+ * The descending order scanning is biased towards higher frequencies
+ * meaning it will be faster when searching for higher target frequency.
+ */
+static inline int get_lowest_above_freq(struct gpu_freq_info* freq_list[],
+					int min_freq_ind,
+					int max_freq_ind,
+					int target_freq)
+{
+	int idx, freq, best;
+
+	best = -1;
+	idx = max_freq_ind;
+
+	for (;;idx++) {
+		freq = freq_list[idx]->freq;
+
+		if (freq == target_freq)
+			return idx;
+
+		if (freq > target_freq) {
+			best = idx;
+			if (idx < min_freq_ind)
+				continue;
+		}
+
+		/* No freq found above target_freq */
+		if (best == -1) {
+			return idx;
+		}
+
+		return best;
+	}
+
+	return best;
+}
+#endif
 
 static void gpu_dfs_full_list_generate(void)
 {
@@ -1108,7 +1157,20 @@ void mali_platform_utilization(struct mali_gpu_utilization_data *data)
 	MALI_DEBUG_PRINT(3,("GPU_DFS gpu util %3d: target_freq:%6d cur_freq %6d-> next_freq %6d\n",
 		gpu_dfs_ctx.cur_load,target_freq,gpu_dfs_ctx.cur_freq_p->freq, gpu_dfs_ctx.next_freq_p->freq));
 
-	mali_core_scaling_update(data, gpu_dfs_ctx.cur_freq_p->freq, gpu_dfs_ctx.next_freq_p->freq, gpu_dfs_ctx.dfs_max_freq_p->freq);
+#ifdef MALI_CORE_SCALING
+	if (mali_pp_scheduler_core_scaling_is_enabled()) {
+		if (mali_core_scaling){
+			target_freq = mali_core_freq_scale(data, gpu_dfs_ctx.cur_freq_p->freq, gpu_dfs_ctx.next_freq_p->freq, gpu_dfs_ctx.dfs_max_freq_p->freq);
+
+			next_freq_index = get_lowest_above_freq(
+				gpu_dfs_ctx.dfs_freq_list,
+				gpu_dfs_ctx.dfs_min_freq_p->index,
+				gpu_dfs_ctx.dfs_max_freq_p->index,
+				target_freq);
+			gpu_dfs_ctx.next_freq_p=gpu_dfs_ctx.dfs_freq_list[next_freq_index];
+		}
+	}
+#endif
 
 	if(gpu_dfs_ctx.next_freq_p->freq!=gpu_dfs_ctx.cur_freq_p->freq)
 	{
@@ -1133,6 +1195,11 @@ void mali_platform_utilization(struct mali_gpu_utilization_data *data)
 		}
 #endif
 	}
+#ifdef MALI_CORE_SCALING
+	else {
+		mali_core_freq_set_saved();
+	}
+#endif
 }
 
 static void gpufreq_table_show(char* buf)
@@ -1165,6 +1232,12 @@ static void gpu_change_freq_div(void)
 #if !GPU_GLITCH_FREE_DFS
 		mali_dev_pause();
 #endif
+
+#ifdef MALI_CORE_SCALING
+		/* Set number of cores */
+		mali_core_freq_quick_set_saved();
+#endif
+
 		if(gpu_dfs_ctx.next_freq_p!=gpu_dfs_ctx.cur_freq_p)
 		{
 #ifdef CONFIG_COMMON_CLK

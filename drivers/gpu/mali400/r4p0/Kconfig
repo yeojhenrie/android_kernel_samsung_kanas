@@ -16,6 +16,16 @@ choice
 
 endchoice
 
+config MALI_CORE_SCALING
+	bool "Enable experimental core scaling algorithm"
+	depends on MALI_PLATFORM_SC8830 && MACH_KANAS_W
+	---help---
+	Enables the experimental capacity-based core scaler algorithm.
+	Requires device specific data for it to work as intended.
+
+	Can only be enabled for Kanas-W type phones like (SM-G355H)
+	for now whose data is present.
+
 #config MALI400
 #	tristate "Mali-300/400/450 support"
 #	depends on ARM

@@ -155,10 +155,13 @@ mali-y += \
 
 ifneq ($(MALI_PLATFORM),)
 mali-y += platform/$(MALI_PLATFORM)/mali_platform.o
-ifeq ($(CONFIG_MALI_PLATFORM_SC8830),y)
-mali-y += platform/$(MALI_PLATFORM)/arm_core_scaling.o
-endif
 ccflags-y += -I$(src)/platform/$(MALI_PLATFORM)
+
+ifeq ($(MALI_CORE_SCALING),y)
+mali-y += platform/$(MALI_PLATFORM)/arm_core_scaling.o
+ccflags-y += -DMALI_CORE_SCALING
+endif
+
 endif
 
 mali-$(CONFIG_MALI400_PROFILING) += linux/mali_ukk_profiling.o

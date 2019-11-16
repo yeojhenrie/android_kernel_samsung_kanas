@@ -19,26 +19,34 @@
 struct mali_gpu_utilization_data;
 
 /**
- * Initialize core scaling policy.
+ * 'Boolean' variable to indicate whether the core scaling policy is active.
  *
- * @note The core scaling policy will assume that all PP cores are on initially.
- *
- * @param num_pp_cores Total number of PP cores.
+ * @note Exposed as a module param, disabling will activate all cores.
  */
-void mali_core_scaling_init(int num_pp_cores);
+extern int mali_core_scaling;
 
 /**
- * Terminate core scaling policy.
+ * Queue a task to turn off/on some cores.
  */
-void mali_core_scaling_term(void);
+void mali_core_freq_set_saved(void);
+
+/**
+ * Turn off/on some cores now.
+ *
+ * @note This avoid the workqueue unlike mali_core_freq_set_saved()
+ */
+void mali_core_freq_quick_set_saved(void);
 
 /**
  * Update core scaling policy with new utilization data.
  *
+ * @return Proposed core frequency.
+ *
  * @param data Utilization data.
+ * @param data Current frequency.
+ * @param data Maximum frequency set.
  */
-void mali_core_scaling_update(struct mali_gpu_utilization_data *data, int old_freq, int new_freq, int max_freq);
+int mali_core_freq_scale(struct mali_gpu_utilization_data *data, int old_freq, int new_freq1, int max_freq);
 
-void mali_core_scaling_sync(int num_cores);
 
 #endif /* __ARM_CORE_SCALING_H__ */
