@@ -256,6 +256,7 @@ static void cpufreq_set_clock(unsigned int freq)
 	ret = clk_set_parent(sprd_cpufreq_conf->clk, sprd_cpufreq_conf->tdpllclk);
 	if (ret)
 		pr_err("Failed to set cpu parent to tdpll\n");
+
 	if (freq == SHARK_TDPLL_FREQUENCY/2) {
 		//ca7 clk div
 		sci_glb_set(REG_AP_AHB_CA7_CKG_CFG, BITS_CA7_MCU_CKG_DIV(1));

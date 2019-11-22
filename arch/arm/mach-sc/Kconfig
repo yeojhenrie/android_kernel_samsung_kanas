@@ -559,146 +559,92 @@ menuconfig SC8830_CUSTOM_FREQ
 	bool "Customize SC8830 processor frequency table (EXPERIMENTAL)"
 	depends on CPU_FREQ 
 	default n
-    help
+	help
 	 Does what it says. You may chose a higher or lower frequency for
 	 this device. There are no guarantees that the device will be stable,
 	 bootable, usable or cool after altering the frequency table.
 	 (UC) means underclock; (OC) means overclock
-	 (UV) means undervolt (<1 Volt); (OV) means overvolt (>1.3 Volt)
+	 (UV) means undervolt (<1.1 Volt); (OV) means overvolt (>1.3 Volt)
 	 ----NOTE----
 	 There should be an option to undervolt a frequency to a
 	 supposedly 'safe' voltage. Again, there are no guarantees but
 	 still hoping these options would be useful.
 
 if SC8830_CUSTOM_FREQ
-config SC8830_CUSTOM_1400000
+config SC8830_CUSTOM_1400
 	bool "1400 MHz (OC) (OV)"
 	default n
 
-config SC8830_CUSTOM_1400000_UV
-	bool "Use at lower voltage"
-	depends on SC8830_CUSTOM_1400000
-	default n
-
-config SC8830_CUSTOM_1300000
+config SC8830_CUSTOM_1300
 	bool "1300 MHz (OC) (OV)"
 	default n
 
-config SC8830_CUSTOM_1300000_UV
+config SC8830_CUSTOM_1300_UV
 	bool "Use at lower voltage"
-	depends on SC8830_CUSTOM_1300000
+	depends on SC8830_CUSTOM_1300
 	default n
 
-config SC8830_CUSTOM_1200000
+config SC8830_CUSTOM_1200
 	bool "1200 MHz"
 	default y
 
-config SC8830_CUSTOM_1200000_UV
+config SC8830_CUSTOM_1200_UV
 	bool "Use at lower voltage"
-	depends on SC8830_CUSTOM_1200000
+	depends on SC8830_CUSTOM_1200
 	default n
 
-config SC8830_CUSTOM_1100000
-	bool "1100 MHz"
-	default n
-
-config SC8830_CUSTOM_1100000_UV
-	bool "Use at lower voltage"
-	depends on SC8830_CUSTOM_1100000
-	default n
-
-config SC8830_CUSTOM_1000000
+config SC8830_CUSTOM_1000
 	bool "1000 MHz"
 	default y
 
-config SC8830_CUSTOM_1000000_UV
+config SC8830_CUSTOM_1000_UV
 	bool "Use at lower voltage"
-	depends on SC8830_CUSTOM_1000000
+	depends on SC8830_CUSTOM_1000
 	default n
 
-config SC8830_CUSTOM_900000
+config SC8830_CUSTOM_900
 	bool "900 MHz"
 	default n
 
-config SC8830_CUSTOM_900000_UV
+config SC8830_CUSTOM_900_UV
 	bool "Use at lower voltage"
-	depends on SC8830_CUSTOM_900000
+	depends on SC8830_CUSTOM_900
 	default n
 
-config SC8830_CUSTOM_800000
-	bool "800 MHz"
-	default n
-
-config SC8830_CUSTOM_800000_UV
-	bool "Use at lower voltage"
-	depends on SC8830_CUSTOM_800000
-	default n
-
-config SC8830_CUSTOM_768000
+config SC8830_CUSTOM_768
 	bool "768 MHz"
 	default y
 
-config SC8830_CUSTOM_768000_UV
+config SC8830_CUSTOM_768_UV
 	bool "Use at lower voltage"
-	depends on SC8830_CUSTOM_768000
+	depends on SC8830_CUSTOM_768
 	default n
 
-config SC8830_CUSTOM_700000
-	bool "700 MHz"
-	default n
-
-config SC8830_CUSTOM_700000_UV
-	bool "Use at lower voltage"
-	depends on SC8830_CUSTOM_700000
-	default n
-
-config SC8830_CUSTOM_600000
+config SC8830_CUSTOM_600
 	bool "600 MHz"
 	default y
 
-config SC8830_CUSTOM_600000_UV
+config SC8830_CUSTOM_600_UV
 	bool "Use at lower voltage"
-	depends on SC8830_CUSTOM_600000
+	depends on SC8830_CUSTOM_600
 	default n
 
-config SC8830_CUSTOM_500000
+config SC8830_CUSTOM_500
 	bool "500 MHz (UC)"
 	default n
 
-config SC8830_CUSTOM_500000_UV
+config SC8830_CUSTOM_500_UV
 	bool "Use at lower voltage"
-	depends on SC8830_CUSTOM_500000
+	depends on SC8830_CUSTOM_500
 	default n
 
-config SC8830_CUSTOM_400000
-	bool "400 MHz (UC)"
+config SC8830_CUSTOM_384
+	bool "384 MHz (UC)"
 	default n
 
-config SC8830_CUSTOM_400000_UV
+config SC8830_CUSTOM_384_UV
 	bool "Use at lower voltage"
-	depends on SC8830_CUSTOM_400000
-	default n
-
-config SC8830_CUSTOM_300000
-	bool "300 MHz (UC)"
-	default n
-
-config SC8830_CUSTOM_3800000_UV
-	bool "Use at lower voltage"
-	depends on SC8830_CUSTOM_300000
-	default n
-
-config SC8830_CUSTOM_200000
-	bool "200 MHz (UC) (UV)"
-	default n
-
-config SC8830_CUSTOM_200000_UV
-	bool "Use at lower voltage"
-	depends on SC8830_CUSTOM_200000
-	default n
-
-config SC8830_CUSTOM_100000
-	bool "100 MHz (UC) (UV)"
+	depends on SC8830_CUSTOM_384
 	default n
 endif
 

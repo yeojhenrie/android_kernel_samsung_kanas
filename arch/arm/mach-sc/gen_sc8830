@@ -1,22 +1,19 @@
 #!/bin/bash
 
+# voltage can only be increase up about 1430mV
+# meaning frequency can be risen up to about 1.40 GHz
+# and still be stable
 table=(
-#      Hz  Norm V. Under V.
-    "100000 875000 875000"
-    "200000 950000 900000"
-    "300000 1000000 910000"
-    "400000 1050000 920000"
-    "500000 1075000 930000"
-    "600000 1100000 940000"
-    "700000 1125000 950000"
-    "768000 1150000 1000000"
-    "800000 1172500 1000000"
-    "900000 1172500  1050000"
-    "1000000 1200000 1100000"
-    "1100000 1250000 1150000"
-    "1200000 1300000 1200000"
-    "1300000 1350000 1250000"
-    "1400000 1350000 1300000"
+#    MHz  Norm V. Under Volt
+     "384 885000 885000"
+     "500 1030000 992000"
+     "600 1100000 1050000"
+     "768 1150000 1100000"
+     "900 1175000 1125000"
+    "1000 1200000 1150000"
+    "1200 1300000 1250000"
+    "1300 1365000 1342000"
+    "1400 1430000 1430000"
 )
 
 ( echo \####################################
@@ -44,15 +41,16 @@ table=(
 for ((j = ${#table[@]}; j--; )); do
     table_elem=(${table[$j]})
     freq_mhz=${table_elem[0]}
+    freq_khz="${table_elem[0]}000"
     freq_volt=${table_elem[1]}
     freq_undervolt=${table_elem[2]}
     freq_conf="CONFIG_SC8830_CUSTOM_$freq_mhz"
     (
     echo "ifdef $freq_conf"
     echo "ifdef "$freq_conf"_UV"
-    echo "	\$(call add_entry, $freq_mhz, $freq_undervolt)"
+    echo "	\$(call add_entry, $freq_khz, $freq_undervolt)"
     echo "else"
-    echo "	\$(call add_entry, $freq_mhz, $freq_volt)"
+    echo "	\$(call add_entry, $freq_khz, $freq_volt)"
     echo "endif"
     echo "endif"
     ) >> $1
@@ -72,11 +70,11 @@ done
   echo '	"\n"\'
   echo '	"struct cpufreq_table_data sc8830_cpufreq_table_data_cs = {\n"\'
   echo '	"	.freq_tbl = {\n"\'
-  echo '			"$(freq_tbl)\n"\'
+  echo '"$(freq_tbl)\n"\'
   echo '	"		{$(value i), CPUFREQ_TABLE_END},\n"\'
   echo '	"	},\n"\'
   echo '	"	.vddarm_mv = {\n"\'
-  echo '			"$(vddarm_mv)\n"\'
+  echo '"$(vddarm_mv)\n"\'
   echo '	"		875000,\n"\'
   echo '	"	},\n"\'
   echo '	"};\n"\'
