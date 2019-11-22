@@ -83,7 +83,7 @@ static atomic_t intelli_plug_active = ATOMIC_INIT(0);
 static unsigned int cpus_boosted = DEFAULT_NR_CPUS_BOOSTED;
 static unsigned int min_cpus_online = DEFAULT_MIN_CPUS_ONLINE;
 static unsigned int max_cpus_online = DEFAULT_MAX_CPUS_ONLINE;
-static unsigned int full_mode_profile = 0;
+static unsigned int full_mode_profile = 7;
 static unsigned int cpu_nr_run_threshold = CPU_NR_THRESHOLD;
 
 static bool hotplug_suspended = false;
@@ -105,16 +105,17 @@ do { 				\
 		pr_info(msg);	\
 } while (0)
 
-static unsigned int nr_run_thresholds_balance[] = {
-#if defined(CONFIG_MACH_KANAS_W)
+static unsigned int nr_run_thresholds_kanas[] = {
 	(THREAD_CAPACITY * 1820 * MULT_FACTOR) / DIV_FACTOR,
 	(THREAD_CAPACITY * 4096 * MULT_FACTOR) / DIV_FACTOR,
 	(THREAD_CAPACITY * 6314 * MULT_FACTOR) / DIV_FACTOR,
-#else
+	UINT_MAX
+};
+
+static unsigned int nr_run_thresholds_balance[] = {
 	(THREAD_CAPACITY * 625 * MULT_FACTOR) / DIV_FACTOR,
 	(THREAD_CAPACITY * 875 * MULT_FACTOR) / DIV_FACTOR,
 	(THREAD_CAPACITY * 1125 * MULT_FACTOR) / DIV_FACTOR,
-#endif
 	UINT_MAX
 };
 
@@ -158,7 +159,8 @@ static unsigned int *nr_run_profiles[] = {
 	nr_run_thresholds_disable,
 	nr_run_thresholds_tri,
 	nr_run_thresholds_eco,
-	nr_run_thresholds_strict
+	nr_run_thresholds_strict,
+	nr_run_thresholds_kanas,
 	};
 
 static unsigned int nr_run_last;
