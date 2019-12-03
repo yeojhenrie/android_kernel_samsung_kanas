@@ -1546,6 +1546,14 @@ config MCPM
 	  for (multi-)cluster based systems, such as big.LITTLE based
 	  systems.
 
+config USE_THIN_ARCHIVES
+	bool "Build the kernel using thin archives"
+	default n
+	select THIN_ARCHIVES
+	help
+	  Build the kernel using thin archives. Requires binutils 2.20 or newer.
+	  If you're unsure say N.
+
 choice
 	prompt "Memory split"
 	default VMSPLIT_3G
