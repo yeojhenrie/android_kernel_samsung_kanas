@@ -311,12 +311,12 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	struct task_struct *tsk;
 	struct task_struct *selected = NULL;
 	int rem = 0;
-	int tasksize;
+	unsigned long tasksize;
 	int i;
 	int ret = 0;
 	short min_score_adj = OOM_SCORE_ADJ_MAX + 1;
 	int minfree = 0;
-	int selected_tasksize = 0;
+	unsigned long selected_tasksize = 0;
 	short selected_oom_score_adj;
 	int array_size = ARRAY_SIZE(lowmem_adj);
 	int other_free;
@@ -447,11 +447,9 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 			task_unlock(p);
 			continue;
 		}
-#if defined(CONFIG_ZRAM) && !defined(CONFIG_RUNTIME_COMPCACHE)
-		tasksize = get_mm_rss(p->mm) + get_mm_counter(p->mm, MM_SWAPENTS);
-#else
-		tasksize = get_mm_rss(p->mm);
-#endif
+
+		tasksize = get_mm_rss(p->mm) + get_mm_counter(p->mm, MM_SWAPENTS) + p->mm->nr_ptes;
+
 		task_unlock(p);
 		if (tasksize <= 0)
 			continue;
@@ -585,7 +583,7 @@ static int android_oom_handler(struct notifier_block *nb,
 			task_unlock(p);
 			continue;
 		}
-		tasksize = get_mm_rss(p->mm);
+		tasksize = get_mm_rss(p->mm) + get_mm_counter(p->mm, MM_SWAPENTS) + p->mm->nr_ptes;
 		task_unlock(p);
 		if (tasksize <= 0)
 			continue;
