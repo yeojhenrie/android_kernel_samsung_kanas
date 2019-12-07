@@ -5,7 +5,7 @@
 # and still be stable
 table=(
 #    MHz  Norm V. Under Volt
-     "384 885000 885000"
+     "384 905000 885000"
      "500 1030000 992000"
      "600 1100000 1050000"
      "768 1150000 1100000"
@@ -80,7 +80,7 @@ done
   echo '	"};\n"\'
   echo '	"\n"\'
   echo '	"#endif /* CONFIG_SC8830_CUSTOM_FREQ */\n"\'
-  echo '	"#endif /* __ARCH_ARM_MACH_CPUFREQ_SCX35_H */"\n > $@'
+  echo '	"#endif /* __ARCH_ARM_MACH_CPUFREQ_SCX35_H */\n" > $@'
 ) >> $1
 
 
