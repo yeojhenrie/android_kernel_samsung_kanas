@@ -157,7 +157,7 @@ ifneq ($(MALI_PLATFORM),)
 mali-y += platform/$(MALI_PLATFORM)/mali_platform.o
 ccflags-y += -I$(src)/platform/$(MALI_PLATFORM)
 
-ifeq ($(MALI_CORE_SCALING),y)
+ifeq ($(CONFIG_MALI_CORE_SCALING),y)
 mali-y += platform/$(MALI_PLATFORM)/arm_core_scaling.o
 ccflags-y += -DMALI_CORE_SCALING
 endif
