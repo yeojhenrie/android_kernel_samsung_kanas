@@ -83,6 +83,8 @@ void __init early_init_dt_setup_initrd_arch(unsigned long start, unsigned long e
 }
 #endif /* CONFIG_OF_FLATTREE */
 
+struct meminfo meminfo;
+
 static void __init find_limits(unsigned long *min, unsigned long *max_low,
 			       unsigned long *max_high)
 {
