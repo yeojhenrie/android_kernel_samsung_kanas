@@ -249,7 +249,7 @@ static int lowmem_oom_score_adj_to_oom_adj(int oom_score_adj);
 #define OOM_ADJ_TO_OOM_SCORE_ADJ(__ADJ__)    (__ADJ__)
 #endif
 
-#ifdef CONFIG_ZRAM
+#ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_ADJUST_SCORE_ADJ
 extern ssize_t zram_mem_free_percent(void);
 
 #ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_ZRAM_OOM_SCORE_ADJ
@@ -281,7 +281,7 @@ short cacl_zram_score_adj(void)
 	ret = (swap_free_percent <  zram_free_percent) ?  swap_free_percent :  zram_free_percent;
 
 #ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_ZRAM_OOM_SCORE_ADJ
-    return ((ret*OOM_SCORE_ADJ_MAX)/100);
+	return ((ret*OOM_SCORE_ADJ_MAX)/100);
 #else
 	return OOM_ADJ_TO_OOM_SCORE_ADJ(ret*OOM_ADJUST_MAX/100);
 #endif
@@ -323,7 +323,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	int other_file;
 	unsigned long nr_to_scan = sc->nr_to_scan;
 
-#ifdef CONFIG_ZRAM
+#ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_ADJUST_SCORE_ADJ
 	short zram_score_adj = 0;
 #endif
 
@@ -381,7 +381,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		return rem;
 	}
 
-#if defined(CONFIG_ZRAM) && !defined(CONFIG_RUNTIME_COMPCACHE)
+#if defined(CONFIG_ANDROID_LOW_MEMORY_KILLER_ADJUST_SCORE_ADJ)
 	zram_score_adj = cacl_zram_score_adj();
 	if(min_score_adj < zram_score_adj)
 	{
