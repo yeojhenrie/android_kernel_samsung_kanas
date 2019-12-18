@@ -52,41 +52,6 @@ config ANDROID_LOW_MEMORY_KILLER
 	---help---
 	  Registers processes to be killed when memory is low
 
-config ANDROID_LOW_MEMORY_KILLER_ADJUST_SCORE_ADJ
-	bool "Android Low Memory Killer: Adjust min_score_adj to swap usage"
-	depends on ANDROID_LOW_MEMORY_KILLER && ZRAM && !RUNTIME_COMPCACHE
-	default y
-	---help---
-	  Increases LMK's min_score_adj along with the zram swap usage
-	  (zram_score_adj)
-
-	  zram_score_adj is defined to be the percentage of the swaps' or zram's
-	  free space expressed in 0 to OOM_SCORE_ADJ_MAX (e.g. 100% is 1000, 12%
-	  is 120).
-
-	  The new min_score_adj is adjusted by the following heuristic:
-	  1. A lmk_lowmem_threshold_adj tunable is introduced.
-
-	  When zram_score_adj is greater than that, min_score_adj is not changed.
-
-	  2. A preferred zone is chosen (usually node 0) and its number of free
-	  pages is checked against the min watermark plus some arbitrary
-	  number of pages specified by a new tunable zone_wmark_ok_safe_gap.
-
-	  If there are more free pages, min_score_adj is set to the average
-	  of the zram_score_adj and min_score_adj itself.
-
-	  3. If neither of the two cases fit the scenario, just abort the whole
-	  shrinker routine IF AND ONLY IF min_score_adj < zram_score_adj
-
-	  4. If none of the above cases satisfy,
-	  Make it so that min_score_adj := zram_score_adj
-
-	  Obviously, the #4 would penalize everyone not using a swap and
-	  would probably kill off apps the Android System doesn't want to kill yet.
-
-	  Say N.
-
 config ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
 	bool "Android Low Memory Killer: detect oom_adj values"
 	depends on ANDROID_LOW_MEMORY_KILLER
@@ -108,19 +73,6 @@ config ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
 	  It's still safe to say Y otherwise. Even if the system lmkd
 	  does use oom_score_adj right of the bat, it's highly unlikely
 	  that it will use the values from -17 to 16.
-
-config ANDROID_LOW_MEMORY_KILLER_ZRAM_OOM_SCORE_ADJ
-	bool "Android Low Memory Killer: zram_score_adj in terms of oom_score_adj not oom_adj"
-	depends on !ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
-	default y
-	help
-	  On newer android versions, it the values written to
-	  /sys/module/lowmemorykiller/parameters/adj may be of oom_score_adj
-	  not oom_adj.
-
-	  If that's the case, you may want to say Y to have the
-	  zram adj calculation be in oom_score_adj instead of oom_adj.
-
 
 config ANDROID_INTF_ALARM_DEV
 	bool "Android alarm driver"

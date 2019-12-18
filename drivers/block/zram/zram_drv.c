@@ -1421,11 +1421,6 @@ static void __exit zram_exit(void)
 	destroy_devices();
 }
 
-ssize_t zram_mem_free_percent(void)
-{
-	return mem_free_percent();
-}
-
 module_init(zram_init);
 module_exit(zram_exit);
 

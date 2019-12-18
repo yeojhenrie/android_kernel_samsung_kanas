@@ -249,45 +249,6 @@ static int lowmem_oom_score_adj_to_oom_adj(int oom_score_adj);
 #define OOM_ADJ_TO_OOM_SCORE_ADJ(__ADJ__)    (__ADJ__)
 #endif
 
-#ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_ADJUST_SCORE_ADJ
-extern ssize_t zram_mem_free_percent(void);
-
-#ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_ZRAM_OOM_SCORE_ADJ
-static uint lmk_lowmem_threshold_adj = 200;
-#else
-static uint lmk_lowmem_threshold_adj = 2;
-#endif
-
-module_param_named(lmk_lowmem_threshold_adj, lmk_lowmem_threshold_adj, uint, S_IRUGO | S_IWUSR);
-
-static uint zone_wmark_ok_safe_gap = 256;
-module_param_named(zone_wmark_ok_safe_gap, zone_wmark_ok_safe_gap, uint, S_IRUGO | S_IWUSR);
-short cacl_zram_score_adj(void)
-{
-	struct sysinfo swap_info;
-	ssize_t  swap_free_percent = 0;
-	ssize_t zram_free_percent = 0;
-	ssize_t  ret = 0;
-
-	si_swapinfo(&swap_info);
-	if(!swap_info.totalswap)
-	{
-		return 0;
-	}
-
-	swap_free_percent =  swap_info.freeswap * 100/swap_info.totalswap;
-	zram_free_percent =  zram_mem_free_percent();
-
-	ret = (swap_free_percent <  zram_free_percent) ?  swap_free_percent :  zram_free_percent;
-
-#ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_ZRAM_OOM_SCORE_ADJ
-	return ((ret*OOM_SCORE_ADJ_MAX)/100);
-#else
-	return OOM_ADJ_TO_OOM_SCORE_ADJ(ret*OOM_ADJUST_MAX/100);
-#endif
-}
-#endif
-
 static int test_task_flag(struct task_struct *p, int flag)
 {
 	struct task_struct *t = p;
@@ -322,10 +283,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	int other_free;
 	int other_file;
 	unsigned long nr_to_scan = sc->nr_to_scan;
-
-#ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_ADJUST_SCORE_ADJ
-	short zram_score_adj = 0;
-#endif
 
 	if (nr_to_scan > 0) {
 		if (mutex_lock_interruptible(&scan_mutex) < 0)
@@ -380,39 +337,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 
 		return rem;
 	}
-
-#if defined(CONFIG_ANDROID_LOW_MEMORY_KILLER_ADJUST_SCORE_ADJ)
-	zram_score_adj = cacl_zram_score_adj();
-	if(min_score_adj < zram_score_adj)
-	{
-		gfp_t gfp_mask;
-		struct zone *preferred_zone;
-		struct zonelist *zonelist;
-		enum zone_type high_zoneidx;
-		gfp_mask = sc->gfp_mask;
-		zonelist = node_zonelist(0, gfp_mask);
-		high_zoneidx = gfp_zone(gfp_mask);
-		first_zones_zonelist(zonelist, high_zoneidx, NULL, &preferred_zone);
-		if (zram_score_adj <= OOM_ADJ_TO_OOM_SCORE_ADJ(lmk_lowmem_threshold_adj))
-		{
-			printk("%s:min:%d, zram:%d, threshold:%d\r\n", __func__, min_score_adj,zram_score_adj, OOM_ADJ_TO_OOM_SCORE_ADJ(lmk_lowmem_threshold_adj));
-			zram_score_adj = min_score_adj;
-		}
-		else if (!zone_watermark_ok_safe(preferred_zone, 0, min_wmark_pages(preferred_zone)  + zone_wmark_ok_safe_gap, 0, 0))
-		{
-			zram_score_adj =  (min_score_adj + zram_score_adj)/2;
-		}
-		else
-		{
-			lowmem_print(2, "ZRAM: return min_score_adj:%d, zram_score_adj:%d\r\n", min_score_adj, zram_score_adj);
-			if (nr_to_scan > 0)
-				mutex_unlock(&scan_mutex);
-			return rem;
-		}
-	}
-	lowmem_print(2, "ZRAM: min_score_adj:%d, zram_score_adj:%d\r\n", min_score_adj, zram_score_adj);
-	min_score_adj = zram_score_adj;
-#endif
 
 	selected_oom_score_adj = min_score_adj;
 
