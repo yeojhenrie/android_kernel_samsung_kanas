@@ -411,7 +411,7 @@ static int get_next_freq(struct gpu_freq_info* freq_list[],
 	return mid;
 }
 
-#ifdef MALI_CORE_SCALING
+#ifdef CONFIG_MALI_CORE_SCALING
 /*
  * Find lowest freq at or above target in a table in descending order
  * Code based from cpufreq.c
@@ -1157,7 +1157,7 @@ void mali_platform_utilization(struct mali_gpu_utilization_data *data)
 	MALI_DEBUG_PRINT(3,("GPU_DFS gpu util %3d: target_freq:%6d cur_freq %6d-> next_freq %6d\n",
 		gpu_dfs_ctx.cur_load,target_freq,gpu_dfs_ctx.cur_freq_p->freq, gpu_dfs_ctx.next_freq_p->freq));
 
-#ifdef MALI_CORE_SCALING
+#ifdef CONFIG_MALI_CORE_SCALING
 	if (mali_pp_scheduler_core_scaling_is_enabled()) {
 		if (mali_core_scaling){
 			target_freq = mali_core_freq_scale(data, gpu_dfs_ctx.cur_freq_p->freq, gpu_dfs_ctx.next_freq_p->freq, gpu_dfs_ctx.dfs_max_freq_p->freq);
@@ -1195,7 +1195,7 @@ void mali_platform_utilization(struct mali_gpu_utilization_data *data)
 		}
 #endif
 	}
-#ifdef MALI_CORE_SCALING
+#ifdef CONFIG_MALI_CORE_SCALING
 	else {
 		mali_core_freq_set_saved();
 	}
@@ -1233,7 +1233,7 @@ static void gpu_change_freq_div(void)
 		mali_dev_pause();
 #endif
 
-#ifdef MALI_CORE_SCALING
+#ifdef CONFIG_MALI_CORE_SCALING
 		/* Set number of cores */
 		mali_core_freq_quick_set_saved();
 #endif
