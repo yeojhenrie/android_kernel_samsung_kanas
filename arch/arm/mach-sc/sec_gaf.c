@@ -62,7 +62,9 @@ static struct GAForensicINFO {
 	unsigned short task_struct_struct_normal_prio;
 	unsigned short task_struct_struct_rt_priority;
 
+#ifndef CONFIG_SCHED_BFS
 	unsigned short task_struct_struct_se;
+#endif
 
 	unsigned short sched_entity_struct_exec_start;
 	unsigned short sched_entity_struct_sum_exec_runtime;
@@ -138,7 +140,9 @@ static struct GAForensicINFO {
 	.task_struct_struct_normal_prio = offsetof(struct task_struct, normal_prio),
 	.task_struct_struct_rt_priority = offsetof(struct task_struct, rt_priority),
 
+#ifndef CONFIG_SCHED_BFS
 	.task_struct_struct_se = offsetof(struct task_struct, se),
+#endif
 
 	.sched_entity_struct_exec_start = offsetof(struct sched_entity, exec_start),
 	.sched_entity_struct_sum_exec_runtime = offsetof(struct sched_entity, sum_exec_runtime),
