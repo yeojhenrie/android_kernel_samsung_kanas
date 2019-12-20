@@ -183,6 +183,10 @@ int mali_core_freq_scale(struct mali_gpu_utilization_data *data, int old_freq, i
 
 	max_freq_scale = frequency_to_scale(max_freq);
 
+	MALI_DEBUG_PRINT(3, ("Core scaling: cores active %d/4 cap:%d load:%d\n",
+			     mali_pp_scheduler_get_num_cores_enabled(),
+			     scaled_capacity, scaled_load));
+
 	// Setting minimum capacity hastes scaling up from idle
 	if (scaled_load < mali_core_minload)
 		scaled_load = mali_core_minload;
@@ -197,6 +201,7 @@ int mali_core_freq_scale(struct mali_gpu_utilization_data *data, int old_freq, i
 			scaled_load = core_capacity[scaled_load - 1];
 		}
 	}
+	MALI_DEBUG_PRINT(3, ("Core scaling: scaled load:%d\n", scaled_load));
 	/*
 	 * Check for the appropriate number of cores that may contain the
 	 * load.
@@ -218,6 +223,10 @@ int mali_core_freq_scale(struct mali_gpu_utilization_data *data, int old_freq, i
 			(2570000 * scaled_load)
 			/ (scaled_capacity * (mali_core_tarutil + 1));
 
+		MALI_DEBUG_PRINT(3, ("Core scaling: core %d capacity:%d rel_load:%d\n",
+			     cores,
+			     scaled_capacity, rel_load));
+
 		if (rel_load <= 10000)
 			break;
 	}
@@ -230,6 +239,8 @@ int mali_core_freq_scale(struct mali_gpu_utilization_data *data, int old_freq, i
 		rel_load = 10000;
 
 	target_num_cores = cores == num_cores_total ? cores : cores + 1;
+
+	MALI_DEBUG_PRINT(3, ("Core scaling: target cores: %d\n", target_num_cores));
 
 	/*
 	 * The relative load is computed from a core capacity
@@ -244,6 +255,8 @@ int mali_core_freq_scale(struct mali_gpu_utilization_data *data, int old_freq, i
 	rel_load = (rel_load * max_freq_scale) / (10000);
 
 	new_freq = approx_scale_to_freq(rel_load);
+	MALI_DEBUG_PRINT(3, ("Core scaling: desired load: %d freq:%d->%d\n",
+			     rel_load, old_freq, new_freq));
 
 	return new_freq;
 }
