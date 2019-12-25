@@ -102,7 +102,7 @@ int sprd_cpu_kill(unsigned int cpu)
 {
 #ifdef CONFIG_ARCH_SCX35
 	int i = 0;
-	printk("!! %d  platform_cpu_kill %d !!\n", smp_processor_id(), cpu);
+	printk("!! %d  platform_cpu_kill %d !!\n", raw_smp_processor_id(), cpu);
 	while (i < 20) {
 		//check wfi?
 		if (__raw_readl(SPRD_AHB_BASE + 0x48) & (1 << cpu_logical_map(cpu))) {
