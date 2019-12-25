@@ -231,7 +231,6 @@ static __inline int __adie_fuse_getdata(void)
 
 	__arch_default_lock(HWLOCK_EFUSE, &flags);
 
-	mutex_lock(&adie_fuse_lock);
 #if defined(CONFIG_ARCH_SC8825)
 	/* wait for maximum of 100 msec */
 	sci_adi_write_fast(ANA_REG_GLB_AFUSE_CTRL, BIT_AFUSE_RD_REQ, 1);
@@ -262,8 +261,6 @@ static __inline int __adie_fuse_getdata(void)
 	val = sci_adi_read(ANA_REG_GLB_AFUSE_OUT0);
 	val |= (sci_adi_read(ANA_REG_GLB_AFUSE_OUT1)) << 16;
 #endif
-
-	mutex_unlock(&adie_fuse_lock);
 
 	__arch_default_unlock(HWLOCK_EFUSE, &flags);
 
@@ -699,10 +696,13 @@ static int fuse_debug_get(void *data, u64 * val)
 {
 	struct sci_fuse *p = data;
 
-	if (p->is_adie_fuse)
+	if (p->is_adie_fuse) {
+		mutex_lock(&adie_fuse_lock);
 		*val = __adie_fuse_getdata();
-	else
+		mutex_unlock(&adie_fuse_lock);
+	} else {
 		*val = __ddie_fuse_read(p->blk_id);
+	}
 
 	return 0;
 }
