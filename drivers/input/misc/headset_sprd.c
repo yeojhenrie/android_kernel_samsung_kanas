@@ -300,8 +300,6 @@ static struct delayed_work adpgar_byp_select_work;
 static struct workqueue_struct *adpgar_byp_select_work_queue;
 #endif
 
-static DEFINE_SPINLOCK(headmic_sleep_disable_lock);
-static DEFINE_SPINLOCK(headmic_bias_lock);
 static DEFINE_SPINLOCK(irq_button_lock);
 static DEFINE_SPINLOCK(irq_detect_lock);
 static int adie_type = 100; //1=AC, 2=BA, 3=BB
@@ -615,7 +613,6 @@ static void headmic_sleep_disable(struct device *dev, int on)
 	static int current_power_state = 0;
 	struct sprd_headset *ht = &headset;
 
-	spin_lock_irqsave(&headmic_sleep_disable_lock, spin_lock_flags);
 	if (1 == on) {
 		if (0 == current_power_state) {
 			sprd_headset_audio_headmic_sleep_disable(dev, 1);
@@ -627,7 +624,6 @@ static void headmic_sleep_disable(struct device *dev, int on)
 			current_power_state = 0;
 		}
 	}
-	spin_unlock_irqrestore(&headmic_sleep_disable_lock, spin_lock_flags);
 
 	return;
 }
@@ -638,7 +634,6 @@ static void headmicbias_power_on(struct device *dev, int on)
 	static int current_power_state = 0;
 	struct sprd_headset *ht = &headset;
 
-	spin_lock_irqsave(&headmic_bias_lock, spin_lock_flags);
 	if (1 == on) {
 		if (0 == current_power_state) {
 			if(NULL != ht->platform_data->external_headmicbias_power_on)
@@ -654,7 +649,6 @@ static void headmicbias_power_on(struct device *dev, int on)
 			current_power_state = 0;
 		}
 	}
-	spin_unlock_irqrestore(&headmic_bias_lock, spin_lock_flags);
 
 	return;
 }
