@@ -33,7 +33,7 @@ static DEFINE_MUTEX(emc_mutex);
 #define DDR_TIMING_REG_VAL_ADDR	(SPRD_IRAM0H_BASE + 0xc00)
 
 #define debug(format, arg...) pr_debug("emc_freq" "" format, ## arg)
-#define info(format, arg...) pr_info("emc_freq: " "" format, ## arg)
+#define info(format, arg...) //pr_info("emc_freq: " "" format, ## arg)
 
 static u32 emc_freq = 0;
 static u32 emc_delay = 20;

@@ -595,16 +595,16 @@ static int i2c_controller_resume(struct platform_device *pdev)
 	if (pi2c && !IS_ERR(pi2c->clk))
 		clk_enable(pi2c->clk);
 	if (pi2c) {
-		printk(KERN_ERR ":===dump i2c-%d reg when resume\n", pi2c->adap.nr);
-		printk(KERN_ERR ":l2c_saved_regs[%d].ctl =0x%x\n", pi2c->adap.nr,l2c_saved_regs[pi2c->adap.nr].ctl);
-		printk(KERN_ERR ":l2c_saved_regs[%d].cmd =0x%x\n", pi2c->adap.nr,l2c_saved_regs[pi2c->adap.nr].cmd);
-		printk(KERN_ERR ":l2c_saved_regs[%d].div0 =0x%x\n", pi2c->adap.nr,l2c_saved_regs[pi2c->adap.nr].div0);
-		printk(KERN_ERR ":l2c_saved_regs[%d].div1 =0x%x\n", pi2c->adap.nr,l2c_saved_regs[pi2c->adap.nr].div1);
-		printk(KERN_ERR ":l2c_saved_regs[%d].rst =0x%x\n", pi2c->adap.nr,l2c_saved_regs[pi2c->adap.nr].rst);
-		printk(KERN_ERR ":l2c_saved_regs[%d].cmd_buf =0x%x\n", pi2c->adap.nr,l2c_saved_regs[pi2c->adap.nr].cmd_buf);
-		printk(KERN_ERR ":l2c_saved_regs[%d].cmd_buf_ctl =0x%x\n", pi2c->adap.nr,l2c_saved_regs[pi2c->adap.nr].cmd_buf_ctl);
+// 		printk(KERN_ERR ":===dump i2c-%d reg when resume\n", pi2c->adap.nr);
+// 		printk(KERN_ERR ":l2c_saved_regs[%d].ctl =0x%x\n", pi2c->adap.nr,l2c_saved_regs[pi2c->adap.nr].ctl);
+// 		printk(KERN_ERR ":l2c_saved_regs[%d].cmd =0x%x\n", pi2c->adap.nr,l2c_saved_regs[pi2c->adap.nr].cmd);
+// 		printk(KERN_ERR ":l2c_saved_regs[%d].div0 =0x%x\n", pi2c->adap.nr,l2c_saved_regs[pi2c->adap.nr].div0);
+// 		printk(KERN_ERR ":l2c_saved_regs[%d].div1 =0x%x\n", pi2c->adap.nr,l2c_saved_regs[pi2c->adap.nr].div1);
+// 		printk(KERN_ERR ":l2c_saved_regs[%d].rst =0x%x\n", pi2c->adap.nr,l2c_saved_regs[pi2c->adap.nr].rst);
+// 		printk(KERN_ERR ":l2c_saved_regs[%d].cmd_buf =0x%x\n", pi2c->adap.nr,l2c_saved_regs[pi2c->adap.nr].cmd_buf);
+// 		printk(KERN_ERR ":l2c_saved_regs[%d].cmd_buf_ctl =0x%x\n", pi2c->adap.nr,l2c_saved_regs[pi2c->adap.nr].cmd_buf_ctl);
 
-        printk(KERN_ERR ": 26M clock status:%d\n", (__raw_readl(REG_PMU_APB_CGM_AP_EN)&BIT_CGM_26M_AP_EN) ? 1:0);
+//         printk(KERN_ERR ": 26M clock status:%d\n", (__raw_readl(REG_PMU_APB_CGM_AP_EN)&BIT_CGM_26M_AP_EN) ? 1:0);
 		__raw_writel(l2c_saved_regs[pi2c->adap.nr].ctl, pi2c->membase + I2C_CTL);
 		__raw_writel(l2c_saved_regs[pi2c->adap.nr].cmd, pi2c->membase + I2C_CMD);
 		__raw_writel(l2c_saved_regs[pi2c->adap.nr].div0, pi2c->membase + I2C_CLKD0);

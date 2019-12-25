@@ -800,8 +800,8 @@ static bool sec_bat_get_temperature_by_adc(
 temp_by_adc_goto:
 	value->intval = temp;
 
-	printk("%s: Temp(%d), Temp-ADC(%d)\n",
-		__func__, temp, temp_adc);
+// 	printk("%s: Temp(%d), Temp-ADC(%d)\n",
+// 		__func__, temp, temp_adc);
 
 	return true;
 }
@@ -1662,14 +1662,14 @@ static void sec_bat_get_battery_info(
 		break;
 	}
 
-	printk("%s:Vnow(%dmV),Inow(%dmA),SOC(%d%%),Tbat(%d)\n", __func__,
-		battery->voltage_now, battery->current_now,
-		battery->capacity, battery->temperature);
-	printk("%s %s,Vavg(%dmV),Vocv(%dmV),Tamb(%d),Iavg(%dmA),Iadc(%d)\n", __func__,
-		battery->present ? "Connected" : "Disconnected",
-		battery->voltage_avg, battery->voltage_ocv,
-		battery->temper_amb,
-		battery->current_avg, battery->current_adc);
+// 	printk("%s:Vnow(%dmV),Inow(%dmA),SOC(%d%%),Tbat(%d)\n", __func__,
+// 		battery->voltage_now, battery->current_now,
+// 		battery->capacity, battery->temperature);
+// 	printk("%s %s,Vavg(%dmV),Vocv(%dmV),Tamb(%d),Iavg(%dmA),Iadc(%d)\n", __func__,
+// 		battery->present ? "Connected" : "Disconnected",
+// 		battery->voltage_avg, battery->voltage_ocv,
+// 		battery->temper_amb,
+// 		battery->current_avg, battery->current_adc);
 };
 
 static void sec_bat_polling_work(struct work_struct *work)
@@ -1914,16 +1914,16 @@ static void sec_bat_monitor_work(
 
 	getnstimeofday(&ts);
 	rtc_time_to_tm(ts.tv_sec, &tm);
-	pr_info("%s (%d-%02d-%02d %02d:%02d:%02d.%09lu UTC)\n",__func__,
-			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-			tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec);
+// 	pr_info("%s (%d-%02d-%02d %02d:%02d:%02d.%09lu UTC)\n",__func__,
+// 			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+// 			tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec);
 continue_monitor:
-	printk("%s: Status(%s), mode(%s), Health(%s), Cable(%d), siop_level(%d)\n",
-		__func__,
-		sec_bat_status_str[battery->status],
-		sec_bat_charging_mode_str[battery->charging_mode],
-		sec_bat_health_str[battery->health],
-		battery->cable_type, battery->pdata->siop_level);
+// 	printk("%s: Status(%s), mode(%s), Health(%s), Cable(%d), siop_level(%d)\n",
+// 		__func__,
+// 		sec_bat_status_str[battery->status],
+// 		sec_bat_charging_mode_str[battery->charging_mode],
+// 		sec_bat_health_str[battery->health],
+// 		battery->cable_type, battery->pdata->siop_level);
 
 	power_supply_changed(&battery->psy_bat);
 

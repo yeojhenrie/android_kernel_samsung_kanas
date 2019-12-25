@@ -576,7 +576,7 @@ static int rt5033_get_charging_status(struct rt5033_charger_data *charger)
         queue_delayed_work(charger->wq, &charger->current_sinking_work, 0);
 	}
 #endif
-	pr_info("%s : full_charged = %d, state = 0x%x\n", __func__, charger->full_charged?1:0, ret);
+// 	pr_info("%s : full_charged = %d, state = 0x%x\n", __func__, charger->full_charged?1:0, ret);
 	if (charger->full_charged)
 		return POWER_SUPPLY_STATUS_FULL;
 	switch (ret & 0x30) {
@@ -643,7 +643,7 @@ static int sec_chg_get_property(struct power_supply *psy,
 			break;
 		case POWER_SUPPLY_PROP_STATUS:
 			val->intval = rt5033_get_charging_status(charger);
-			pr_info("%s : charging status = 0x%x\n", __func__, val->intval);
+// 			pr_info("%s : charging status = 0x%x\n", __func__, val->intval);
 			break;
 		case POWER_SUPPLY_PROP_HEALTH:
 			val->intval = rt5033_get_charging_health(charger->rt5033->i2c_client);
@@ -688,15 +688,15 @@ static int sec_chg_set_property(struct power_supply *psy,
 		case POWER_SUPPLY_PROP_ONLINE:
 			charger->cable_type = val->intval;
 			if (charger->cable_type  == POWER_SUPPLY_TYPE_BATTERY) {
-				pr_info("%s:[BATT] Type Battery\n", __func__);
+// 				pr_info("%s:[BATT] Type Battery\n", __func__);
 				rt5033_enable_charger_switch(charger, 0);
 				if (previous_cable_type == POWER_SUPPLY_TYPE_OTG)
 					rt5033_charger_otg_control(charger);
 			} else if (charger->cable_type == POWER_SUPPLY_TYPE_OTG) {
 				rt5033_charger_otg_control(charger);
 			} else {
-				pr_info("%s:[BATT] Set charging"
-						", Cable type = %d\n", __func__, charger->cable_type);
+// 				pr_info("%s:[BATT] Set charging"
+// 						", Cable type = %d\n", __func__, charger->cable_type);
 				/* Enable charger */
 				rt5033_configure_charger(charger);
 			}
@@ -762,13 +762,13 @@ static int sec_chg_set_property(struct power_supply *psy,
 					eoc = rt5033_get_current_eoc_setting(charger);
 					rt5033_set_input_current_limit(charger, input_current);
 					rt5033_set_charging_current(charger, chg_current, eoc);
-					pr_info("%s:SIOP level = %d, chg current = %d\n",
-						__func__, val->intval, chg_current);
+// 					pr_info("%s:SIOP level = %d, chg current = %d\n",
+// 						__func__, val->intval, chg_current);
 			}
 			break;
 		case POWER_SUPPLY_PROP_POWER_NOW:
 			eoc = rt5033_get_current_eoc_setting(charger);
-			pr_info("%s:Set Power Now -> chg current = %d mA, eoc = %d mA\n", __func__, val->intval, eoc);
+// 			pr_info("%s:Set Power Now -> chg current = %d mA, eoc = %d mA\n", __func__, val->intval, eoc);
 			rt5033_set_charging_current(charger, val->intval, eoc);
 			break;
 		default:
@@ -945,6 +945,7 @@ static irqreturn_t rt5033_chg_rechg_request_irq_handler(int irq, void *data)
     /* report recharge request event here */
 	return IRQ_HANDLED;
 }
+
 #endif /* EN_RECHG_REQ_IRQ */
 
 #if EN_TR_IRQ

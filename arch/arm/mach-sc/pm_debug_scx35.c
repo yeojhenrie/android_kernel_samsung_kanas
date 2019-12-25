@@ -455,12 +455,12 @@ void clr_sleep_mode(void)
 }
 void print_statisic(void)
 {
-	print_time();
-	print_hard_irq();
-	print_irq();
-	pm_debug_dump_ahb_glb_regs();
+// 	print_time();
+// 	print_hard_irq();
+// 	print_irq();
+// 	pm_debug_dump_ahb_glb_regs();
 	if(is_print_wakeup){
-		printk("###wake up form %s : %08x\n",  sleep_mode_str[sleep_mode],  sprd_irqs_sts[0]);
+		printk("###wake up from %s : %08x\n",  sleep_mode_str[sleep_mode],  sprd_irqs_sts[0]);
 		printk("###wake up form %s : %08x\n",  sleep_mode_str[sleep_mode],  sprd_irqs_sts[1]);
 	}
 }

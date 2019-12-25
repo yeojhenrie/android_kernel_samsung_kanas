@@ -97,9 +97,9 @@
 
 #define tsp_err(fmt, ...)   tsp_printk(DEV_ERR, fmt, ## __VA_ARGS__)
 #define tsp_warn(fmt, ...)  tsp_printk(DEV_WARN, fmt, ## __VA_ARGS__)
-#define tsp_info(fmt, ...)  tsp_printk(DEV_INFO, fmt, ## __VA_ARGS__)
-#define tsp_debug(fmt, ...) tsp_printk(DEV_DEBUG, fmt, ## __VA_ARGS__)
-#define tsp_verb(fmt, ...)  tsp_printk(DEV_VERB, fmt, ## __VA_ARGS__)
+#define tsp_info(fmt, ...)  //tsp_printk(DEV_INFO, fmt, ## __VA_ARGS__)
+#define tsp_debug(fmt, ...) //tsp_printk(DEV_DEBUG, fmt, ## __VA_ARGS__)
+#define tsp_verb(fmt, ...)  //tsp_printk(DEV_VERB, fmt, ## __VA_ARGS__)
 
 
 enum ist30xx_commands {

@@ -38,17 +38,17 @@ static void sec_fg_get_scaled_capacity(
 				struct sec_fuelgauge_info *fuelgauge,
 				union power_supply_propval *val)
 {
-	dev_info(&fuelgauge->client->dev,
-		  "%s : val = %d, cap_min = %d, cap_max = %d\n", __func__,
-				val->intval, fuelgauge->pdata->capacity_min,
-				fuelgauge->capacity_max);
+// 	dev_info(&fuelgauge->client->dev,
+// 		  "%s : val = %d, cap_min = %d, cap_max = %d\n", __func__,
+// 				val->intval, fuelgauge->pdata->capacity_min,
+// 				fuelgauge->capacity_max);
 	val->intval = (val->intval < fuelgauge->pdata->capacity_min) ?
 		0 : ((val->intval - fuelgauge->pdata->capacity_min) * 1000 /
 		(fuelgauge->capacity_max - fuelgauge->pdata->capacity_min));
 
-	dev_info(&fuelgauge->client->dev,
-		"%s: scaled capacity (%d.%d)\n",
-		__func__, val->intval/10, val->intval%10);
+// 	dev_info(&fuelgauge->client->dev,
+// 		"%s: scaled capacity (%d.%d)\n",
+// 		__func__, val->intval/10, val->intval%10);
 }
 
 /* capacity is integer */
@@ -117,7 +117,7 @@ static int sec_fg_get_property(struct power_supply *psy,
 			/* capacity should be between 0% and 100%
 			 * (0.1% degree)
 			 */
-			pr_info("%s : soc = %d\n", __func__, val->intval);
+// 			pr_info("%s : soc = %d\n", __func__, val->intval);
 			if (val->intval > 1000)
 				val->intval = 1000;
 			if (val->intval < 0)

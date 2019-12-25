@@ -123,13 +123,13 @@ unsigned int fg_get_soc(struct i2c_client *client)
 
 	// read rt5033 fg registers for debugging.
 	ret = fg_get_vbat(client);
-	pr_info("%s : FG_VBAT = %d\n", __func__, ret);
+// 	pr_info("%s : FG_VBAT = %d\n", __func__, ret);
 	ret = rt5033_fg_i2c_read_word(client, RT5033_FG_IRQ_CTRL);
-	pr_info("%s : FG_IRQ_CTL_FLAG = 0x%04x\n", __func__, ret);
+// 	pr_info("%s : FG_IRQ_CTL_FLAG = 0x%04x\n", __func__, ret);
 	ret = rt5033_fg_i2c_read_word(client, RT5033_VOLT_ALRT_TH);
-	pr_info("%s : FG_VMIN_SMIN_FLAG = 0x%04x\n", __func__, ret);
+// 	pr_info("%s : FG_VMIN_SMIN_FLAG = 0x%04x\n", __func__, ret);
 	ret = rt5033_fg_i2c_read_word(client,RT5033_CRATE);
-	pr_info("%s : FG_CRATE_DEVICEID = 0x%04x\n", __func__, ret);
+// 	pr_info("%s : FG_CRATE_DEVICEID = 0x%04x\n", __func__, ret);
 
 	/* write soc = 100% when EOC occurs */
 	if(fuelgauge->info.flag_full_charge == true) {
@@ -146,7 +146,7 @@ unsigned int fg_get_soc(struct i2c_client *client)
 	ret = rt5033_fg_i2c_read_word(client, RT5033_CONFIG_MSB);
 
 	// read FG_CONFIG  for debugging.
-	pr_info("%s : FG_CONFIG = 0x%04x\n", __func__, ret);
+// 	pr_info("%s : FG_CONFIG = 0x%04x\n", __func__, ret);
 
 	if (ret & 0x0040) {
 		ret &= ~(0x0040);
@@ -162,14 +162,14 @@ unsigned int fg_get_soc(struct i2c_client *client)
 
 	rt5033_fg_i2c_write_word(client, RT5033_MFA_MSB, 0x8085);
 	ret = rt5033_fg_i2c_read_word(client, RT5033_MFA_MSB);
-	pr_info("%s : FG_CVS = 0x%04x\n", __func__, ret);
+// 	pr_info("%s : FG_CVS = 0x%04x\n", __func__, ret);
 
 	/* vgcomp */
 	volt = fg_get_avg_volt(client);
 	temp = fuelgauge->info.temperature/10;
 
 	// report FG_AVG_VOLT & FG_TEMP for debugging.
-	pr_info("%s : FG_AVG_VOLT = %d, FG_TEMP = %d\n", __func__, volt, temp);
+// 	pr_info("%s : FG_AVG_VOLT = %d, FG_TEMP = %d\n", __func__, volt, temp);
 
 	GainAnswer = Gain_Search(client, temp, volt);
 	ret = rt5033_fg_i2c_read_word(client, RT5033_SOC_MSB);
@@ -225,9 +225,9 @@ unsigned int fg_get_soc(struct i2c_client *client)
 
 	// report VGCOMP1~4 for debugging.
 	ret = rt5033_fg_i2c_read_word(client, RT5033_VGCOMP1);
-	pr_info("%s : FG_VGCOMP1_2_Normal = 0x%04x\n", __func__, ret);
+// 	pr_info("%s : FG_VGCOMP1_2_Normal = 0x%04x\n", __func__, ret);
 	ret = rt5033_fg_i2c_read_word(client, RT5033_VGCOMP3);
-	pr_info("%s : FG_VGCOMP3_4_Normal = 0x%04x\n", __func__, ret);
+// 	pr_info("%s : FG_VGCOMP3_4_Normal = 0x%04x\n", __func__, ret);
 
 	#if (ENABLE_SOC_OFFSET_COMP)
 	/* offset */
@@ -255,7 +255,7 @@ unsigned int fg_get_soc(struct i2c_client *client)
 	ret = rt5033_fg_i2c_read_word(client, RT5033_SOC_MSB);
 
 	// report FG_SOC_RAW for debugging.
-	pr_info("%s : FG_SOC_RAW = 0x%04x\n", __func__, ret);
+// 	pr_info("%s : FG_SOC_RAW = 0x%04x\n", __func__, ret);
 
 	if (ret<0) {
 		pr_err("%s: read soc reg fail", __func__);
@@ -266,14 +266,14 @@ unsigned int fg_get_soc(struct i2c_client *client)
 		Poweroff_OffsAnswer = Poweroff_Offs_Search(client, soc_val);
 		soc_val += Poweroff_OffsAnswer.y;
 		// report Power OFF Offset for debugging.
-		pr_info("%s : FG_PWR_OFF_OFFS = %d\n", __func__, Poweroff_OffsAnswer.y);
+// 		pr_info("%s : FG_PWR_OFF_OFFS = %d\n", __func__, Poweroff_OffsAnswer.y);
 	#if ENABLE_CHG_OFFSET
 		/* charging offset fine tune */
 		if(fuelgauge->info.flag_chg_status){
 			Charging_OffsAnswer = Chg_Offs_Search(client, soc_val);
 			soc_val += Charging_OffsAnswer.y;
 			// report Charging Offset for debugging.
-			pr_info("%s : FG_CHG_OFFS = %d\n", __func__, Charging_OffsAnswer.y);
+// 			pr_info("%s : FG_CHG_OFFS = %d\n", __func__, Charging_OffsAnswer.y);
 		}
 	#endif
 		if(soc_val < 0)
@@ -283,7 +283,7 @@ unsigned int fg_get_soc(struct i2c_client *client)
 	}
 	fuelgauge->info.batt_soc = soc_val;
 	// report FG_SOC for debugging.
-	pr_info("%s : FG_SOC = %d\n", __func__,soc_val);
+// 	pr_info("%s : FG_SOC = %d\n", __func__,soc_val);
 	return soc_val;
 }
 
@@ -900,9 +900,9 @@ bool sec_hal_fg_get_property(struct i2c_client *client,
 		POWER_SUPPLY_PROP_STATUS, value);
 	fuelgauge->info.flag_full_charge = (value.intval==POWER_SUPPLY_STATUS_FULL)?1:0;
 	fuelgauge->info.flag_chg_status = (value.intval==POWER_SUPPLY_STATUS_CHARGING)?1:0;
-	printk("%s : flag_full_charge = %d, flag_chg_status = %d\n", __func__,
-				fuelgauge->info.flag_full_charge ? 1 : 0,
-				fuelgauge->info.flag_chg_status ? 1 : 0);
+// 	printk("%s : flag_full_charge = %d, flag_chg_status = %d\n", __func__,
+// 				fuelgauge->info.flag_full_charge ? 1 : 0,
+// 				fuelgauge->info.flag_chg_status ? 1 : 0);
 	switch (psp) {
 		/* Cell voltage (VCELL, mV) */
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
