@@ -337,8 +337,6 @@ u32 emc_clk_set(u32 new_clk, u32 sene)
 		__dpll_open(1);
 	}
 	local_irq_save(irq_flags);
-#else
-	mutex_lock(&emc_mutex);
 #endif
 
     /*info("emc clk going on %d	#########################################################\n",new_clk);*/
@@ -449,8 +447,6 @@ out:
 	if(CLK_EMC_SELECT_DPLL != get_emc_clk_select(0)) {
 		__dpll_open(0);
 	}
-#else
-	mutex_unlock(&emc_mutex);
 #endif
 	info("__emc_clk_set REG_AON_APB_DPLL_CFG = %x, PUBL_DLLGCR = %x\n",sci_glb_read(REG_AON_APB_DPLL_CFG, -1), __raw_readl(SPRD_LPDDR2_PHY_BASE + 0x04));
 	return 0;
