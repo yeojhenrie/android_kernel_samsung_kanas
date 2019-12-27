@@ -643,17 +643,9 @@ static void dump_one_task_info(struct task_struct *tsk, bool is_main)
 		state >>= 1;
 	}
 
-	pr_info(
-#ifdef CONFIG_SCHED_BFS
-		"%8d %8d %8d (null) %c(%d) %3d  %08x %08x  %08x %c %16s [%s]\n",
-#else
-		"%8d %8d %8d %16lld %c(%d) %3d  %08x %08x  %08x %c %16s [%s]\n",
-#endif
+	pr_info("%8d %8d %8d %16lld %c(%d) %3d  %08x %08x  %08x %c %16s [%s]\n",
 			tsk->pid, (int)(tsk->utime), (int)(tsk->stime),
-#ifndef CONFIG_SCHED_BFS
-			tsk->se.exec_start,
-#endif
-			state_array[idx], (int)(tsk->state),
+			tsk->se.exec_start, state_array[idx], (int)(tsk->state),
 			task_cpu(tsk), (int)wchan, (int)pc, (int)tsk,
 			is_main ? '*' : ' ', tsk->comm, symname);
 
