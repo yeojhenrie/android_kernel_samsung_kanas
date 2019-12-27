@@ -1051,12 +1051,12 @@ int deep_sleep(int from_idle)
 		//disable_mm();
 		//disable_ana_module();
 		disable_aon_module();
-// 		show_reg_status();
+		show_reg_status();
 		bak_last_reg();
-// 		print_last_reg();
-// 		print_int_status();
+		print_last_reg();
+		print_int_status();
 		//wait_until_uart1_tx_done();
-// 		int_work_round();
+		int_work_round();
 		//pm_debug_set_apwdt();
 		disable_apb_module();
 		//pm_debug_set_wakeup_timer();
@@ -1064,7 +1064,7 @@ int deep_sleep(int from_idle)
 		//bak_last_reg();
 
 		__raw_writel(0x0, REG_PMU_APB_CA7_C0_CFG);
-// 		show_deep_reg_status();
+		show_deep_reg_status();
 	} else {
 		/* __raw_writel(0x0, REG_PMU_APB_CA7_C0_CFG); */
 	}

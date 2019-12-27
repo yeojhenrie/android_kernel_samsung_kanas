@@ -822,7 +822,7 @@ static void sd_check_cpu(int cpu, unsigned int load)
 	policy = dbs_info->cdbs.cur_policy;
 	dbs_data = policy->governor_data;
 	sd_tuners = dbs_data->tuners;
-	local_cpu = raw_smp_processor_id();
+	local_cpu = smp_processor_id();
 
 	if(local_cpu)
 		return;
