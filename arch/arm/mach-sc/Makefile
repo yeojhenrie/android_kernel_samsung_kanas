@@ -1,5 +1,5 @@
 $(obj)/Makefile.sc8830:
-	$(Q)$(obj)/gen_sc8830 $@
+	$(Q)$(srctree)/arch/arm/mach-sc/gen_sc8830 $@
 
 -include $(obj)/Makefile.sc8830
 
