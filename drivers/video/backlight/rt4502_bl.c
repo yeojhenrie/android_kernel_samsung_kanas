@@ -30,36 +30,37 @@
 #include <linux/spinlock.h>
 #include <linux/rtc.h>
 
-int current_intensity;
-extern uint32_t lcd_id_from_uboot;
 #ifdef CONFIG_MACH_NEVISTD
 static int backlight_pin = 138;
 #else
 static int backlight_pin = 214;
 #endif
-static DEFINE_SPINLOCK(bl_ctrl_lock);
+
 #if defined(CONFIG_FB_LCD_NT35502_MIPI) || defined(CONFIG_FB_LCD_HX8369B_MIPI_DTC)
 extern unsigned int lpm_charge;
 #endif
+extern uint32_t lcd_id_from_uboot;
+int current_intensity;
 int real_level = 18;
 EXPORT_SYMBOL(real_level);
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-
-#endif
-static int backlight_mode = 1;
 #define MAX_BRIGHTNESS_IN_BLU	33
 #define DIMMING_VALUE		31
 #define MAX_BRIGHTNESS_VALUE	255
 #define MIN_BRIGHTNESS_VALUE	20
 #define BACKLIGHT_DEBUG 0
-#define BACKLIGHT_SUSPEND 0
-#define BACKLIGHT_RESUME 1
+
+static enum {
+	BACKLIGHT_SUSPEND = 0,
+	BACKLIGHT_RESUME,
+} backlight_mode = BACKLIGHT_RESUME;
+
 #if BACKLIGHT_DEBUG
 #define BLDBG(fmt, args...) printk(fmt, ## args)
 #else
 #define BLDBG(fmt, args...)
 #endif
+
 struct rt4502_bl_data {
 	struct platform_device *pdev;
 	unsigned int ctrl_pin;
@@ -67,10 +68,12 @@ struct rt4502_bl_data {
 	struct early_suspend early_suspend_desc;
 #endif
 };
+
 struct brt_value {
 	int level;		// Platform setting values
 	int tune_level;		// Chip Setting values
 };
+
 #if defined (CONFIG_MACH_RHEA_SS_LUCAS)
 struct brt_value brt_table_ktd[] = {
 	{MIN_BRIGHTNESS_VALUE, 31},	// Min pulse 32
@@ -86,7 +89,7 @@ struct brt_value brt_table_ktd[] = {
 	{120, 22},
 	{125, 21},
 	{130, 20},
-	{140, 19},		//default value  
+	{140, 19},		//default value
 	{155, 18},
 	{165, 17},
 	{176, 16},
@@ -102,7 +105,7 @@ struct brt_value brt_table_ktd[] = {
 };
 #else
 struct brt_value brt_table_ktd[] = {
-	{MIN_BRIGHTNESS_VALUE, 31},	// Min pulse 32 
+	{MIN_BRIGHTNESS_VALUE, 31},	// Min pulse 32
 	{28, 31},
 	{36, 30},
 	{44, 29},
@@ -118,7 +121,7 @@ struct brt_value brt_table_ktd[] = {
 	{124, 19},
 	{132, 18},
 	{140, 17},
-	{148, 16},		//default value     
+	{148, 16},		//default value
 	{156, 15},
 	{164, 14},
 	{172, 13},
@@ -136,60 +139,56 @@ struct brt_value brt_table_ktd[] = {
 };
 
 struct brt_value brt_table_ktd_dtc[] = {
-	{MIN_BRIGHTNESS_VALUE, 30},	// Min pulse 32 
-	{28, 30},
-	{36, 29},
-	{44, 28},
-	{52, 27},
-	{60, 26},
-	{68, 25},
-	{76, 24},
-	{84, 23},
-	{92, 22},
-	{100, 21},
-	{108, 20},
-	{116, 19},
-	{124, 18},
-	{132, 17},
-	{140, 16},
-	{148, 15},		//default value     
-	{156, 14},
-	{164, 13},
-	{172, 12},
-	{180, 11},
-	{188, 10},
-	{196, 9},
-	{204, 8},
-	{212, 7},
-	{220, 6},
-	{228, 5},
-	{236, 4},
-	{244, 3},
-	{252, 2},
+	{MIN_BRIGHTNESS_VALUE, 30},	// Min pulse 32
+	{ 19, 30},
+	{ 27, 29},
+	{ 35, 28},
+	{ 44, 27},
+	{ 52, 26},
+	{ 60, 25},
+	{ 68, 24},
+	{ 76, 23},
+	{ 84, 22},
+	{ 92, 21},
+	{100, 20},
+	{109, 19},
+	{117, 18},
+	{125, 17},
+	{133, 16},
+	{141, 15},		//default value
+	{149, 14},
+	{157, 13},
+	{166, 12},
+	{174, 11},
+	{182, 10},
+	{190, 9},
+	{198, 8},
+	{206, 7},
+	{214, 6},
+	{222, 5},
+	{231, 4},
+	{239, 3},
+	{247, 2},
 	{MAX_BRIGHTNESS_VALUE, 1},
 };
 
 #endif
 #define MAX_BRT_STAGE_KTD (int)(sizeof(brt_table_ktd)/sizeof(struct brt_value))
 
-struct mutex rt4502_mutex;
-DEFINE_MUTEX(rt4502_mutex);
+static DEFINE_SPINLOCK(bl_ctrl_lock);
 
 void lcd_backlight_off(int num)
 {
 	spin_lock(&bl_ctrl_lock);
 	gpio_set_value(backlight_pin,num);
-    udelay(50);
+	udelay(50);
 	spin_unlock(&bl_ctrl_lock);
 }
 static void lcd_backlight_control(int num)
 {
-	int limit;
-
-	limit = num;
 	BLDBG("[BACKLIGHT] lcd_backlight_control ==> pulse  : %d\n", num);
 	spin_lock(&bl_ctrl_lock);
-	for (; limit > 0; limit--) {
+	for (; num > 0; num--) {
 		udelay(10);
 		gpio_set_value(backlight_pin, 0);
 		udelay(10);
@@ -204,79 +203,82 @@ static int rt4502_backlight_update_status(struct backlight_device *bd)
 	int user_intensity = bd->props.brightness;
 	int tune_level = 0;
 	int pulse;
-    int i;
-    printk("[BACKLIGHT] rt4502_backlight_update_status ==> user_intensity  : %d\n", user_intensity);
+	int i = MAX_BRT_STAGE_KTD -1;
+	int j = 0;
+	struct brt_value *table = NULL;
 
-	if (bd->props.power != FB_BLANK_UNBLANK)
+	printk("[BACKLIGHT] rt4502_backlight_update_status ==> user_intensity  : %d\n", user_intensity);
+
+	if ((bd->props.power != FB_BLANK_UNBLANK) ||
+	    (bd->props.fb_blank != FB_BLANK_UNBLANK) ||
+	    (bd->props.state & BL_CORE_SUSPENDED))
 		user_intensity = 0;
 
-	if (bd->props.fb_blank != FB_BLANK_UNBLANK)
-		user_intensity = 0;
+	if (backlight_mode == BACKLIGHT_SUSPEND)
+		return 0;
 
-	if (bd->props.state & BL_CORE_SUSPENDED)
-		user_intensity = 0;
+	table = (lcd_id_from_uboot == 0x554cc0) ? brt_table_ktd : brt_table_ktd_dtc;
 
-	mutex_lock(&rt4502_mutex);
-	if (backlight_mode == BACKLIGHT_RESUME) {
-		if (user_intensity > 0) {
-			if (user_intensity < MIN_BRIGHTNESS_VALUE) {
-				tune_level = DIMMING_VALUE;	//DIMMING
-			} else if (user_intensity == MAX_BRIGHTNESS_VALUE) {
-					if(lcd_id_from_uboot==0x554cc0)
-						tune_level = brt_table_ktd[MAX_BRT_STAGE_KTD-1].tune_level;
-					else
-						tune_level = brt_table_ktd_dtc[MAX_BRT_STAGE_KTD-1].tune_level;
-			} else {
-					if(lcd_id_from_uboot==0x554cc0) {
-						for (i = 0; i < MAX_BRT_STAGE_KTD; i++) {
-							if(user_intensity <= brt_table_ktd[i].level ) {
-								tune_level = brt_table_ktd[i].tune_level;
-								break;
-							}
-						}
-					}
-					else {
-						for (i = 0; i < MAX_BRT_STAGE_KTD; i++) {
-							if(user_intensity <= brt_table_ktd_dtc[i].level ) {
-								tune_level = brt_table_ktd_dtc[i].tune_level;
-								break;
-							}
-						}
-					}
-				}
+	if (user_intensity < MIN_BRIGHTNESS_VALUE) {
+		tune_level = DIMMING_VALUE;	//DIMMING
+	} else if (user_intensity == MAX_BRIGHTNESS_VALUE) {
+		tune_level = table[i].tune_level;
+	} else if (user_intensity > 0) {
+		while (--i > 0) {
+			if(user_intensity >= table[i].level) {
+				tune_level = table[i].tune_level;
+				break;
 			}
-        printk("[BACKLIGHT] rt4502_backlight_update_status ==> tune_level : %d\n", tune_level);
-		if (real_level == tune_level) {
-			mutex_unlock(&rt4502_mutex);
-			return 0;
-		} else {
-			if (tune_level <= 0) {
-				gpio_set_value(backlight_pin, 0);
-				mdelay(3);
-				real_level = 0;
-			} else {
-				if (real_level == 0) {
-					gpio_set_value(backlight_pin, 1);
-					BLDBG("[BACKLIGHT] rt4502_backlight_earlyresume -> Control Pin Enable\n");
-					udelay(100);
+			/*
+			 * Naive dither
+			 */
+// 			if ((i != 0) &&
+// 				(user_intensity >= ((table[i-1].level + table[i].level) / 2))) {
+// 				printk("[BACKLIGHT] dither activate!\n");
+// 				tune_level = table[i-1].tune_level;
+// 			}
 
-				}
-				if (real_level <= tune_level) {
-					pulse = tune_level - real_level;
-				} else {
-					pulse = 32 - (real_level - tune_level);
-				}
-				//pulse = MAX_BRIGHTNESS_IN_BLU -tune_level;
-				if (pulse == 0) {
-					mutex_unlock(&rt4502_mutex);
-					return 0;
-				}
-				lcd_backlight_control(pulse);
-			}
-			real_level = tune_level;
 		}
 	}
-	mutex_unlock(&rt4502_mutex);
+
+	printk("[BACKLIGHT] rt4502_backlight_update_status ==> tune_level : %d\n", tune_level);
+	if (real_level == tune_level)
+		return 0;
+
+	if (tune_level <= 0) {
+		spin_lock(&bl_ctrl_lock);
+
+		gpio_set_value(backlight_pin, 0);
+		mdelay(3);
+		real_level = 0;
+
+		spin_unlock(&bl_ctrl_lock);
+	} else {
+		if (real_level == 0) {
+			spin_lock(&bl_ctrl_lock);
+
+			gpio_set_value(backlight_pin, 1);
+			BLDBG("[BACKLIGHT] rt4502_backlight_earlyresume -> Control Pin Enable\n");
+			udelay(100);
+
+			spin_unlock(&bl_ctrl_lock);
+		}
+
+		pulse = tune_level - real_level; // Delta
+		if (real_level > tune_level)
+			pulse = 32 + pulse;
+
+		//pulse = MAX_BRIGHTNESS_IN_BLU -tune_level;
+		if (pulse == 0)
+			return 0;
+
+		lcd_backlight_control(pulse);
+	}
+
+	spin_lock(&bl_ctrl_lock);
+	real_level = tune_level;
+	spin_unlock(&bl_ctrl_lock);
+
 
 	return 0;
 }
@@ -302,27 +304,29 @@ void rt4502_backlight_on(void)
 
 void rt4502_backlight_off(void)
 {
+	spin_lock(&bl_ctrl_lock);
+
 	gpio_set_value(backlight_pin, 0);
 	mdelay(3);
 	real_level = 0;
+
+	spin_unlock(&bl_ctrl_lock);
 }
 #endif
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void rt4502_backlight_earlysuspend(struct early_suspend *desc)
 {
-	struct timespec ts;
-	struct rtc_time tm;
-
 	backlight_mode = BACKLIGHT_SUSPEND;
-	mutex_lock(&rt4502_mutex);
+
+	spin_lock(&bl_ctrl_lock);
+
 	gpio_set_value(backlight_pin, 0);
 	mdelay(3);
 	real_level = 0;
-	mutex_unlock(&rt4502_mutex);
-	getnstimeofday(&ts);
-	rtc_time_to_tm(ts.tv_sec, &tm);
-	printk("[%02d:%02d:%02d.%03lu][BACKLIGHT] earlysuspend\n", tm.tm_hour,
-	       tm.tm_min, tm.tm_sec, ts.tv_nsec);
+
+	spin_unlock(&bl_ctrl_lock);
+
+	printk("[BACKLIGHT] earlysuspend\n");
 }
 
 static void rt4502_backlight_earlyresume(struct early_suspend *desc)
@@ -331,8 +335,6 @@ static void rt4502_backlight_earlyresume(struct early_suspend *desc)
 	    container_of(desc, struct rt4502_bl_data,
 			 early_suspend_desc);
 	struct backlight_device *bl = platform_get_drvdata(rt4502->pdev);
-	struct timespec ts;
-	struct rtc_time tm;
 #if defined(CONFIG_FB_LCD_NT35502_MIPI) || defined(CONFIG_FB_LCD_HX8369B_MIPI_DTC)
 	if (lpm_charge == 1) {
 		mdelay(250);/*fix for whitescreen in kanas in LPM charging mode*/
@@ -340,11 +342,8 @@ static void rt4502_backlight_earlyresume(struct early_suspend *desc)
 		/*mdelay(120);*//*fix for whitescreen in kanas*/
 	}
 #endif
-	getnstimeofday(&ts);
-	rtc_time_to_tm(ts.tv_sec, &tm);
 	backlight_mode = BACKLIGHT_RESUME;
-	printk("[%02d:%02d:%02d.%03lu][BACKLIGHT] earlyresume\n", tm.tm_hour,
-	       tm.tm_min, tm.tm_sec, ts.tv_nsec);
+	printk("earlyresume\n");
 	backlight_update_status(bl);
 }
 #else
@@ -355,7 +354,7 @@ static int rt4502_backlight_suspend(struct platform_device *pdev,
 	struct backlight_device *bl = platform_get_drvdata(pdev);
 	struct rt4502_bl_data *rt4502 = dev_get_drvdata(&bl->dev);
 
-	BLDBG("[BACKLIGHT] rt4502_backlight_suspend\n");
+	BLDBG("[BACKLIGHT] rt4502_backlight_suspend, no-op\n");
 
 	return 0;
 }
@@ -440,12 +439,18 @@ static int rt4502_backlight_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static int rt4502_backlight_shutdown(struct platform_device *pdev)
+static void rt4502_backlight_shutdown(struct platform_device *pdev)
 {
+
 	printk("[BACKLIGHT] rt4502_backlight_shutdown\n");
+
+	spin_lock(&bl_ctrl_lock);
+
 	gpio_set_value(backlight_pin, 0);
 	mdelay(3);
-	return 0;
+
+	spin_unlock(&bl_ctrl_lock);
+	return;
 }
 
 static struct platform_driver rt4502_backlight_driver = {
