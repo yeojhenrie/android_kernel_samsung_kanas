@@ -77,6 +77,7 @@ struct vsp_fh {
 
 struct vsp_dev {
     unsigned int freq_div;
+    unsigned int scene_mode;
 
     struct semaphore vsp_mutex;
 
@@ -371,7 +372,19 @@ static long vsp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     }
     break;
 
+    case VSP_SET_SCENE:
+        get_user(vsp_hw_dev.scene_mode, (int __user *)arg);
+        pr_debug("vsp ioctl VSP_SET_SCENE_MODE %d\n", vsp_hw_dev.scene_mode);
+        break;
+
+    case VSP_GET_SCENE:
+        put_user(vsp_hw_dev.scene_mode, (int __user *)arg);
+        pr_debug("vsp ioctl VSP_GET_SCENE_MODE %d\n", ret);
+        break;
+
+
     default:
+	pr_debug("vsp ioctl unknown cmd %d\n", cmd);
         return -EINVAL;
     }
     return 0;
@@ -496,6 +509,7 @@ static int vsp_release (struct inode *inode, struct file *filp)
     if (vsp_fp->is_vsp_aquired) {
         printk(KERN_ERR "error occured and up vsp_mutex \n");
         up(&vsp_hw_dev.vsp_mutex);
+        wake_unlock(&vsp_wakelock);
     }
 
     printk(KERN_INFO "vsp_release %p\n", vsp_fp);

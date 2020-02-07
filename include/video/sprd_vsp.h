@@ -30,7 +30,12 @@
 #define VSP_COMPLETE       _IO(SPRD_VSP_IOCTL_MAGIC, 7)
 #define VSP_RESET       _IO(SPRD_VSP_IOCTL_MAGIC, 8)
 #define VSP_HW_INFO     _IO(SPRD_VSP_IOCTL_MAGIC, 9)
-#define VSP_CAPABILITY                  _IO(SPRD_VSP_IOCTL_MAGIC, 10)
+
+// VSP_CAPABILITY was renamed to VSP_VERSION in later revisions
+#define VSP_CAPABILITY  _IO(SPRD_VSP_IOCTL_MAGIC, 10)
+
+#define VSP_SET_SCENE   _IO(SPRD_VSP_IOCTL_MAGIC, 11)
+#define VSP_GET_SCENE   _IO(SPRD_VSP_IOCTL_MAGIC, 12)
 
 enum sprd_vsp_frequency_e {
     VSP_FREQENCY_LEVEL_0 = 0,
