@@ -23,7 +23,7 @@
 #include "governor.h"
 
 /* Default constants for DevFreq-Ondemand (DFO) */
-#define DFO_UPTHRESHOLD		(90)
+#define DFO_UPTHRESHOLD		(80)
 #define DFO_DOWNDIFFERENCTIAL	(5)
 
 /*
