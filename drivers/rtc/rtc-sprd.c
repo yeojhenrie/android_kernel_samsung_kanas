@@ -247,7 +247,6 @@ static int sprd_rtc_set_alarm_sec(unsigned long secs)
 {
 	unsigned sec, min, hour, day;
 	unsigned long temp;
-	unsigned set_mask = 0, int_rsts;
 	int i = 0;
 
 	sec = secs % 60;
@@ -260,37 +259,17 @@ static int sprd_rtc_set_alarm_sec(unsigned long secs)
 
 	sci_adi_set(ANA_RTC_INT_CLR, RTC_ALM_TIME_MASK);
 
+	if (day != (sci_adi_read(ANA_RTC_DAY_ALM) & RTC_DAY_MASK))
+		sci_adi_raw_write(ANA_RTC_DAY_ALM, day);
 
-	sci_adi_raw_write(ANA_RTC_SEC_ALM, sec);
-	set_mask |= RTC_SEC_ALM_ACK_BIT;
+	if (hour != (sci_adi_read(ANA_RTC_HOUR_ALM) & RTC_HOUR_MASK))
+		sci_adi_raw_write(ANA_RTC_HOUR_ALM, hour);
 
-	sci_adi_raw_write(ANA_RTC_MIN_ALM, min);
-	set_mask |= RTC_MIN_ALM_ACK_BIT;
+	if (min != (sci_adi_read(ANA_RTC_MIN_ALM) & RTC_MIN_MASK))
+		sci_adi_raw_write(ANA_RTC_MIN_ALM, min);
 
-	sci_adi_raw_write(ANA_RTC_HOUR_ALM, hour);
-	set_mask |= RTC_HOUR_ALM_ACK_BIT;
-
-	sci_adi_raw_write(ANA_RTC_DAY_ALM, day);
-	set_mask |= RTC_DAY_ALM_ACK_BIT;
-
-	/*
-	 * wait till all update done
-	 */
-
-	do{
-		int_rsts = sci_adi_read(ANA_RTC_INT_RSTS) & RTC_ALM_TIME_MASK;
-
-		if(set_mask == int_rsts)
-			break;
-
-		if(i < SPRD_RTC_SET_MAX){
-			msleep(1);
-			i++;
-		}else{
-			return 1;
-		}
-	}while(1);
-	sci_adi_set(ANA_RTC_INT_CLR, RTC_ALM_TIME_MASK);
+	if (sec != (sci_adi_read(ANA_RTC_SEC_ALM) & RTC_SEC_MASK))
+		sci_adi_raw_write(ANA_RTC_SEC_ALM, sec);
 
 	return 0;
 }
@@ -369,8 +348,7 @@ static int sprd_rtc_set_alarm(struct device *dev,
 {
 	unsigned long secs;
 	unsigned temp;
-	unsigned long read_secs;
-	int i = 0,n;
+	int i = 0;
 
 	sci_adi_raw_write(ANA_RTC_INT_CLR, RTC_ALARM_BIT);
 
@@ -386,17 +364,14 @@ static int sprd_rtc_set_alarm(struct device *dev,
 
 		secs = secs - secs_start_year_to_1970;
 		wake_lock(&rtc_wake_lock);
-		n = 2;
-		while(sprd_rtc_set_alarm_sec(secs)!=0&&(n--)>0);
 		do {
-			if(i!=0){
-				n = 2;
-				while(sprd_rtc_set_alarm_sec(secs)!=0&&(n--)>0);
-			}
-			read_secs = sprd_rtc_get_alarm_sec();
-			msleep(1);
-			i++;
-		}while(read_secs != secs && i < SPRD_RTC_SET_MAX);
+			sprd_rtc_set_alarm_sec(secs);
+			if (sprd_rtc_get_alarm_sec() == secs)
+				break;
+			pr_err("Alarm may have not been set properly. Expected %lu vs %lu. Retrying.\n",
+			       sprd_rtc_get_alarm_sec(), secs);
+			msleep(150);
+		}while(i++ < 2);
 		/*unlock the rtc alrm int*/
 		sci_adi_raw_write(ANA_RTC_SPG_UPD, SPRD_RTC_UNLOCK);
 		wake_unlock(&rtc_wake_lock);
@@ -405,7 +380,6 @@ static int sprd_rtc_set_alarm(struct device *dev,
 		sci_adi_raw_write(ANA_RTC_SPG_UPD, SPRD_RTC_LOCK);
 		msleep(150);
 	}
-
 	return 0;
 }
 
@@ -469,7 +443,7 @@ static irqreturn_t rtc_interrupt_handler(int irq, void *dev_id)
 
 	printk(" RTC ***** interrupt happen\n");
 	//rtc_update_irq(rdev, 1, RTC_AF | RTC_IRQF);
-	wake_lock_timeout(&rtc_interrupt_wake_lock,2*HZ);
+	wake_lock_timeout(&rtc_interrupt_wake_lock, 2*HZ);
 	rtc_aie_update_irq(rdev);
 	CLEAR_RTC_INT(RTC_INT_ALL_MSK);
 	return IRQ_HANDLED;
