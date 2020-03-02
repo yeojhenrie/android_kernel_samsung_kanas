@@ -1650,6 +1650,7 @@ static inline void mmc_bus_put(struct mmc_host *host)
 int mmc_resume_bus(struct mmc_host *host)
 {
 	unsigned long flags;
+	int err;
 
 	if (!mmc_bus_needs_resume(host))
 		return -EINVAL;
@@ -1663,13 +1664,20 @@ int mmc_resume_bus(struct mmc_host *host)
 	mmc_bus_get(host);
 	if (host->bus_ops && !host->bus_dead) {
 		mmc_power_up(host);
+		mmc_select_voltage(host, host->ocr);
 		BUG_ON(!host->bus_ops->resume);
-		host->bus_ops->resume(host);
+		err = host->bus_ops->resume(host);
+		if (err) {
+			pr_warning("%s: error %d during deferred resume "
+					    "(card was removed?)\n",
+					    mmc_hostname(host), err);
+			err = 0;
+		}
 	}
-	
+
 	mmc_bus_put(host);
 
-	/*card detection can not be called whithin dfferent task, it may cause some tasks  to remove card at the same time*/
+	/*card detection can not be called whithin dfferent task, it may cause some tasks to remove card at the same time*/
 	mmc_detect_change(host, 0);
 
 	printk("%s: Deferred resume completed\n", mmc_hostname(host));
