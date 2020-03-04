@@ -2267,7 +2267,7 @@ int mmc_set_blockcount(struct mmc_card *card, unsigned int blockcount,
 }
 EXPORT_SYMBOL(mmc_set_blockcount);
 
-static void mmc_hw_reset_for_init(struct mmc_host *host)
+void mmc_hw_reset_for_init(struct mmc_host *host)
 {
 	if (!(host->caps & MMC_CAP_HW_RESET) || !host->ops->hw_reset)
 		return;
@@ -2275,6 +2275,7 @@ static void mmc_hw_reset_for_init(struct mmc_host *host)
 	host->ops->hw_reset(host);
 	mmc_host_clk_release(host);
 }
+EXPORT_SYMBOL(mmc_hw_reset_for_init);
 
 int mmc_can_reset(struct mmc_card *card)
 {

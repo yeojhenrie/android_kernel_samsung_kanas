@@ -1135,6 +1135,7 @@ static int mmc_sd_suspend(struct mmc_host *host)
  * This function tries to determine if the same card is still present
  * and, if so, restore all state to it.
  */
+extern void mmc_hw_reset_for_init(struct mmc_host *host);
 static int mmc_sd_resume(struct mmc_host *host)
 {
 	int err;
@@ -1154,7 +1155,7 @@ static int mmc_sd_resume(struct mmc_host *host)
 		if (err) {
 			printk(KERN_ERR "%s: Re-init card rc = %d (retries = %d)\n",
 			       mmc_hostname(host), err, retries);
-			mdelay(5);
+			mmc_hw_reset_for_init(host);
 			retries--;
 			continue;
 		}
