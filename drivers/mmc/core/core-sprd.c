@@ -1678,6 +1678,19 @@ int mmc_resume_bus(struct mmc_host *host)
 
 	mmc_bus_put(host);
 
+	/*
+	 * Card detection should not be called within dfferent task,
+	 * it may cause some tasks to remove card at the same time
+	 * leading to a deadlock.
+	 *
+	 * Assume always that the card was slowly reinserted
+	 * before the actual resume.
+	 */
+	spin_lock_irqsave(&host->lock, flags);
+	host->rescan_disable = 0;
+	spin_unlock_irqrestore(&host->lock, flags);
+	mmc_detect_change(host, msecs_to_jiffies(234));
+
 	printk("%s: Deferred resume completed\n", mmc_hostname(host));
 	return 0;
 }
