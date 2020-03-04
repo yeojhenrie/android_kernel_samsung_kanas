@@ -1656,6 +1656,7 @@ int mmc_resume_bus(struct mmc_host *host)
 		return -EINVAL;
 
 	printk("%s: Starting deferred resume\n", mmc_hostname(host));
+	wake_lock(&host->resume_wake_lock);
 	spin_lock_irqsave(&host->lock, flags);
 	host->bus_resume_flags &= ~MMC_BUSRESUME_NEEDS_RESUME;
 	spin_unlock_irqrestore(&host->lock, flags);
@@ -1689,6 +1690,7 @@ int mmc_resume_bus(struct mmc_host *host)
 	spin_lock_irqsave(&host->lock, flags);
 	host->rescan_disable = 0;
 	spin_unlock_irqrestore(&host->lock, flags);
+	wake_unlock(&host->resume_wake_lock);
 	mmc_detect_change(host, msecs_to_jiffies(234));
 
 	printk("%s: Deferred resume completed\n", mmc_hostname(host));

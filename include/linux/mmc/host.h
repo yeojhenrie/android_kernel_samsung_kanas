@@ -416,6 +416,9 @@ struct mmc_host {
 	u_int64_t	latency_y_axis_write[ARRAY_SIZE(latency_x_axis_us) + 1];
 	u_int64_t	latency_writes_elems;
 
+	struct wake_lock	resume_wake_lock; /* Prevent suspend while defer resuming */
+	const char		*resm_wlock_name;
+
 	unsigned long		private[0] ____cacheline_aligned;
 };
 

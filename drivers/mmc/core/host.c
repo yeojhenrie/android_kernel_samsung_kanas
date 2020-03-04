@@ -463,6 +463,11 @@ struct mmc_host *mmc_alloc_host(int extra, struct device *dev)
 			"%s_detect", mmc_hostname(host));
 	wake_lock_init(&host->detect_wake_lock, WAKE_LOCK_SUSPEND,
 			host->wlock_name);
+
+	host->resm_wlock_name = kasprintf(GFP_KERNEL,
+			"%s_resume", mmc_hostname(host));
+	wake_lock_init(&host->resume_wake_lock, WAKE_LOCK_SUSPEND,
+			host->resm_wlock_name);
 	INIT_DELAYED_WORK(&host->detect, mmc_rescan);
 #ifdef CONFIG_PM
 	host->pm_notify.notifier_call = mmc_pm_notify;
