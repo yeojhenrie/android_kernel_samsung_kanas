@@ -391,7 +391,7 @@ static irqreturn_t gpio_keys_gpio_isr(int irq, void *dev_id)
 	BUG_ON(irq != bdata->irq);
 
 	if (irqd_get_trigger_type(irq_get_irq_data(irq)) != bdata->irqflags) {
-		pr_info("wake up cpu from deepsleep by gpio edge interrupt!");
+		pr_info("wake up cpu from deepsleep by gpio edge interrupt!\n");
 		irq_set_irq_type(bdata->irq, bdata->irqflags);
 	}
 
