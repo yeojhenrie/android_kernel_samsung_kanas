@@ -30,6 +30,13 @@
 #include <linux/spinlock.h>
 #include <linux/rtc.h>
 
+/*
+ * The technical documentation can be found online at
+ * https://www.richtek.com/Design%20Support/Technical%20Document/AN046?sc_lang=zh-TW
+ * but the source is in Chinese. Fortunately, machine translations should be able to
+ * give a intelligible English version of the document.
+ */
+
 #ifdef CONFIG_MACH_NEVISTD
 static int backlight_pin = 138;
 #else
@@ -177,13 +184,31 @@ struct brt_value brt_table_ktd_dtc[] = {
 
 static DEFINE_SPINLOCK(bl_ctrl_lock);
 
+/*
+ * Contrary to the name, this turns the backlight
+ * driver on (1) or off (0), any invalid value is
+ * coerced to on (1).
+ */
 void lcd_backlight_off(int num)
 {
 	spin_lock(&bl_ctrl_lock);
-	gpio_set_value(backlight_pin,num);
-	udelay(50);
+
+	num = !!num;
+	gpio_set_value(backlight_pin, num);
+
+	// Power on should take at least 50 us
+	// Power off should take at least 1000 us
+	// Slightly increase delays to ensure stability
+	if (num == 1) {
+		udelay(100);
+	} else {
+		udelay(1500);
+		real_level = 0;
+	}
+
 	spin_unlock(&bl_ctrl_lock);
 }
+
 static void lcd_backlight_control(int num)
 {
 	BLDBG("[BACKLIGHT] lcd_backlight_control ==> pulse  : %d\n", num);
@@ -203,8 +228,8 @@ static int rt4502_backlight_update_status(struct backlight_device *bd)
 	int user_intensity = bd->props.brightness;
 	int tune_level = 0;
 	int pulse;
-	int i = MAX_BRT_STAGE_KTD -1;
-	int j = 0;
+	int i = MAX_BRT_STAGE_KTD;
+
 	struct brt_value *table = NULL;
 
 	printk("[BACKLIGHT] rt4502_backlight_update_status ==> user_intensity  : %d\n", user_intensity);
@@ -219,49 +244,23 @@ static int rt4502_backlight_update_status(struct backlight_device *bd)
 
 	table = (lcd_id_from_uboot == 0x554cc0) ? brt_table_ktd : brt_table_ktd_dtc;
 
-	if (user_intensity < MIN_BRIGHTNESS_VALUE) {
-		tune_level = DIMMING_VALUE;	//DIMMING
-	} else if (user_intensity == MAX_BRIGHTNESS_VALUE) {
-		tune_level = table[i].tune_level;
-	} else if (user_intensity > 0) {
-		while (--i > 0) {
-			if(user_intensity >= table[i].level) {
-				tune_level = table[i].tune_level;
-				break;
-			}
-			/*
-			 * Naive dither
-			 */
-// 			if ((i != 0) &&
-// 				(user_intensity >= ((table[i-1].level + table[i].level) / 2))) {
-// 				printk("[BACKLIGHT] dither activate!\n");
-// 				tune_level = table[i-1].tune_level;
-// 			}
+	if (user_intensity > 0) {
+		for (; (i-- > 0) && user_intensity < table[i].level; )
+			;
 
-		}
-	}
+		tune_level = (i >= 0) ? table[i].tune_level : DIMMING_VALUE;
+	} // if user_intensity == 0, but tune_level is already 0
 
 	printk("[BACKLIGHT] rt4502_backlight_update_status ==> tune_level : %d\n", tune_level);
 	if (real_level == tune_level)
 		return 0;
 
 	if (tune_level <= 0) {
-		spin_lock(&bl_ctrl_lock);
-
-		gpio_set_value(backlight_pin, 0);
-		mdelay(3);
-		real_level = 0;
-
-		spin_unlock(&bl_ctrl_lock);
+		lcd_backlight_off(0);
 	} else {
 		if (real_level == 0) {
-			spin_lock(&bl_ctrl_lock);
-
-			gpio_set_value(backlight_pin, 1);
+			lcd_backlight_off(1);
 			BLDBG("[BACKLIGHT] rt4502_backlight_earlyresume -> Control Pin Enable\n");
-			udelay(100);
-
-			spin_unlock(&bl_ctrl_lock);
 		}
 
 		pulse = tune_level - real_level; // Delta
@@ -278,7 +277,6 @@ static int rt4502_backlight_update_status(struct backlight_device *bd)
 	spin_lock(&bl_ctrl_lock);
 	real_level = tune_level;
 	spin_unlock(&bl_ctrl_lock);
-
 
 	return 0;
 }
@@ -304,13 +302,7 @@ void rt4502_backlight_on(void)
 
 void rt4502_backlight_off(void)
 {
-	spin_lock(&bl_ctrl_lock);
-
-	gpio_set_value(backlight_pin, 0);
-	mdelay(3);
-	real_level = 0;
-
-	spin_unlock(&bl_ctrl_lock);
+	lcd_backlight_off(0);
 }
 #endif
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -318,13 +310,7 @@ static void rt4502_backlight_earlysuspend(struct early_suspend *desc)
 {
 	backlight_mode = BACKLIGHT_SUSPEND;
 
-	spin_lock(&bl_ctrl_lock);
-
-	gpio_set_value(backlight_pin, 0);
-	mdelay(3);
-	real_level = 0;
-
-	spin_unlock(&bl_ctrl_lock);
+	lcd_backlight_off(0);
 
 	printk("[BACKLIGHT] earlysuspend\n");
 }
@@ -444,12 +430,7 @@ static void rt4502_backlight_shutdown(struct platform_device *pdev)
 
 	printk("[BACKLIGHT] rt4502_backlight_shutdown\n");
 
-	spin_lock(&bl_ctrl_lock);
-
-	gpio_set_value(backlight_pin, 0);
-	mdelay(3);
-
-	spin_unlock(&bl_ctrl_lock);
+	lcd_backlight_off(0);
 	return;
 }
 
