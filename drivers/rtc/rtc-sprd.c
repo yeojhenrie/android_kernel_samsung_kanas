@@ -25,6 +25,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/clk.h>
 #include <linux/wakelock.h>
+#include <linux/suspend.h>
 
 #ifdef CONFIG_ARCH_SC8825
 #define RTC_BASE (SPRD_MISC_BASE + 0x80)
@@ -89,6 +90,7 @@
 #define SPRD_RTC_UNLOCK	0xa5
 #define SPRD_RTC_LOCK	(~SPRD_RTC_UNLOCK)
 
+#define SPRD_RTC_SUSPEND_BACKOFF_TIME 2
 
 #define CLEAR_RTC_INT(mask) \
 	do{ sci_adi_raw_write(ANA_RTC_INT_CLR, mask); \
@@ -119,6 +121,7 @@ struct sprd_rtc_data{
 };
 static struct sprd_rtc_data *rtc_data;
 static struct wake_lock rtc_wake_lock;
+static struct wake_lock rtc_alarm_wait_lock;
 static struct wake_lock rtc_interrupt_wake_lock;
 
 static inline unsigned get_sec(void)
@@ -378,6 +381,12 @@ static int sprd_rtc_set_alarm(struct device *dev,
 	}else{
 		sci_adi_clr(ANA_RTC_INT_EN, RTC_ALARM_BIT);
 		sci_adi_raw_write(ANA_RTC_SPG_UPD, SPRD_RTC_LOCK);
+
+		if (wake_lock_active(&rtc_alarm_wait_lock)) {
+			pr_info("Alarm disabled, releasing wakelock\n");
+			wake_unlock(&rtc_alarm_wait_lock);
+		}
+
 		msleep(150);
 	}
 	return 0;
@@ -590,6 +599,32 @@ static struct platform_driver sprd_rtc_driver = {
 	},
 };
 
+static int sprd_rtc_pm_notifier_call(struct notifier_block *nb,
+	unsigned long action, void *data)
+{
+	unsigned long secs = sprd_rtc_get_sec();
+	unsigned long alrm_secs = sprd_rtc_get_alarm_sec();
+
+	if (action != PM_SUSPEND_PREPARE)
+		return NOTIFY_DONE;
+
+	if (secs < alrm_secs && (alrm_secs - secs) <= SPRD_RTC_SUSPEND_BACKOFF_TIME) {
+		pr_info("Alarm detected to occur in the next %lu seconds holding back suspend.\n",
+			(alrm_secs - secs));
+
+		wake_lock_timeout(&rtc_alarm_wait_lock,
+			msecs_to_jiffies((alrm_secs - secs) * 1000));
+		return NOTIFY_BAD;
+	}
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block sprd_rtc_pm_notifier = {
+	.notifier_call = sprd_rtc_pm_notifier_call,
+};
+
+
 static int __init sprd_rtc_init(void)
 {
 	int err;
@@ -602,7 +637,9 @@ static int __init sprd_rtc_init(void)
 	else
 		secs_start_year_to_1970 = mktime(1970, 1, 1, 0, 0, 0);
 	wake_lock_init(&rtc_wake_lock, WAKE_LOCK_SUSPEND, "rtc");
+	wake_lock_init(&rtc_alarm_wait_lock, WAKE_LOCK_SUSPEND, "rtc_alarm_wait");
 	wake_lock_init(&rtc_interrupt_wake_lock, WAKE_LOCK_SUSPEND, "rtc_interrupt");
+	register_pm_notifier(&sprd_rtc_pm_notifier);
 	return 0;
 }
 
@@ -611,6 +648,8 @@ static void __exit sprd_rtc_exit(void)
 	platform_driver_unregister(&sprd_rtc_driver);
 	wake_lock_destroy(&rtc_interrupt_wake_lock);
 	wake_lock_destroy(&rtc_wake_lock);
+	wake_lock_destroy(&rtc_alarm_wait_lock);
+	unregister_pm_notifier(&sprd_rtc_pm_notifier);
 }
 
 MODULE_AUTHOR("Mark Yang <markyang@spreadtrum.com");
