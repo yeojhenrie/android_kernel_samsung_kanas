@@ -249,30 +249,31 @@ EXPORT_SYMBOL(dfs_freq_raise_quirk);
 
 /************ early suspend  *****************/
 #ifdef CONFIG_HAS_EARLYSUSPEND
-static void devfreq_early_suspend(struct early_suspend *h)
+static void devfreq_enable_late_resume(struct early_suspend *h)
 {
-	dfs_set_freq(192000);
-	gov_eb = 0;
-}
-
-static void devfreq_late_resume(struct early_suspend *h)
-{
+	// DISPC has resumed release the lock and allow DFS
+	gov_eb = 1;
 	dfs_set_freq(0);
 }
 
-static struct early_suspend devfreq_early_suspend_desc = {
-        .level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 100,
-        .suspend = devfreq_early_suspend,
-        .resume = devfreq_late_resume,
+static void devfreq_enable_early_suspend(struct early_suspend *h)
+{
+	// Lock to highest freq, Disable DFS before DISPC resumes
+	gov_eb = 0;
+	dfs_set_freq(500000);
+}
+
+static struct early_suspend devfreq_enable_desc = {
+        .level = EARLY_SUSPEND_LEVEL_DISABLE_FB - 10,
+        .resume = devfreq_enable_late_resume,
+        .suspend = devfreq_enable_early_suspend,
 };
 
-static void devfreq_enable_late_resume(struct early_suspend *h)
-{
-	gov_eb = 1;
-}
-static struct early_suspend devfreq_enable_desc = {
-        .level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
-        .resume = devfreq_enable_late_resume,
+
+static struct early_suspend devfreq_early_suspend_desc = {
+        .level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 10,
+        .resume = devfreq_enable_early_suspend,
+        .suspend = devfreq_enable_late_resume,
 };
 #endif
 /************ userspace interface *****************/
