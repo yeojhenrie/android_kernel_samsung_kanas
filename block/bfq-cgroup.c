@@ -797,6 +797,26 @@ static int bfqio_can_attach(struct cgroup *cgroup, struct cgroup_taskset *tset)
 	return ret;
 }
 
+static int bfqio_allow_attach(struct cgroup *cgrp, struct cgroup_taskset *tset)
+{
+	const struct cred *cred = current_cred(), *tcred;
+	struct task_struct *task;
+
+	if (capable(CAP_SYS_ADMIN))
+		return 0;
+
+	cgroup_taskset_for_each(task, cgrp, tset) {
+		tcred = __task_cred(task);
+
+		if (current != task &&
+		    cred->euid != tcred->uid &&
+		    cred->euid != tcred->suid)
+			return -EACCES;
+	}
+
+	return 0;
+}
+
 static void bfqio_attach(struct cgroup *cgroup, struct cgroup_taskset *tset)
 {
 	struct task_struct *task;
@@ -851,6 +871,7 @@ struct cgroup_subsys bfqio_subsys = {
 	.name = "bfqio",
 	.css_alloc = bfqio_create,
 	.can_attach = bfqio_can_attach,
+	.allow_attach = bfqio_allow_attach,
 	.attach = bfqio_attach,
 	.css_free = bfqio_destroy,
 	.subsys_id = bfqio_subsys_id,
