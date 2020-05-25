@@ -213,28 +213,16 @@ static int dma_copy_k_yuv(DMA_COPY_CFG_T * param_ptr)
 	int32_t ret = 0;
 	uint32_t src_addr = 0, dst_addr = 0, len =0;
 
-	/*dma copy Y*/
+	/*dma copy YUV*/
 	src_addr = param_ptr->src_addr.y_addr;
 	dst_addr = param_ptr->dst_addr.y_addr;
-	len = param_ptr->src_size.w * param_ptr->src_size.h;
+	len = (param_ptr->src_size.w * param_ptr->src_size.h *3)/2;
 	ret = sci_dma_memcpy(dst_addr, src_addr, len);
 	if (ret) {
-		printk("dma_copy_k_yuv: y fail. \n");
+		printk("dma_copy_k_yuv: yuv fail. \n");
 		return -1;
 	}
-	/*dma copy UV*/
-	src_addr = param_ptr->src_addr.uv_addr;
-	dst_addr = param_ptr->dst_addr.uv_addr;
-	if (DMA_COPY_YUV420 == param_ptr->format) {
-		len = (param_ptr->src_size.w * param_ptr->src_size.h) >> 1;
-	} else {
-		len = param_ptr->src_size.w * param_ptr->src_size.h;/*YUV422*/
-	}
-	ret = sci_dma_memcpy(dst_addr, src_addr, len);
-	if (ret) {
-		printk("dma_copy_k_yuv: uv fail. \n");
-		return -1;
-	}
+
 	return 0;
 }
 
