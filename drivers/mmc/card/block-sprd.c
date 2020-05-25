@@ -865,10 +865,16 @@ static int mmc_blk_reset(struct mmc_blk_data *md, struct mmc_host *host,
 			 int type)
 {
 	int err;
+	static int prev_type = 0;
 
 	if (md->reset_done & type) {
-		printk("%s: mmc_blk_reset return EEXIST\n", mmc_hostname(host));
-		return -EEXIST;
+		printk("%s: mmc_blk_reset type %d\n", mmc_hostname(host), type);
+		if (prev_type != type) {
+			printk("%s: mmc_blk_reset return EEXIST\n", mmc_hostname(host));
+			prev_type = type;
+			return -EEXIST;
+		}
+		printk("%s: mmc_blk_reset got the same reset type 2 times in a row, resetting card\n");
 	}
 	md->reset_done |= type;
 	err = mmc_hw_reset(host);
