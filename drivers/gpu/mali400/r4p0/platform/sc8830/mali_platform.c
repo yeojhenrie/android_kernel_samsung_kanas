@@ -1168,6 +1168,8 @@ void mali_platform_utilization(struct mali_gpu_utilization_data *data)
 				gpu_dfs_ctx.dfs_max_freq_p->index,
 				target_freq);
 			gpu_dfs_ctx.next_freq_p=gpu_dfs_ctx.dfs_freq_list[next_freq_index];
+
+			mali_core_freq_set_saved();
 		}
 	}
 #endif
@@ -1195,11 +1197,7 @@ void mali_platform_utilization(struct mali_gpu_utilization_data *data)
 		}
 #endif
 	}
-#ifdef CONFIG_MALI_CORE_SCALING
-	else {
-		mali_core_freq_set_saved();
-	}
-#endif
+
 }
 
 static void gpufreq_table_show(char* buf)
@@ -1231,11 +1229,6 @@ static void gpu_change_freq_div(void)
 	{
 #if !GPU_GLITCH_FREE_DFS
 		mali_dev_pause();
-#endif
-
-#ifdef CONFIG_MALI_CORE_SCALING
-		/* Set number of cores */
-		mali_core_freq_quick_set_saved();
 #endif
 
 		if(gpu_dfs_ctx.next_freq_p!=gpu_dfs_ctx.cur_freq_p)

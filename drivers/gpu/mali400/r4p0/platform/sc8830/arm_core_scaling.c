@@ -75,9 +75,7 @@ int mali_core_scaling = 0;
 
 static void set_num_cores(struct work_struct *work)
 {
-	mali_dev_pause();
 	mali_perf_set_num_pp_cores(target_num_cores);
-	mali_dev_resume();
 }
 
 void mali_core_freq_set_saved(void) {
@@ -86,14 +84,6 @@ void mali_core_freq_set_saved(void) {
 
 	schedule_work(&gpu_plug_work);
 }
-
-void mali_core_freq_quick_set_saved(void) {
-	if (mali_pp_scheduler_get_num_cores_enabled() == target_num_cores)
-		return;
-
-	mali_perf_set_num_pp_cores(target_num_cores);
-}
-
 
 static int frequency_to_scale(int freq) {
 	int l, m, h;
@@ -191,15 +181,11 @@ int mali_core_freq_scale(struct mali_gpu_utilization_data *data, int old_freq, i
 	if (scaled_load < mali_core_minload)
 		scaled_load = mali_core_minload;
 
-	// Another weird trick to speed up the slow scale up
-	// by imposing an extra imaginary load
+	// Another weird trick to speed up the slow scale up is to
+	// pull up the load to the current capacity
 	if (231 <= data->utilization_gpu && (231 <= mali_core_tarutil )) {
 		scaled_load = mali_pp_scheduler_get_num_cores_enabled();
-		if (old_freq == max_freq) {
-			//scaled_load = core_capacity[scaled_load >= num_cores_total ? num_cores_total - 1 : scaled_load];
-		} else {
-			scaled_load = core_capacity[scaled_load - 1];
-		}
+		scaled_load = core_capacity[scaled_load - 1];
 	}
 	MALI_DEBUG_PRINT(3, ("Core scaling: scaled load:%d\n", scaled_load));
 	/*
