@@ -28,14 +28,9 @@
 #elif defined(CONFIG_SC_VIBRATOR_POWER)
 #include <linux/regulator/consumer.h>
 #endif
-#ifdef CONFIG_MACH_KANAS
+#if defined(CONFIG_MACH_KANAS) && defined(CONFIG_MFD_D2200)
 //To Enable Vibrator via PMIC LDO
-#include <linux/regulator/consumer.h>
-#include <mach/regulator.h>
-#include <mach/board.h>
-#if defined(CONFIG_MFD_D2200)
 #include <linux/d2200/core.h>
-#endif /* CONFIG_MFD_D2200 */
 //End of Enable Vibrator via PMIC LDO
 #endif
 
@@ -83,159 +78,131 @@
 #ifdef CONFIG_SC_VIBRATOR_POWER
 static struct regulator *vibrator_regulator = NULL;
 #endif
-
-static struct work_struct vibrator_work;
 static struct hrtimer vibe_timer;
-static int vibe_state = 0;
-#ifdef CONFIG_MACH_KANAS
-static struct regulator *mot_vdd = NULL;//To Enable Vibrator via PMIC LDO
-#endif
-#if 0
+
 #ifdef CONFIG_SS_FUNCTION
 static void set_vibrator(int on)
 {
-
-#ifndef CONFIG_SC_VIBRATOR_GPIO
-	if (on)
-	{
+	if (on)	{
 		printk("###############vibrator on##################\n");
-		sci_adi_set(ANA_REG_GLB_BA_CTRL3, VIBR_PULLDOWN_EN);
-		sci_adi_clr(ANA_REG_GLB_BA_CTRL2, LDO_VIBR_PD);
-	}
-	else
-	{
+		sci_adi_set((unsigned long)ANA_REG_GLB_BA_CTRL3, VIBR_PULLDOWN_EN);
+		sci_adi_clr((unsigned long)ANA_REG_GLB_BA_CTRL2, LDO_VIBR_PD);
+	} else {
 		printk("###############vibrator off##################\n");
-		sci_adi_set(ANA_REG_GLB_BA_CTRL2, LDO_VIBR_PD);
-		sci_adi_clr(ANA_REG_GLB_BA_CTRL3, VIBR_PULLDOWN_EN);
+		sci_adi_set((unsigned long)ANA_REG_GLB_BA_CTRL2, LDO_VIBR_PD);
+		sci_adi_clr((unsigned long)ANA_REG_GLB_BA_CTRL3, VIBR_PULLDOWN_EN);
 	}
-#endif
-
 }
-#endif
 
 static void vibrator_hw_init(void)
 {
 	return;
 }
-#endif
-
+#else
 static void set_vibrator(int on)
 {
-#if 0
 #ifdef CONFIG_SC_VIBRATOR_GPIO
 	gpio_set_value(GPIO_VIBRATOR_INT, on);
 #elif defined(CONFIG_SC_VIBRATOR_POWER)
 	if (on) {
-		regulator_enable(vibrator_regulator);
+		if (regulator_enable(vibrator_regulator))
+			pr_err("Set vibrator regulator error!\n");
+	} else if (regulator_is_enabled(vibrator_regulator)) {
+		// HACK use the 'on' variable as a temporary variable
+		for (on = 10; regulator_is_enabled(vibrator_regulator); on--) {
+			if (!on) {
+				if (regulator_is_enabled(vibrator_regulator))
+					pr_warn("Vibrator still not closed after 10 tries. Giving up!\n");
+				on = 1;
+				break;
+			}
+			regulator_disable(vibrator_regulator);
+		}
 	}
-	else {
-		regulator_disable(vibrator_regulator);
-	}
-#endif
-#endif
-
-#ifdef CONFIG_MACH_SHARK
-#ifndef CONFIG_SC_VIBRATOR_GPIO
+#elif defined(CONFIG_MACH_SHARK)
 	/* unlock vibrator registor */
-	sci_adi_write(ANA_VIBR_WR_PROT, VIBRATOR_REG_UNLOCK, 0xffff);
+	sci_adi_write((unsigned long)ANA_VIBR_WR_PROT, VIBRATOR_REG_UNLOCK, 0xffff);
 #ifdef CONFIG_ARCH_SCX35
 	if (on)
-		sci_adi_write(ANA_VIBRATOR_CTRL0, BIT_VIBR_PON, BIT_VIBR_PON);
+		sci_adi_write((unsigned long)ANA_VIBRATOR_CTRL0, BIT_VIBR_PON, BIT_VIBR_PON);
 	else
-		sci_adi_write(ANA_VIBRATOR_CTRL0, 0, BIT_VIBR_PON);
+		sci_adi_write((unsigned long)ANA_VIBRATOR_CTRL0, 0, BIT_VIBR_PON);
 #else
-	sci_adi_clr(ANA_VIBRATOR_CTRL0, VIBR_PD_SET | VIBR_PD_RST);
+	sci_adi_clr((unsigned long)ANA_VIBRATOR_CTRL0, VIBR_PD_SET | VIBR_PD_RST);
 	if (on)
-		sci_adi_set(ANA_VIBRATOR_CTRL0, VIBR_PD_RST);
+		sci_adi_set((unsigned long)ANA_VIBRATOR_CTRL0, VIBR_PD_RST);
 	else
-		sci_adi_set(ANA_VIBRATOR_CTRL0, VIBR_PD_SET);
+		sci_adi_set((unsigned long)ANA_VIBRATOR_CTRL0, VIBR_PD_SET);
 #endif
 	/* lock vibrator registor */
-	sci_adi_write(ANA_VIBR_WR_PROT, VIBRATOR_REG_LOCK, 0xffff);
-#else
-       gpio_set_value(GPIO_VIBRATOR_INT, on);
-#endif
+	sci_adi_write((unsigned long)ANA_VIBR_WR_PROT, VIBRATOR_REG_LOCK, 0xffff);
 #endif 
-
-#ifdef CONFIG_MACH_KANAS 
-//To Enable Vibrator via PMIC LDO
-	if (mot_vdd == NULL) 
-	{
-			mot_vdd = regulator_get(NULL, "vddcammot");
-            if (IS_ERR(mot_vdd)) 
-			{
-					pr_err("Get regulator of VIB error!\n");
-                    return;
-            }
-    }
-    if (on) 
-	{
-            regulator_set_voltage(mot_vdd, 2800000, 3000000);
-            regulator_enable(mot_vdd);
-    }
-    else if (regulator_is_enabled(mot_vdd)) 
-	{
-			regulator_disable(mot_vdd);
-    }
-//End of Enable Vibrator via PMIC LDO
-#endif
 }
 
 static void vibrator_hw_init(void)
 {
-#ifndef CONFIG_SC_VIBRATOR_GPIO
-/*
+#ifdef CONFIG_SC_VIBRATOR_GPIO
 	gpio_request(GPIO_VIBRATOR_INT, "vibrator");
 	gpio_direction_output(GPIO_VIBRATOR_INT, 0);
 #elif defined(CONFIG_SC_VIBRATOR_POWER)
 	vibrator_regulator = regulator_get(NULL, "vddcammot");
-	regulator_set_voltage(vibrator_regulator, 3300000, 3300000);
+	if (!IS_ERR(vibrator_regulator)) {
+#ifdef CONFIG_MACH_KANAS
+		regulator_set_voltage(vibrator_regulator, 2800000, 3000000);
 #else
-*/
-	sci_adi_write(ANA_VIBR_WR_PROT, VIBRATOR_REG_UNLOCK, 0xffff);
+		regulator_set_voltage(vibrator_regulator, 3300000, 3300000);
+#endif
+	}
+
+#ifdef CONFIG_MACH_KANAS
+	if (IS_ERR(vibrator_regulator)) {
+		pr_err("Get regulator of VIB error!\n");
+		vibrator_regulator = NULL;
+	}
+#endif
+#else
+	sci_adi_write((unsigned long)(unsigned long)ANA_VIBR_WR_PROT, VIBRATOR_REG_UNLOCK, 0xffff);
 #ifdef CONFIG_ARCH_SCX35
-	sci_adi_write(ANA_REG_GLB_RTC_CLK_EN, BIT_RTC_VIBR_EN, BIT_RTC_VIBR_EN);
+	sci_adi_write((unsigned long)(unsigned long)ANA_REG_GLB_RTC_CLK_EN, BIT_RTC_VIBR_EN, BIT_RTC_VIBR_EN);
 #else
-	sci_adi_set(ANA_VIBRATOR_CTRL0, VIBR_RTC_EN);
-	sci_adi_clr(ANA_VIBRATOR_CTRL0, VIBR_BP_EN);
+	sci_adi_set((unsigned long)(unsigned long)ANA_VIBRATOR_CTRL0, VIBR_RTC_EN);
+	sci_adi_clr((unsigned long)(unsigned long)ANA_VIBRATOR_CTRL0, VIBR_BP_EN);
 #endif
 	/* set init current level */
-	sci_adi_write(ANA_VIBRATOR_CTRL0,
+	sci_adi_write((unsigned long)(unsigned long)ANA_VIBRATOR_CTRL0,
 		      (VIBRATOR_INIT_LEVEL << VIBR_INIT_V_SHIFT),
 		      VIBR_INIT_V_MSK);
-	sci_adi_write(ANA_VIBRATOR_CTRL0,
+	sci_adi_write((unsigned long)(unsigned long)ANA_VIBRATOR_CTRL0,
 		      (VIBRATOR_STABLE_LEVEL << VIBR_STABLE_V_SHIFT),
 		      VIBR_STABLE_V_MSK);
 	/* set stable current level */
-	sci_adi_write(ANA_VIBRATOR_CTRL1, VIBRATOR_INIT_STATE_CNT, 0xffff);
-	sci_adi_write(ANA_VIBR_WR_PROT, VIBRATOR_REG_LOCK, 0xffff);
-#else
-        gpio_request(GPIO_VIBRATOR_INT, "vibrator");
-        gpio_direction_output(GPIO_VIBRATOR_INT, 0);
+	sci_adi_write((unsigned long)(unsigned long)ANA_VIBRATOR_CTRL1, VIBRATOR_INIT_STATE_CNT, 0xffff);
+	sci_adi_write((unsigned long)(unsigned long)ANA_VIBR_WR_PROT, VIBRATOR_REG_LOCK, 0xffff);
 #endif
 }
+#endif
 
-static void update_vibrator(struct work_struct *work)
+static void update_vibrator(int vibe_request_length)
 {
-	set_vibrator(vibe_state);
+	set_vibrator(!!vibe_request_length);
+
+	if (vibe_request_length) {
+		hrtimer_start(&vibe_timer,
+			      ktime_set(vibe_request_length / 1000, (vibe_request_length % 1000) * 1000000),
+			      HRTIMER_MODE_REL);
+	}
 }
 
 static void vibrator_enable(struct timed_output_dev *dev, int value)
 {
-
 	hrtimer_cancel(&vibe_timer);
 
-	if (value == 0)
-		vibe_state = 0;
-	else {
-		value = (value > 15000) ? 15000 : value;
-		vibe_state = 1;
-		hrtimer_start(&vibe_timer,
-			      ktime_set(value / 1000, (value % 1000) * 1000000),
-			      HRTIMER_MODE_REL);
-	}
-
-	schedule_work(&vibrator_work);
+#ifdef CONFIG_MACH_KANAS
+	// Values lower than 15 tend to not produce a perceptible vibration at all
+	update_vibrator((value > 15000) ? 15000 : (value && value < 15) ? 15 : value);
+#else
+	update_vibrator((value > 15000) ? 15000 : value);
+#endif
 }
 
 static int vibrator_get_time(struct timed_output_dev *dev)
@@ -244,16 +211,15 @@ static int vibrator_get_time(struct timed_output_dev *dev)
 
 	if (hrtimer_active(&vibe_timer)) {
 		re = hrtimer_get_remaining(&vibe_timer);
-		return ktime_to_ns(re);
-	} else
-		return 0;
+		return (u32)div_u64(ktime_to_ns(re), 1000000);
+	}
+
+	return 0;
 }
 
 static enum hrtimer_restart vibrator_timer_func(struct hrtimer *timer)
 {
-	vibe_state = 0;
-	schedule_work(&vibrator_work);
-
+	update_vibrator(0);
 	return HRTIMER_NORESTART;
 }
 
@@ -267,8 +233,6 @@ static int __init sprd_init_vibrator(void)
 {
 	vibrator_hw_init();
 
-	INIT_WORK(&vibrator_work, update_vibrator);
-	vibe_state = 0;
 	hrtimer_init(&vibe_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	vibe_timer.function = vibrator_timer_func;
 
