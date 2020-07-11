@@ -2019,7 +2019,7 @@ static int32_t sprdfb_update_fps_clock(struct sprdfb_device *dev, int fps_level)
     dpi_clock = dev->dpi_clock;
 
     printk("sprdfb:sprdfb_update_fps_clock--fps_level:%d \n",fps_level);
-    if((fps_level < 40) || (fps_level > 64)) {
+    if((fps_level < 33) || (fps_level > 67)) {
 	printk("sprdfb: invalid fps set!\n");
 	return -1;
     }
