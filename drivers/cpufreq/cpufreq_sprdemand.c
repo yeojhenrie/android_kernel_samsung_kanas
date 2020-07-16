@@ -1019,6 +1019,9 @@ static void sd_dbs_timer(struct work_struct *work)
 	bool modify_all = true;
 
 	mutex_lock(&core_dbs_info->cdbs.timer_mutex);
+	if (!sd_tuners || !dbs_data)
+		goto max_delay;
+
 	if(time_before(jiffies, boot_done))
 		goto max_delay;
 
