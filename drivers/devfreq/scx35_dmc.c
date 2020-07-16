@@ -415,31 +415,40 @@ static int scxx30_dmc_get_dev_status(struct device *dev,
 	u64 trans_bw;
 	u32 interval;
 	dmc_mon_cnt_stop();
-	trans_bw = (u64)dmc_mon_cnt_bw(); /* total access: B */
+	trans_bw = (u64)dmc_mon_cnt_bw(); /* total access: B per interval jiffy*/
 	dmc_mon_cnt_clr();
 	dmc_mon_cnt_start();
 	interval = jiffies - data->last_jiffies;
 	data->last_jiffies = jiffies;
+
+	static u64 ema_trans_bw = 0;
 
 	if(request_quirk)
 		data->quirk_jiffies = jiffies;
 
 	stat->current_frequency = emc_clk_get() * 1000; /* KHz */
 	/* stat->current_frequency = opp_get_freq(data->curr_opp); */
-	total_bw = (stat->current_frequency)*8; /* freq*2*32/8 */
+	total_bw = (stat->current_frequency)*7; /* freq*2*32/8 */
 	pr_debug("*** %s, trans_bw:%lluB, curr freq:%lu, total_bw:%uKB ***\n",
 			__func__, trans_bw, stat->current_frequency, total_bw);
+
+	stat->total_time = total_bw*512 ;   /* BW: KB*1000*(efficiency ratio 50%) B/s */
 
 	/*
 	* TODO: efficiency ratio could be more accurate??
 	*/
-	if(interval){
-		stat->busy_time = (u32)div_u64(trans_bw*HZ, interval); /* BW: B/s */
-		stat->total_time = total_bw*500 ;   /* BW: KB*1000*(efficiency ratio 50%) B/s */
-	}else{
-		stat->busy_time = (u32)div_u64(trans_bw*HZ, 1); /* BW: B/s */
-		stat->total_time = total_bw*500 ;   /* BW: KB*1000*(efficiency ratio 50%) B/s */
+	if (interval > HZ) {
+		// Bytes per second (convert jiffies to seconds first)
+		ema_trans_bw = div_u64(trans_bw*HZ, interval);
+	} else {
+		if (interval)
+			ema_trans_bw =  div_u64(ema_trans_bw*(HZ-interval), HZ) + trans_bw;
+		else // illegal case
+			ema_trans_bw = stat->total_time;
+
 	}
+	stat->busy_time = (u32) ema_trans_bw;
+
 	pr_debug("*** %s, interval:%u, busy_time:%lu, totoal_time:%lu ***\n",
 				__func__, interval, stat->busy_time, stat->total_time );
 #else
