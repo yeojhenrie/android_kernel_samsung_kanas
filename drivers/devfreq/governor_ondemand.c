@@ -264,14 +264,14 @@ static void devfreq_enable_early_suspend(struct early_suspend *h)
 }
 
 static struct early_suspend devfreq_enable_desc = {
-        .level = EARLY_SUSPEND_LEVEL_DISABLE_FB - 10,
+        .level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN - 10,
         .resume = devfreq_enable_late_resume,
         .suspend = devfreq_enable_early_suspend,
 };
 
 
 static struct early_suspend devfreq_early_suspend_desc = {
-        .level = EARLY_SUSPEND_LEVEL_DISABLE_FB + 10,
+        .level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 10,
         .resume = devfreq_enable_early_suspend,
         .suspend = devfreq_enable_late_resume,
 };
