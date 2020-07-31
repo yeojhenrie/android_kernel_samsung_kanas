@@ -374,6 +374,34 @@ config SPRD_ION_OVERLAY_SIZE
         default 1
 	depends on ION
 
+config SPRD_ION_RESERVED_SIZE
+        int "size for ion reserved carveout"
+        range 0 64
+        default 0
+        depends on ION && CMA
+        help
+            Sets a aside a carveout memory that a userspace program
+            can use when CMA/DMA allocation fails on their corresponding
+            heaps. Carveout memory is taken from system memory and
+            will not be used for normal allocations.
+
+            The userspace program must know about the ION_HEAP_ID_RESERVE id
+            to be able to use it which often needs recompiling the program
+
+            If unsure, choose 0 to disable this carveout.
+
+config SPRD_ION_FORCE_OVERLAY_CARVEOUT
+        bool "Force Carveouts on ION Overlay"
+        depends on ION && CMA
+        default n
+        help
+            Uses carveouts when allocating the Overlay ION memory instead
+            of using CMA for allocation. This helps reduce the overhead of
+            allocating through CMA and avoids page migration at a cost of
+            reduced available system memory.
+
+            If unsure, say n.
+
 config SC_VIBRATOR
         bool "vibrator for SC serials"
         select ANDROID_TIMED_OUTPUT

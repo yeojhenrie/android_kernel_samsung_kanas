@@ -117,7 +117,12 @@ static void ion_carveout_heap_free(struct ion_buffer *buffer)
 
 	if (ion_buffer_cached(buffer))
 		dma_sync_sg_for_device(NULL, table->sgl, table->nents,
+#ifdef CONFIG_SPRD_ION_FORCE_OVERLAY_CARVEOUT
+							DMA_TO_DEVICE);
+#else
 							DMA_BIDIRECTIONAL);
+#endif
+
 
 	ion_carveout_free(heap, paddr, buffer->size);
 	sg_free_table(table);
@@ -189,7 +194,11 @@ struct ion_heap *ion_carveout_heap_create(struct ion_platform_heap *heap_data)
 	page = pfn_to_page(PFN_DOWN(heap_data->base));
 	size = heap_data->size;
 
+#ifdef CONFIG_SPRD_ION_FORCE_OVERLAY_CARVEOUT
+	ion_pages_sync_for_device(NULL, page, size, DMA_TO_DEVICE);
+#else
 	ion_pages_sync_for_device(NULL, page, size, DMA_BIDIRECTIONAL);
+#endif
 
 	ret = ion_heap_pages_zero(page, size, pgprot_writecombine(PAGE_KERNEL));
 	if (ret)

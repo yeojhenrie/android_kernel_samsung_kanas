@@ -40,6 +40,11 @@
 #include "ion_priv.h"
 #include "compat_ion.h"
 
+#ifdef CONFIG_SPRD_ION_FORCE_OVERLAY_CARVEOUT
+#include <video/ion_sprd.h>
+
+#endif
+
 /**
  * struct ion_device - the metadata of the ion device node
  * @dev:		the actual misc device
@@ -1439,8 +1444,57 @@ static long ion_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 						data.allocation.flags);
 		if (IS_ERR(handle))
 		{
-			pr_err("%s: ion alloc error! and handle is %p\n",__func__,handle);
-			return PTR_ERR(handle);
+#ifdef CONFIG_SPRD_ION_FORCE_OVERLAY_CARVEOUT
+			/*
+			 * ION_HEAP_ID_MASK_MM and ION_HEAP_ID_MASK_OVERLAY originally
+			 * was meant to be from a single CMA pool and applications
+			 * don't care which heap they are allocated in.
+			 * When ION_HEAP_ID_MASK_OVERLAY is a carveout, we'd want to try both
+			 * heaps for maximum chance of success.
+			 */
+			if (data.allocation.heap_id_mask & ION_HEAP_ID_MASK_MM) {
+				pr_err("%s: falling back to ION_HEAP_ID_MASK_OVERLAY\n",__func__);
+
+				data.allocation.heap_id_mask &= ~(ION_HEAP_ID_MASK_MM);
+				data.allocation.heap_id_mask |= ION_HEAP_ID_MASK_OVERLAY;
+				handle = ion_alloc(client, data.allocation.len,
+				                   data.allocation.align,
+				                   data.allocation.heap_id_mask,
+				                   data.allocation.flags);
+
+				if (!IS_ERR(handle))
+					pr_info("%s: Succeeded in ION_HEAP_ID_MASK_OVERLAY\n",__func__);
+			} else if (data.allocation.heap_id_mask & ION_HEAP_ID_MASK_OVERLAY) {
+				pr_err("%s: falling back to ION_HEAP_ID_MASK_MM\n",__func__);
+
+				data.allocation.heap_id_mask &= ~(ION_HEAP_ID_MASK_OVERLAY);
+				data.allocation.heap_id_mask |= ION_HEAP_ID_MASK_MM;
+				handle = ion_alloc(client, data.allocation.len,
+				                   data.allocation.align,
+				                   data.allocation.heap_id_mask,
+				                   data.allocation.flags);
+				if (!IS_ERR(handle))
+					pr_info("%s: Succeeded in ION_HEAP_ID_MASK_MM\n",__func__);
+			}
+#endif
+
+#if CONFIG_SPRD_ION_RESERVED_SIZE
+			if (IS_ERR(handle)) {
+				pr_err("%s: falling back to ION_HEAP_ID_MASK_RESERVED\n",__func__);
+				handle = ion_alloc(client, data.allocation.len,
+								data.allocation.align,
+								ION_HEAP_ID_MASK_RESERVED,
+								data.allocation.flags);
+
+				if (!IS_ERR(handle))
+					pr_info("%s: Succeeded in ION_HEAP_ID_MASK_RESERVED\n",__func__);
+			}
+
+#endif
+			if (IS_ERR(handle)) {
+				pr_err("%s: ion alloc error! and handle is %p\n",__func__,handle);
+				return PTR_ERR(handle);
+			}
 		}
 
 		data.allocation.handle = handle->id;

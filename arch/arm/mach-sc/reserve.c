@@ -25,7 +25,6 @@
 static int __init __iomem_reserve_memblock(void)
 {
 	int ret;
-
 #ifndef CONFIG_CMA
 	if (memblock_is_region_reserved(SPRD_ION_MEM_BASE, SPRD_ION_MEM_SIZE))
 		return -EBUSY;
@@ -39,6 +38,23 @@ static int __init __iomem_reserve_memblock(void)
 		return -ENOMEM;
 	}
 	pr_info("reserve CMA area(base:%x size:%x) for ION\n", SPRD_ION_MEM_BASE, SPRD_ION_MEM_SIZE);
+
+#ifdef CONFIG_SPRD_ION_FORCE_OVERLAY_CARVEOUT
+	if (!(memblock_is_region_reserved(SPRD_ION_OVERLAY_BASE, SPRD_ION_OVERLAY_SIZE)) &&
+		!(memblock_reserve(SPRD_ION_OVERLAY_BASE, SPRD_ION_OVERLAY_SIZE))) {
+		pr_info("reserved Overlay carveout (base:%x size:%x) for ION\n", SPRD_ION_OVERLAY_BASE, SPRD_ION_OVERLAY_SIZE);
+	} else {
+		pr_err("allocation failed for Overlay carveout (base:%x size:%x)\n", SPRD_ION_OVERLAY_BASE, SPRD_ION_OVERLAY_SIZE);
+	}
+#endif
+
+#if (CONFIG_SPRD_ION_RESERVED_SIZE != 0)
+	if (memblock_is_region_reserved(SPRD_ION_RESERVED_BASE, SPRD_ION_RESERVED_SIZE))
+		return 0;
+	if (memblock_reserve(SPRD_ION_RESERVED_BASE, SPRD_ION_RESERVED_SIZE))
+		return 0;
+	pr_info("reserved carveout (base:0x%08X size:0x%08X) for ION\n", SPRD_ION_RESERVED_BASE, SPRD_ION_RESERVED_SIZE);
+#endif
 #endif
 	return 0;
 }

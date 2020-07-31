@@ -1177,7 +1177,7 @@ static struct ion_platform_heap ion_pheaps[] = {
                 },
                 {
                         .id     = ION_HEAP_ID_OVERLAY,
-#ifdef CONFIG_CMA
+#if defined(CONFIG_CMA) && !defined(CONFIG_SPRD_ION_FORCE_OVERLAY_CARVEOUT)
                         .type   = ION_HEAP_TYPE_DMA,
                         .name   = "ion_heap_cma_overlay",
 						.priv	= &sprd_ion_dev.dev,
@@ -1188,6 +1188,15 @@ static struct ion_platform_heap ion_pheaps[] = {
                         .size   = SPRD_ION_OVERLAY_SIZE,
 #endif
                 },
+#if (CONFIG_SPRD_ION_RESERVED_SIZE != 0)
+                {
+                        .id     = ION_HEAP_ID_RESERVED,
+                        .type   = ION_HEAP_TYPE_CARVEOUT,
+                        .name   = "ion_heap_carveout_reserved",
+                        .base   = SPRD_ION_RESERVED_BASE,
+                        .size   = SPRD_ION_RESERVED_SIZE,
+                },
+#endif
 };
 
 static struct ion_platform_data ion_pdata = {
