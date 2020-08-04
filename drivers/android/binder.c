@@ -2438,8 +2438,11 @@ static void binder_transaction(struct binder_proc *proc,
 		thread->transaction_stack = t;
 		node_prio.prio = t->buffer->target_node->min_priority;
 		node_prio.sched_policy = t->buffer->target_node->sched_policy;
-		binder_transaction_priority(target_thread->task, t, node_prio,
-		                            t->buffer->target_node->inherit_rt);
+
+		if (target_thread) {
+			binder_transaction_priority(target_thread->task, t, node_prio,
+						    t->buffer->target_node->inherit_rt);
+		}
 	} else {
 		BUG_ON(target_node == NULL);
 		BUG_ON(t->buffer->async_transaction != 1);
